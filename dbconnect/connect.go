@@ -10,7 +10,7 @@ import (
 	"gorm.io/gorm"
 )
 
-var db *gorm.DB
+var DB *gorm.DB
 
 func Connect() (*gorm.DB, error) {
 	config := config.GetConfig()
@@ -23,7 +23,7 @@ func Connect() (*gorm.DB, error) {
 		config.DB_NAME)
 
 	var err error
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
 
 	if err != nil {
 		log.Fatalf("failed to connect to db: %v", err.Error())
@@ -32,9 +32,9 @@ func Connect() (*gorm.DB, error) {
 	fmt.Println("database connected")
 	fmt.Println("migrating schema")
 
-	db.AutoMigrate(models.User{})
+	DB.AutoMigrate(models.User{})
 
 	fmt.Println("schema migrated")
 
-	return db, nil
+	return DB, nil
 }
