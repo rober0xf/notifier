@@ -1,7 +1,6 @@
 package config
 
 import (
-	"bytes"
 	"log"
 	"os"
 
@@ -36,7 +35,6 @@ func GetConfig() Config {
 	jwtKey := os.Getenv("JWT_KEY")
 	if jwtKey == "" {
 		log.Fatalf("error loading key")
-		os.Exit(1)
 	}
 
 	JwtKey = []byte(jwtKey)
