@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
+	"goapi/dbconnect"
+	"goapi/routes"
 	"log"
 	"net/http"
-
-	"github.com/gorilla/mux"
 )
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
@@ -13,11 +13,15 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	fmt.Println("hello from first line")
+	db, err := dbconnect.Connect()
+	if err != nil {
+		log.Fatalf("could not connect to database: %v", err)
+	}
 
-	r := mux.NewRouter()
-	r.HandleFunc("/", homeHandler)
+	r := routes.InitRouter(db)
 
-	fmt.Println("running on port 8080")
-	log.Fatal(http.ListenAndServe(":8080", r))
+	r.HandleFunc("/home", homeHandler)
+
+	fmt.Println("running on port 3000")
+	log.Fatal(http.ListenAndServe(":3000", r))
 }
