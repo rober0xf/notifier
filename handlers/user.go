@@ -7,6 +7,7 @@ import (
 	"goapi/models"
 	"net/http"
 
+	"github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -34,6 +35,13 @@ func CreateUser(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// fix autoincrement id
+	var existingUser models.User
+	if err := db.Where("email = ?", user.Email).First(&existingUser).Error; err == nil {
+		http.Error(w, "credentials already exists", http.StatusConflict)
+		return
+	}
+
 	// first we hash the password and then we store it
 	password, err := hashPassw(user.Password)
 	if err != nil {
@@ -43,14 +51,22 @@ func CreateUser(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	user.Password = password
 
 	if err := db.Create(&user).Error; err != nil {
-		if errors.Is(err, gorm.ErrDuplicatedKey) {
-			http.Error(w, "user already exists", http.StatusConflict)
+		if mysqlErr, ok := err.(*mysql.MySQLError); ok {
+			switch mysqlErr.Number {
+			case 1062:
+				http.Error(w, "user already exists", http.StatusConflict)
+				return
+			default:
+				http.Error(w, "error while creating user", http.StatusInternalServerError)
+				return
+			}
 		} else if errors.Is(err, gorm.ErrInvalidData) {
 			http.Error(w, "invalid data", http.StatusBadRequest)
+			return
 		} else {
 			http.Error(w, "error while connecting", http.StatusInternalServerError)
+			return
 		}
-		return
 	}
 
 	// clear the password before returning
@@ -79,9 +95,10 @@ func getAllUsers(db *gorm.DB, w http.ResponseWriter) {
 	if err := db.Find(&users).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			http.Error(w, "resource not found", http.StatusNotFound)
-		} else {
-			http.Error(w, "error while connecting", http.StatusInternalServerError)
+			return
 		}
+
+		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
 
@@ -97,9 +114,10 @@ func getUserFromId(db *gorm.DB, id string, w http.ResponseWriter) {
 	if err := db.First(&user, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			http.Error(w, "user not found", http.StatusNotFound)
-		} else {
-			http.Error(w, "error while connecting", http.StatusInternalServerError)
+			return
 		}
+
+		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
 
@@ -115,9 +133,10 @@ func UpdateUser(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	if err := db.First(&user, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			http.Error(w, "user not found", http.StatusNotFound)
-		} else {
-			http.Error(w, "error while connecting", http.StatusInternalServerError)
+			return
 		}
+
+		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
 
@@ -155,12 +174,22 @@ func UpdateUser(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	user.Password = password
 
 	if err := db.Save(&user).Error; err != nil {
-		if errors.Is(err, gorm.ErrInvalidData) {
+		if mysqlErr, ok := err.(*mysql.MySQLError); ok {
+			switch mysqlErr.Number {
+			case 1062:
+				http.Error(w, "user already exists", http.StatusConflict)
+				return
+			default:
+				http.Error(w, "error while updating", http.StatusInternalServerError)
+				return
+			}
+		} else if errors.Is(err, gorm.ErrInvalidData) {
 			http.Error(w, "invalid data", http.StatusBadRequest)
+			return
 		} else {
 			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
 		}
-		return
 	}
 
 	user.Password = ""
@@ -182,9 +211,9 @@ func DeleteUser(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	if err := db.First(&user, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			http.Error(w, "user not found", http.StatusNotFound)
-		} else {
-			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
 		}
+		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
 
