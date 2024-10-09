@@ -4,24 +4,37 @@ import (
 	"fmt"
 	"goapi/dbconnect"
 	"goapi/routes"
+	"html/template"
 	"log"
 	"net/http"
 )
 
-func homeHandler(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("welcome from homehandler"))
-}
+var tmpl *template.Template
 
 func main() {
+	if err := LoadTemplates(); err != nil {
+		log.Printf("error loading templates: %v", err)
+		return
+	}
+
 	db, err := dbconnect.Connect()
 	if err != nil {
 		log.Fatalf("could not connect to database: %v", err)
 	}
 
-	r := routes.InitRouter(db)
-
-	r.HandleFunc("/home", homeHandler)
+	r := routes.InitRouter(db, tmpl)
 
 	fmt.Println("running on port 3000")
 	log.Fatal(http.ListenAndServe(":3000", r))
+}
+
+func LoadTemplates() error {
+	var err error
+	tmpl, err = template.ParseGlob("templates/*.html")
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
