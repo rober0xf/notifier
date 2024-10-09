@@ -7,6 +7,7 @@ import (
 	"goapi/dbconnect"
 	"goapi/models"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -21,13 +22,33 @@ type fieldsInput struct {
 
 type jwtclaims struct {
 	Identity string `json:"identity"`
+	ID       string `json:"ID"`
 	jwt.RegisteredClaims
 }
 
-func generateToken(email string) (string, error) {
+func getIDfromToken(tokenString string) string {
+	secret := []byte(config.JwtKey)
+
+	token, err := jwt.ParseWithClaims(tokenString, &jwtclaims{}, func(token *jwt.Token) (interface{}, error) {
+		return secret, nil
+	})
+
+	if err != nil {
+		return ""
+	}
+
+	if claims, ok := token.Claims.(*jwtclaims); ok {
+		return claims.ID
+	}
+
+	return ""
+}
+
+func generateToken(email string, userID string) (string, error) {
 	expiration := time.Now().Add(6 * time.Hour)
 	claims := &jwtclaims{
 		Identity: email,
+		ID:       userID,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expiration),
 		},
@@ -71,7 +92,9 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokenResponse, err := generateToken(user.Email)
+	// take from the token the user.ID
+	var userID string = strconv.FormatUint(uint64(user.ID), 10)
+	tokenResponse, err := generateToken(user.Email, userID)
 	if err != nil {
 		http.Error(w, "error while generating token", http.StatusInternalServerError)
 		return
