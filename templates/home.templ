@@ -1,0 +1,24 @@
+package templates
+
+templ HomeTemplate(name string) {
+	<html>
+		<head>
+			<title>Home Page </title>
+			<link href="/public/output.css" rel="stylesheet"/>
+			<script src="https://cdn.tailwindcss.com"></script>
+			<script src="https://unpkg.com/htmx.org@2.0.3" integrity="sha384-0895/pl2MU10Hqc6jd4RvrthNlDiE9U1tWmX7WRESftEDRosgxNsQG/Ze9YMRzHq" crossorigin="anonymous"></script>
+		</head>
+		<body class="min-h-screen flex items-center justify-center bg-gray-100">
+			<div class="text-center">
+				<h1 class="text-4xl font-bold text-gray-800">Welcome to { name }</h1>
+				<p class="mt-4 text-lg text-gray-600">This is a simple test page to demonstrate templ integration.</p>
+				<a
+					href="http://localhost:3000/login"
+					class="mt-6 inline-block bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+				>
+					Go to Login
+				</a>
+			</div>
+		</body>
+	</html>
+}

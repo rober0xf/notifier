@@ -3,3 +3,9 @@ go.sum
 docker-compose.yml
 .env
 database/
+package.json
+package-lock.json
+node_modules/
+tailwind.config.js
+*_templ.go
+output.css
