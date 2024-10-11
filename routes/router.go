@@ -13,13 +13,18 @@ import (
 func InitRouter(db *gorm.DB, tmpl *template.Template) *mux.Router {
 	r := mux.NewRouter()
 
+	// subrouters
 	userRouter := r.PathPrefix("/users").Subrouter()
 	protectedRouter := r.PathPrefix("/protected").Subrouter()
-	protectedRouter.Use(middlewares.JWTMiddleware)
 	categoryRouter := r.PathPrefix("/categories").Subrouter()
 
-	r.HandleFunc("/login", handlers.LoginHandler).Methods(http.MethodPost)
-	r.HandleFunc("/", handlers.HomeHandler(tmpl)).Methods(http.MethodGet)
+
+	protectedRouter.Use(middlewares.JWTMiddleware) // apply the middleware
+
+	// simple routes
+	r.HandleFunc("/", handlers.HomeHandler).Methods(http.MethodGet)
+	r.HandleFunc("/login", handlers.LoginTemplate()).Methods(http.MethodGet)
+	r.HandleFunc("/login", handlers.LoginTemplate()).Methods(http.MethodPost)
 
 	// GET public routes
 	userRouter.HandleFunc("", handlers.GetUser).Methods(http.MethodGet)
@@ -32,16 +37,16 @@ func InitRouter(db *gorm.DB, tmpl *template.Template) *mux.Router {
 	}).Methods(http.MethodPost)
 
 	// GET protected routes
-	protectedRouter.HandleFunc("/user/{id}", handlers.GetUser).Methods(http.MethodGet)
+	protectedRouter.HandleFunc("/users/{id}", handlers.GetUser).Methods(http.MethodGet)
 	protectedRouter.HandleFunc("/test", middlewares.ProtectedTest).Methods(http.MethodGet)
 
 	// PUT routes
-	protectedRouter.HandleFunc("/user/{id}", func(w http.ResponseWriter, r *http.Request) {
+	protectedRouter.HandleFunc("/users/{id}", func(w http.ResponseWriter, r *http.Request) {
 		handlers.UpdateUser(db, w, r)
 	}).Methods(http.MethodPut)
 
 	// DELETE routes
-	protectedRouter.HandleFunc("/user/{id}", func(w http.ResponseWriter, r *http.Request) {
+	protectedRouter.HandleFunc("/users/{id}", func(w http.ResponseWriter, r *http.Request) {
 		handlers.DeleteUser(db, w, r)
 	}).Methods(http.MethodDelete)
 
