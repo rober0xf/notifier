@@ -30,7 +30,7 @@ func main() {
 
 func LoadTemplates() error {
 	var err error
-	tmpl, err = template.ParseGlob("templates/*.html")
+	tmpl, err = template.ParseGlob("templates/*.templ")
 
 	if err != nil {
 		return err
