@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"errors"
 	"goapi/config"
 	"goapi/dbconnect"
@@ -8,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -73,31 +75,31 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) *errorResponse {
 	var user models.User
 	var credentials fieldsInput
 
-	// check if the fields are valid
+	// checking if the request comes from a form or json
 	defer r.Body.Close()
-	if err := r.ParseForm(); err != nil {
-		return &errorResponse{"invalid request", http.StatusBadRequest}
-	}
-	/*
-		err := json.NewDecoder(r.Body).Decode(&credentials)
-		if err != nil {
+	contentType := r.Header.Get("Content-Type")
+	if strings.Contains(contentType, "application/json") {
+		if err := json.NewDecoder(r.Body).Decode(&credentials); err != nil {
+			return &errorResponse{"invalid json request", http.StatusBadRequest}
+		}
+	} else {
+		// check if the fields are valid
+		if err := r.ParseForm(); err != nil {
 			return &errorResponse{"invalid request", http.StatusBadRequest}
 		}
-
-	*/
-
-	credentials.Identity = r.FormValue("identity")
-	credentials.Password = r.FormValue("password")
+		credentials.Identity = r.FormValue("identity")
+		credentials.Password = r.FormValue("password")
+	}
 
 	log.Printf("buscando user con email: %v", credentials.Identity)
 
 	// search for the user in the database
 	if err := db.Where("email = ?", credentials.Identity).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-            log.Println("llegaste hasta aca?")
+			log.Println("llegaste hasta aca?")
 			return &errorResponse{"user not found", http.StatusNotFound}
 		}
-        log.Printf("error al buscar el usuario: %v", err)
+		log.Printf("error al buscar el usuario: %v", err)
 		return &errorResponse{"error while connecting", http.StatusInternalServerError}
 	}
 
@@ -120,12 +122,16 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) *errorResponse {
 		HttpOnly: true, // prevent XSS
 	})
 
-	log.Printf("todo salio bien y vas a ser redireccionado")
-	w.Header().Set("HX-Redirect", "/")
-	/*
+	// json response
+	if contentType == "application/json" {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]string{"token": tokenResponse})
-	*/
+	} else {
+		// frontend response
+		log.Printf("todo salio bien y vas a ser redireccionado")
+		w.Header().Set("HX-Redirect", "/")
+		w.WriteHeader(http.StatusOK)
+	}
 	return nil
 }
