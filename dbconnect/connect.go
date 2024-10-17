@@ -33,6 +33,7 @@ func Connect() (*gorm.DB, error) {
 	fmt.Println("migrating schema")
 
 	DB.AutoMigrate(models.User{})
+	DB.AutoMigrate(models.Category{})
 
 	fmt.Println("schema migrated")
 
