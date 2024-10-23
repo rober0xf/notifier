@@ -17,9 +17,11 @@ func InitRouter(db *gorm.DB, tmpl *template.Template) *mux.Router {
 	userRouter := r.PathPrefix("/users").Subrouter()
 	protectedRouter := r.PathPrefix("/protected").Subrouter()
 	categoryRouter := r.PathPrefix("/categories").Subrouter()
+	paymentRouter := r.PathPrefix("/payment").Subrouter()
 
 	protectedRouter.Use(middlewares.JWTMiddleware) // apply the middleware
 	categoryRouter.Use(middlewares.JWTMiddleware)
+	paymentRouter.Use(middlewares.JWTMiddleware)
 
 	r.HandleFunc("/", handlers.HomeHandler).Methods(http.MethodGet)
 	r.HandleFunc("/login", handlers.LoginTemplate()).Methods(http.MethodGet)
@@ -49,6 +51,19 @@ func InitRouter(db *gorm.DB, tmpl *template.Template) *mux.Router {
 	}).Methods(http.MethodPut)
 	categoryRouter.HandleFunc("/{id}", func(w http.ResponseWriter, r *http.Request) {
 		handlers.DeleteCategory(db, w, r)
+	}).Methods(http.MethodDelete)
+
+	// payment
+	paymentRouter.HandleFunc("", func(w http.ResponseWriter, r *http.Request) {
+		handlers.CreatePayment(db, w, r)
+	}).Methods(http.MethodPost)
+	paymentRouter.HandleFunc("", handlers.GetPayment).Methods(http.MethodGet)
+	paymentRouter.HandleFunc("/{id}", handlers.GetPayment).Methods(http.MethodGet)
+	paymentRouter.HandleFunc("/{id}", func(w http.ResponseWriter, r *http.Request) {
+		handlers.UpdatePayment(db, w, r)
+	}).Methods(http.MethodPut)
+	paymentRouter.HandleFunc("/{id}", func(w http.ResponseWriter, r *http.Request) {
+		handlers.DeletePayment(db, w, r)
 	}).Methods(http.MethodDelete)
 
 	return r
