@@ -34,6 +34,7 @@ func Connect() (*gorm.DB, error) {
 
 	DB.AutoMigrate(models.User{})
 	DB.AutoMigrate(models.Category{})
+	DB.AutoMigrate(models.Payment{})
 
 	fmt.Println("schema migrated")
 
