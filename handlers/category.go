@@ -6,9 +6,6 @@ import (
 	"goapi/dbconnect"
 	"goapi/models"
 	"net/http"
-	"strconv"
-	"strings"
-
 	"github.com/gorilla/mux"
 	"gorm.io/gorm"
 )
@@ -18,36 +15,6 @@ type inputCategory struct {
 	Priority  uint   `json:"priority"`
 	Recurrent bool   `json:"recurrent"`
 	Notify    bool   `json:"notify"`
-}
-
-func getUserId(w http.ResponseWriter, r *http.Request) (string, int) {
-	tokenString := r.Header.Get("Authorization")
-	if tokenString == "" {
-		http.Error(w, "no header authorization", http.StatusUnauthorized)
-		return "no header authorization", -1
-	}
-
-	// remove the prefix bearer
-	if len(tokenString) > 7 && strings.ToUpper(tokenString[:7]) == "BEARER " {
-		tokenString = tokenString[7:]
-	} else {
-		http.Error(w, "invalid authorization header", http.StatusUnauthorized)
-		return "invalid authorization header", -1
-	}
-
-	userIDstr := getIDfromToken(tokenString)
-	if userIDstr == "" {
-		http.Error(w, "invalid token", http.StatusUnauthorized)
-		return "invalid token", -1
-	}
-
-	userID, err := strconv.Atoi(userIDstr)
-	if err != nil {
-		http.Error(w, "invalid user id", http.StatusInternalServerError)
-		return "invalid user id", -1
-	}
-
-	return "", userID
 }
 
 func CreateCategory(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
