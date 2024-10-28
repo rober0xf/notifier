@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"goapi/dbconnect"
+	"goapi/handlers"
 	"goapi/routes"
 	"html/template"
 	"log"
@@ -21,6 +22,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not connect to database: %v", err)
 	}
+
+	handlers.SendAlert()
 
 	r := routes.InitRouter(db, tmpl)
 

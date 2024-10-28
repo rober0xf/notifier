@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"goapi/config"
 	"goapi/handlers"
 	"goapi/middlewares"
 	"html/template"
@@ -65,6 +66,10 @@ func InitRouter(db *gorm.DB, tmpl *template.Template) *mux.Router {
 	paymentRouter.HandleFunc("/{id}", func(w http.ResponseWriter, r *http.Request) {
 		handlers.DeletePayment(db, w, r)
 	}).Methods(http.MethodDelete)
+
+	protectedRouter.HandleFunc("/email", func(w http.ResponseWriter, r *http.Request) {
+		config.TestMail(w, r)
+	}).Methods(http.MethodGet)
 
 	return r
 }
