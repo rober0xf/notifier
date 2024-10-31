@@ -24,14 +24,14 @@ func init() {
 }
 
 type inputPayment struct {
-	NetAmount   float64   `json:"net_amount" validate:"required"`
-	GrossAmount float64   `json:"gross_amount"`
-	Deductible  float64   `json:"deductible"`
-	Name        string    `gorm:"not null" json:"name" validate:"required"`
-	Type        string    `gorm:"not null" json:"type" validate:"required"`
-	Date        time.Time `gorm:"not null" json:"date" validate:"required" time_format:"2006-01-02"`
-	Recurrent   bool      `gorm:"not null" json:"recurrent" validate:"required"`
-	Paid        bool      `gorm:"not null" json:"paid" validate:"required"`
+	NetAmount   float64 `json:"net_amount" validate:"required"`
+	GrossAmount float64 `json:"gross_amount"`
+	Deductible  float64 `json:"deductible"`
+	Name        string  `gorm:"not null" json:"name" validate:"required"`
+	Type        string  `gorm:"not null" json:"type" validate:"required"`
+	Date        string  `json:"date" validate:"required"`
+	Recurrent   bool    `gorm:"not null" json:"recurrent" validate:"required"`
+	Paid        bool    `gorm:"not null" json:"paid" validate:"required"`
 }
 
 func CreatePayment(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
@@ -39,17 +39,19 @@ func CreatePayment(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	payment := new(models.Payment)
 
 	defer r.Body.Close()
-	// check all fields are filled
 	decoder := json.NewDecoder(r.Body)
-	decoder.DisallowUnknownFields()
+	decoder.DisallowUnknownFields() // check all fields are filled
 
 	if err := decoder.Decode(&inputPayment); err != nil {
+		log.Printf("el error es: %v: \n", err)
 		http.Error(w, "invalid request", http.StatusBadRequest)
 		return
 	}
 
-	if inputPayment.Name == "" {
-		http.Error(w, "a name is required", http.StatusBadRequest)
+	parsedDate, err := time.Parse("02-01-2006", inputPayment.Date)
+	if err != nil {
+		log.Printf("error al parsear la fecha: %v", err)
+		http.Error(w, "invalid data form, expected: YY-MM-DD", http.StatusBadRequest)
 		return
 	}
 
@@ -70,7 +72,7 @@ func CreatePayment(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	payment.Deductible = inputPayment.Deductible
 	payment.Name = inputPayment.Name
 	payment.Type = inputPayment.Type
-	payment.Date = inputPayment.Date
+	payment.Date = parsedDate
 	payment.Recurrent = inputPayment.Recurrent
 	payment.Paid = inputPayment.Paid
 
@@ -165,6 +167,11 @@ func UpdatePayment(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	parsedDate, err := time.Parse("02-01-2006", updatedPayment.Date)
+	if err != nil {
+		http.Error(w, "invalid date format, expected DD-MM-YYYY", http.StatusBadRequest)
+		return
+	}
 	if err := db.First(&payment, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			http.Error(w, "payment not found", http.StatusNotFound)
@@ -179,7 +186,7 @@ func UpdatePayment(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	payment.Deductible = updatedPayment.Deductible
 	payment.Name = updatedPayment.Name
 	payment.Type = updatedPayment.Type
-	payment.Date = updatedPayment.Date
+	payment.Date = parsedDate
 	payment.Recurrent = updatedPayment.Recurrent
 	payment.Paid = updatedPayment.Paid
 
