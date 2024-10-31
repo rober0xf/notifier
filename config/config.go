@@ -4,7 +4,6 @@ import (
 	"goapi/models"
 	"log"
 	"os"
-
 	"github.com/joho/godotenv"
 )
 
@@ -17,11 +16,10 @@ type Config struct {
 }
 
 var JwtKey []byte
-var MailSender models.MailSender
+var MailSender models.MailSender 
 
 func GetConfig() Config {
 	err := godotenv.Load(".env")
-
 	if err != nil {
 		log.Fatalf("error loading env file: %v", err)
 	}
