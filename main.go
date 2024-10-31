@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
+	"goapi/cronjob"
 	"goapi/dbconnect"
-	"goapi/handlers"
 	"goapi/routes"
 	"html/template"
 	"log"
@@ -13,6 +13,8 @@ import (
 var tmpl *template.Template
 
 func main() {
+	go cronjob.InitCron()
+
 	if err := LoadTemplates(); err != nil {
 		log.Printf("error loading templates: %v", err)
 		return
@@ -22,8 +24,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not connect to database: %v", err)
 	}
-
-	handlers.SendAlert()
 
 	r := routes.InitRouter(db, tmpl)
 
