@@ -22,9 +22,6 @@ func InitRouter(db *gorm.DB, tmpl *template.Template) *mux.Router {
 	categoryRouter.Use(middlewares.JWTMiddleware)
 	paymentRouter.Use(middlewares.JWTMiddleware)
 
-	r.HandleFunc("/", handlers.HomeHandler).Methods(http.MethodGet)
-	r.HandleFunc("/login", handlers.LoginTemplate()).Methods(http.MethodGet)
-	r.HandleFunc("/login", handlers.LoginTemplate()).Methods(http.MethodPost)
 
 	// users
 	userRouter.HandleFunc("", handlers.GetUser).Methods(http.MethodGet)
