@@ -3,7 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
-	"goapi/dbconnect"
 	"goapi/models"
 	"net/http"
 
@@ -19,7 +18,7 @@ func hashPassw(password string) (string, error) {
 	return string(pass), err
 }
 
-func CreateUser(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
+func (s *Store) CreateUser(w http.ResponseWriter, r *http.Request) {
 	/// when we use new to decode the json input we are using the complete model including the pass, so we have to encrypt it
 	user := new(models.User)
 
@@ -37,7 +36,7 @@ func CreateUser(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 
 	// fix autoincrement id
 	var existingUser models.User
-	if err := db.Where("email = ?", user.Email).First(&existingUser).Error; err == nil {
+	if err := s.DB.Where("email = ?", user.Email).First(&existingUser).Error; err == nil {
 		http.Error(w, "credentials already exists", http.StatusConflict)
 		return
 	}
@@ -50,7 +49,7 @@ func CreateUser(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	}
 	user.Password = password
 
-	if err := db.Create(&user).Error; err != nil {
+	if err := s.DB.Create(&user).Error; err != nil {
 		if mysqlErr, ok := err.(*mysql.MySQLError); ok {
 			switch mysqlErr.Number {
 			case 1062:
@@ -77,22 +76,21 @@ func CreateUser(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(user)
 }
 
-func GetUser(w http.ResponseWriter, r *http.Request) {
-	db := dbconnect.DB
+func (s *Store) GetUser(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"] // take the id from the request
 
 	if id == "" {
-		getAllUsers(db, w)
+		s.getAllUsers(w)
 	} else {
-		getUserFromId(db, id, w)
+		s.getUserFromId(id, w)
 	}
 }
 
-func getAllUsers(db *gorm.DB, w http.ResponseWriter) {
+func (s *Store) getAllUsers(w http.ResponseWriter) {
 	var users []models.User
 
 	// find retuns all found values
-	if err := db.Find(&users).Error; err != nil {
+	if err := s.DB.Find(&users).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			http.Error(w, "resource not found", http.StatusNotFound)
 			return
@@ -107,11 +105,11 @@ func getAllUsers(db *gorm.DB, w http.ResponseWriter) {
 	json.NewEncoder(w).Encode(users)
 }
 
-func getUserFromId(db *gorm.DB, id string, w http.ResponseWriter) {
+func (s *Store) getUserFromId(id string, w http.ResponseWriter) {
 	var user models.User
 
 	// first returns the first value
-	if err := db.First(&user, id).Error; err != nil {
+	if err := s.DB.First(&user, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			http.Error(w, "user not found", http.StatusNotFound)
 			return
@@ -126,11 +124,11 @@ func getUserFromId(db *gorm.DB, id string, w http.ResponseWriter) {
 	json.NewEncoder(w).Encode(user)
 }
 
-func UpdateUser(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
+func (s *Store) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 	var user models.User
 
-	if err := db.First(&user, id).Error; err != nil {
+	if err := s.DB.First(&user, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			http.Error(w, "user not found", http.StatusNotFound)
 			return
@@ -173,7 +171,7 @@ func UpdateUser(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	user.Email = inputUser.Email
 	user.Password = password
 
-	if err := db.Save(&user).Error; err != nil {
+	if err := s.DB.Save(&user).Error; err != nil {
 		if mysqlErr, ok := err.(*mysql.MySQLError); ok {
 			switch mysqlErr.Number {
 			case 1062:
@@ -199,7 +197,7 @@ func UpdateUser(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(user)
 }
 
-func DeleteUser(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
+func (s *Store) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 	var user models.User
 
@@ -208,7 +206,7 @@ func DeleteUser(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := db.First(&user, id).Error; err != nil {
+	if err := s.DB.First(&user, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			http.Error(w, "user not found", http.StatusNotFound)
 			return
@@ -217,7 +215,7 @@ func DeleteUser(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := db.Delete(&user).Error; err != nil {
+	if err := s.DB.Delete(&user).Error; err != nil {
 		http.Error(w, "error deleting", http.StatusInternalServerError)
 		return
 	}

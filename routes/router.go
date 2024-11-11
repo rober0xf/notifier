@@ -1,16 +1,17 @@
 package routes
 
 import (
+	"github.com/gorilla/mux"
 	"goapi/handlers"
 	"goapi/middlewares"
+	"gorm.io/gorm"
 	"html/template"
 	"net/http"
-	"github.com/gorilla/mux"
-	"gorm.io/gorm"
 )
 
 func InitRouter(db *gorm.DB, tmpl *template.Template) *mux.Router {
 	r := mux.NewRouter()
+	store := &handlers.Store{}
 
 	// subrouters
 	userRouter := r.PathPrefix("/users").Subrouter()
@@ -18,48 +19,47 @@ func InitRouter(db *gorm.DB, tmpl *template.Template) *mux.Router {
 	categoryRouter := r.PathPrefix("/categories").Subrouter()
 	paymentRouter := r.PathPrefix("/payment").Subrouter()
 
-	protectedRouter.Use(middlewares.JWTMiddleware) // apply the middleware
+	protectedRouter.Use(middlewares.JWTMiddleware)
 	categoryRouter.Use(middlewares.JWTMiddleware)
 	paymentRouter.Use(middlewares.JWTMiddleware)
 
-
 	// users
-	userRouter.HandleFunc("", handlers.GetUser).Methods(http.MethodGet)
+	userRouter.HandleFunc("", store.GetUser).Methods(http.MethodGet)
 	userRouter.HandleFunc("", func(w http.ResponseWriter, r *http.Request) {
-		handlers.CreateUser(db, w, r)
+		store.CreateUser(w, r)
 	}).Methods(http.MethodPost)
-	protectedRouter.HandleFunc("/users/{id}", handlers.GetUser).Methods(http.MethodGet)
+	protectedRouter.HandleFunc("/users/{id}", store.GetUser).Methods(http.MethodGet)
 	protectedRouter.HandleFunc("/users/{id}", func(w http.ResponseWriter, r *http.Request) {
-		handlers.UpdateUser(db, w, r)
+		store.UpdateUser(w, r)
 	}).Methods(http.MethodPut)
 	protectedRouter.HandleFunc("/users/{id}", func(w http.ResponseWriter, r *http.Request) {
-		handlers.DeleteUser(db, w, r)
+		store.DeleteUser(w, r)
 	}).Methods(http.MethodDelete)
 
 	// categories
 	categoryRouter.HandleFunc("", func(w http.ResponseWriter, r *http.Request) {
-		handlers.CreateCategory(db, w, r)
+		store.CreateCategory(w, r)
 	}).Methods(http.MethodPost)
-	categoryRouter.HandleFunc("", handlers.GetCategories).Methods(http.MethodGet)
-	categoryRouter.HandleFunc("/{id}", handlers.GetCategories).Methods(http.MethodGet)
+	categoryRouter.HandleFunc("", store.GetCategories).Methods(http.MethodGet)
+	categoryRouter.HandleFunc("/{id}", store.GetCategories).Methods(http.MethodGet)
 	categoryRouter.HandleFunc("/{id}", func(w http.ResponseWriter, r *http.Request) {
-		handlers.UpdateCategory(db, w, r)
+		store.UpdateCategory(w, r)
 	}).Methods(http.MethodPut)
 	categoryRouter.HandleFunc("/{id}", func(w http.ResponseWriter, r *http.Request) {
-		handlers.DeleteCategory(db, w, r)
+		store.DeleteCategory(w, r)
 	}).Methods(http.MethodDelete)
 
 	// payment
 	paymentRouter.HandleFunc("", func(w http.ResponseWriter, r *http.Request) {
-		handlers.CreatePayment(db, w, r)
+		store.CreatePayment(w, r)
 	}).Methods(http.MethodPost)
-	paymentRouter.HandleFunc("", handlers.GetPayment).Methods(http.MethodGet)
-	paymentRouter.HandleFunc("/{id}", handlers.GetPayment).Methods(http.MethodGet)
+	paymentRouter.HandleFunc("", store.GetPayment).Methods(http.MethodGet)
+	paymentRouter.HandleFunc("/{id}", store.GetPayment).Methods(http.MethodGet)
 	paymentRouter.HandleFunc("/{id}", func(w http.ResponseWriter, r *http.Request) {
-		handlers.UpdatePayment(db, w, r)
+		store.UpdatePayment(w, r)
 	}).Methods(http.MethodPut)
 	paymentRouter.HandleFunc("/{id}", func(w http.ResponseWriter, r *http.Request) {
-		handlers.DeletePayment(db, w, r)
+		store.DeletePayment(w, r)
 	}).Methods(http.MethodDelete)
 
 	protectedRouter.HandleFunc("/email", func(w http.ResponseWriter, r *http.Request) {

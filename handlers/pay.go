@@ -3,7 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
-	"goapi/dbconnect"
 	"goapi/models"
 	"log"
 	"net/http"
@@ -34,7 +33,7 @@ type inputPayment struct {
 	Paid        bool    `gorm:"not null" json:"paid" validate:"required"`
 }
 
-func CreatePayment(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
+func (s *Store) CreatePayment(w http.ResponseWriter, r *http.Request) {
 	inputPayment := new(inputPayment)
 	payment := new(models.Payment)
 
@@ -43,14 +42,12 @@ func CreatePayment(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	decoder.DisallowUnknownFields() // check all fields are filled
 
 	if err := decoder.Decode(&inputPayment); err != nil {
-		log.Printf("el error es: %v: \n", err)
 		http.Error(w, "invalid request", http.StatusBadRequest)
 		return
 	}
 
 	parsedDate, err := time.Parse("02-01-2006", inputPayment.Date)
 	if err != nil {
-		log.Printf("error al parsear la fecha: %v", err)
 		http.Error(w, "invalid data form, expected: YY-MM-DD", http.StatusBadRequest)
 		return
 	}
@@ -76,7 +73,7 @@ func CreatePayment(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	payment.Recurrent = inputPayment.Recurrent
 	payment.Paid = inputPayment.Paid
 
-	if err := db.Create(&payment).Error; err != nil {
+	if err := s.DB.Create(&payment).Error; err != nil {
 		http.Error(w, "error during payment", http.StatusInternalServerError)
 		return
 	}
@@ -86,8 +83,7 @@ func CreatePayment(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(payment)
 }
 
-func GetPayment(w http.ResponseWriter, r *http.Request) {
-	db := dbconnect.DB
+func (s *Store) GetPayment(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 	tokenString := r.Header.Get("Authorization")
 	if tokenString == "" {
@@ -108,17 +104,17 @@ func GetPayment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if id != "" {
-		getPaymentFromId(db, id, userID, w, r)
+		s.getPaymentFromId(id, userID, w, r)
 	}
 
-	getAllPayments(db, userID, w)
+	s.getAllPayments(userID, w)
 
 }
 
-func getAllPayments(db *gorm.DB, userID int, w http.ResponseWriter) {
+func (s *Store) getAllPayments(userID int, w http.ResponseWriter) {
 	payments := []models.Payment{}
 
-	if err := db.Where("user_id = ?", userID).Find(&payments).Error; err != nil {
+	if err := s.DB.Where("user_id = ?", userID).Find(&payments).Error; err != nil {
 		http.Error(w, "error getting payments", http.StatusInternalServerError)
 		return
 	}
@@ -130,7 +126,7 @@ func getAllPayments(db *gorm.DB, userID int, w http.ResponseWriter) {
 	}
 }
 
-func getPaymentFromId(db *gorm.DB, id string, userID int, w http.ResponseWriter, r *http.Request) {
+func (s *Store) getPaymentFromId(id string, userID int, w http.ResponseWriter, r *http.Request) {
 	var payment models.Payment
 
 	message, userID := getUserId(w, r)
@@ -139,7 +135,7 @@ func getPaymentFromId(db *gorm.DB, id string, userID int, w http.ResponseWriter,
 		return
 	}
 
-	if err := db.First(&payment, "id = ? AND user_id = ?", id, userID).Error; err != nil {
+	if err := s.DB.First(&payment, "id = ? AND user_id = ?", id, userID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			http.Error(w, "payment not found", http.StatusNotFound)
 			return
@@ -153,7 +149,7 @@ func getPaymentFromId(db *gorm.DB, id string, userID int, w http.ResponseWriter,
 	json.NewEncoder(w).Encode(payment)
 }
 
-func UpdatePayment(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
+func (s *Store) UpdatePayment(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 	var updatedPayment inputPayment
 	var payment models.Payment
@@ -172,7 +168,7 @@ func UpdatePayment(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid date format, expected DD-MM-YYYY", http.StatusBadRequest)
 		return
 	}
-	if err := db.First(&payment, id).Error; err != nil {
+	if err := s.DB.First(&payment, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			http.Error(w, "payment not found", http.StatusNotFound)
 			return
@@ -190,7 +186,7 @@ func UpdatePayment(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	payment.Recurrent = updatedPayment.Recurrent
 	payment.Paid = updatedPayment.Paid
 
-	if err := db.Save(&payment).Error; err != nil {
+	if err := s.DB.Save(&payment).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			http.Error(w, "invalid data", http.StatusBadRequest)
 			return
@@ -207,7 +203,7 @@ func UpdatePayment(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-func DeletePayment(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
+func (s *Store) DeletePayment(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 	var payment models.Payment
 
@@ -217,7 +213,7 @@ func DeletePayment(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := db.First(&payment, "id = ? AND user_id = ?", id, userID).Error; err != nil {
+	if err := s.DB.First(&payment, "id = ? AND user_id = ?", id, userID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			http.Error(w, "payment not found", http.StatusNotFound)
 			return
@@ -226,7 +222,7 @@ func DeletePayment(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := db.Delete(&payment).Error; err != nil {
+	if err := s.DB.Delete(&payment).Error; err != nil {
 		http.Error(w, "error deleting", http.StatusInternalServerError)
 		return
 	}

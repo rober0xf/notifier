@@ -3,11 +3,10 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
-	"goapi/dbconnect"
-	"goapi/models"
-	"net/http"
 	"github.com/gorilla/mux"
+	"goapi/models"
 	"gorm.io/gorm"
+	"net/http"
 )
 
 type inputCategory struct {
@@ -17,7 +16,7 @@ type inputCategory struct {
 	Notify    bool   `json:"notify"`
 }
 
-func CreateCategory(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
+func (s *Store) CreateCategory(w http.ResponseWriter, r *http.Request) {
 	inputCate := new(inputCategory)
 	category := new(models.Category)
 
@@ -44,7 +43,7 @@ func CreateCategory(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	category.Recurrent = inputCate.Recurrent
 	category.Notify = inputCate.Notify
 
-	if err := db.Create(&category).Error; err != nil {
+	if err := s.DB.Create(&category).Error; err != nil {
 		http.Error(w, "error creating category", http.StatusInternalServerError)
 		return
 	}
@@ -54,9 +53,8 @@ func CreateCategory(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(category)
 }
 
-func GetCategories(w http.ResponseWriter, r *http.Request) {
+func (s *Store) GetCategories(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
-	db := dbconnect.DB
 	message, userID := getUserId(w, r)
 
 	if userID == -1 {
@@ -65,15 +63,15 @@ func GetCategories(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if id != "" {
-		getUserFromId(db, id, w)
+		s.getUserFromId(id, w)
 	}
-	getAllCategories(db, userID, w)
+	s.getAllCategories(userID, w)
 }
 
-func getAllCategories(db *gorm.DB, userID int, w http.ResponseWriter) {
+func (s *Store) getAllCategories(userID int, w http.ResponseWriter) {
 	categories := []models.Category{}
 
-	if err := db.Where("user_id = ?", userID).Find(&categories).Error; err != nil {
+	if err := s.DB.Where("user_id = ?", userID).Find(&categories).Error; err != nil {
 		http.Error(w, "error getting categories", http.StatusInternalServerError)
 		return
 	}
@@ -86,10 +84,10 @@ func getAllCategories(db *gorm.DB, userID int, w http.ResponseWriter) {
 	}
 }
 
-func getCategoryFromId(db *gorm.DB, id string, w http.ResponseWriter) {
+func (s *Store) getCategoryFromId(id string, w http.ResponseWriter) {
 	var category models.Category
 
-	if err := db.First(&category, id).Error; err != nil {
+	if err := s.DB.First(&category, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			http.Error(w, "category not found", http.StatusNotFound)
 			return
@@ -104,18 +102,10 @@ func getCategoryFromId(db *gorm.DB, id string, w http.ResponseWriter) {
 	json.NewEncoder(w).Encode(category)
 }
 
-func UpdateCategory(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
+func (s *Store) UpdateCategory(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 	var updatedCategory inputCategory
 	var category models.Category
-
-	/*
-		message, userID := getUserId(w, r)
-		if userID == -1 {
-			http.Error(w, message, http.StatusBadRequest)
-			return
-		}
-	*/
 
 	defer r.Body.Close()
 	if err := json.NewDecoder(r.Body).Decode(&updatedCategory); err != nil {
@@ -123,7 +113,7 @@ func UpdateCategory(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := db.First(&category, id).Error; err != nil {
+	if err := s.DB.First(&category, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			http.Error(w, "category not found", http.StatusNotFound)
 			return
@@ -142,7 +132,7 @@ func UpdateCategory(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	category.Recurrent = updatedCategory.Recurrent
 	category.Notify = updatedCategory.Notify
 
-	if err := db.Save(&category).Error; err != nil {
+	if err := s.DB.Save(&category).Error; err != nil {
 		if errors.Is(err, gorm.ErrInvalidData) {
 			http.Error(w, "invalid data", http.StatusBadRequest)
 			return
@@ -157,11 +147,11 @@ func UpdateCategory(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(category)
 }
 
-func DeleteCategory(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
+func (s *Store) DeleteCategory(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 	var category models.Category
 
-	if err := db.First(&category, id).Error; err != nil {
+	if err := s.DB.First(&category, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			http.Error(w, "category not found", http.StatusNotFound)
 			return
@@ -170,7 +160,7 @@ func DeleteCategory(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := db.Delete(&category).Error; err != nil {
+	if err := s.DB.Delete(&category).Error; err != nil {
 		http.Error(w, "error deleting", http.StatusInternalServerError)
 		return
 	}
