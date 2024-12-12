@@ -5,66 +5,69 @@ import (
 	"goapi/handlers"
 	"goapi/middlewares"
 	"gorm.io/gorm"
-	"html/template"
 	"net/http"
 )
 
-func InitRouter(db *gorm.DB, tmpl *template.Template) *mux.Router {
+func InitRouter(db *gorm.DB) *mux.Router {
 	r := mux.NewRouter()
 	store := &handlers.Store{}
 
 	// subrouters
-	userRouter := r.PathPrefix("/users").Subrouter()
-	protectedRouter := r.PathPrefix("/protected").Subrouter()
-	categoryRouter := r.PathPrefix("/categories").Subrouter()
-	paymentRouter := r.PathPrefix("/payment").Subrouter()
-
-	protectedRouter.Use(middlewares.JWTMiddleware)
-	categoryRouter.Use(middlewares.JWTMiddleware)
-	paymentRouter.Use(middlewares.JWTMiddleware)
-
-	// users
-	userRouter.HandleFunc("", store.GetUser).Methods(http.MethodGet)
-	userRouter.HandleFunc("", func(w http.ResponseWriter, r *http.Request) {
-		store.CreateUser(w, r)
-	}).Methods(http.MethodPost)
-	protectedRouter.HandleFunc("/users/{id}", store.GetUser).Methods(http.MethodGet)
-	protectedRouter.HandleFunc("/users/{id}", func(w http.ResponseWriter, r *http.Request) {
-		store.UpdateUser(w, r)
-	}).Methods(http.MethodPut)
-	protectedRouter.HandleFunc("/users/{id}", func(w http.ResponseWriter, r *http.Request) {
-		store.DeleteUser(w, r)
-	}).Methods(http.MethodDelete)
-
-	// categories
-	categoryRouter.HandleFunc("", func(w http.ResponseWriter, r *http.Request) {
-		store.CreateCategory(w, r)
-	}).Methods(http.MethodPost)
-	categoryRouter.HandleFunc("", store.GetCategories).Methods(http.MethodGet)
-	categoryRouter.HandleFunc("/{id}", store.GetCategories).Methods(http.MethodGet)
-	categoryRouter.HandleFunc("/{id}", func(w http.ResponseWriter, r *http.Request) {
-		store.UpdateCategory(w, r)
-	}).Methods(http.MethodPut)
-	categoryRouter.HandleFunc("/{id}", func(w http.ResponseWriter, r *http.Request) {
-		store.DeleteCategory(w, r)
-	}).Methods(http.MethodDelete)
-
-	// payment
-	paymentRouter.HandleFunc("", func(w http.ResponseWriter, r *http.Request) {
-		store.CreatePayment(w, r)
-	}).Methods(http.MethodPost)
-	paymentRouter.HandleFunc("", store.GetPayment).Methods(http.MethodGet)
-	paymentRouter.HandleFunc("/{id}", store.GetPayment).Methods(http.MethodGet)
-	paymentRouter.HandleFunc("/{id}", func(w http.ResponseWriter, r *http.Request) {
-		store.UpdatePayment(w, r)
-	}).Methods(http.MethodPut)
-	paymentRouter.HandleFunc("/{id}", func(w http.ResponseWriter, r *http.Request) {
-		store.DeletePayment(w, r)
-	}).Methods(http.MethodDelete)
-
-	protectedRouter.HandleFunc("/email", func(w http.ResponseWriter, r *http.Request) {
-		handlers.TestMail(w, r)
-	}).Methods(http.MethodGet)
+	_ = setupUserRoutes(r, store)
+	_ = setupProtectedRoutes(r, store)
+	_ = setupCategoryRoutes(r, store)
+	_ = setupPaymentRoutes(r, store)
 
 	return r
+}
+
+func setupUserRoutes(r *mux.Router, store *handlers.Store) *mux.Router {
+	userRouter := r.PathPrefix("/api/users").Subrouter()
+
+	userRouter.HandleFunc("", store.GetUser).Methods(http.MethodGet)
+	userRouter.HandleFunc("", store.CreateUser).Methods(http.MethodPost)
+	userRouter.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
+		handlers.LoginHandler(w, r)
+	}).Methods(http.MethodPost)
+
+	return userRouter
+}
+
+func setupProtectedRoutes(r *mux.Router, store *handlers.Store) *mux.Router {
+	protectedRouter := r.PathPrefix("api/auth").Subrouter()
+	protectedRouter.Use(middlewares.JWTMiddleware)
+
+	protectedRouter.HandleFunc("/users/{id}", store.GetUser).Methods(http.MethodGet)
+	protectedRouter.HandleFunc("/users/{id}", store.UpdateUser).Methods(http.MethodPut)
+	protectedRouter.HandleFunc("/users/{id}", store.DeleteUser).Methods(http.MethodDelete)
+
+	protectedRouter.HandleFunc("/email", handlers.TestMail).Methods(http.MethodGet)
+
+	return protectedRouter
+}
+
+func setupCategoryRoutes(r *mux.Router, store *handlers.Store) *mux.Router {
+	categoryRouter := r.PathPrefix("/api/categories").Subrouter()
+	categoryRouter.Use(middlewares.JWTMiddleware)
+
+	categoryRouter.HandleFunc("", store.GetCategories).Methods(http.MethodGet)
+	categoryRouter.HandleFunc("", store.CreateCategory).Methods(http.MethodPost)
+	categoryRouter.HandleFunc("/{id}", store.GetCategories).Methods(http.MethodGet)
+	categoryRouter.HandleFunc("/{id}", store.UpdateCategory).Methods(http.MethodPut)
+	categoryRouter.HandleFunc("/{id}", store.DeleteCategory).Methods(http.MethodDelete)
+
+	return categoryRouter
+}
+
+func setupPaymentRoutes(r *mux.Router, store *handlers.Store) *mux.Router {
+	paymentRouter := r.PathPrefix("/api/payments").Subrouter()
+	paymentRouter.Use(middlewares.JWTMiddleware)
+
+	paymentRouter.HandleFunc("", store.GetPayment).Methods(http.MethodGet)
+	paymentRouter.HandleFunc("", store.CreatePayment).Methods(http.MethodPost)
+	paymentRouter.HandleFunc("/{id}", store.GetPayment).Methods(http.MethodGet)
+	paymentRouter.HandleFunc("/{id}", store.UpdatePayment).Methods(http.MethodPut)
+	paymentRouter.HandleFunc("/{id}", store.DeletePayment).Methods(http.MethodDelete)
+
+	return paymentRouter
 }
