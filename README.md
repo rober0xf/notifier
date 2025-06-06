@@ -18,11 +18,15 @@ Notifier is an application written in Go designed to automatically notify paymen
     git clone https://github.com/rober0xf/notifier.git
     cd notifier
     ```
-2. Install the dependencyes:
+2. Init the project:
+  ```bash
+  go mod init github.com/rober0xf/notifier
+  ```
+3. Install the dependencyes:
     ```bash
     go mod tidy
     ```
-3. Configure the env variables in a file `.env`:
+4. Configure the env variables in a file `.env`:
     ```env
     DB_HOST=localhost
     DB_PORT=5432
