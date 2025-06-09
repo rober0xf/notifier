@@ -8,13 +8,13 @@ import (
 	"strconv"
 
 	"github.com/gorilla/mux"
+	"github.com/rober0xf/notifier/internal/core/shared"
+	"github.com/rober0xf/notifier/internal/core/utils"
 	"github.com/rober0xf/notifier/internal/models"
-	"github.com/rober0xf/notifier/internal/services"
-	"github.com/rober0xf/notifier/internal/utils"
 )
 
 type AuthHandler struct {
-	authService services.AuthServiceInterface
+	authService shared.AuthServiceInterface
 	authUtils   utils.AuthUtils
 }
 
@@ -45,9 +45,9 @@ func (h *AuthHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	// if it comes from json
 	if utils.Is_json_request(r) {
-		utils.Write_json_response(w, http.StatusOK, utils.LoginResponse{
+		utils.Write_json_response(w, http.StatusOK, shared.LoginResponse{
 			Token: token,
-			User: utils.UserInfo{
+			User: shared.UserInfo{
 				ID:    user.ID,
 				Email: user.Email,
 			},
@@ -83,11 +83,11 @@ func (h *AuthHandler) CreateUserHandler(w http.ResponseWriter, r *http.Request) 
 	err := h.authService.CreateUserService(input_user.Email, input_user.Password)
 	if err != nil {
 		switch {
-		case errors.Is(err, utils.ErrUserAlreadyExists):
+		case errors.Is(err, shared.ErrUserAlreadyExists):
 			http.Error(w, "user already exists", http.StatusConflict)
-		case errors.Is(err, utils.ErrInvalidUserData):
+		case errors.Is(err, shared.ErrInvalidUserData):
 			http.Error(w, "invalid data", http.StatusBadRequest)
-		case errors.Is(err, utils.ErrPasswordHashing):
+		case errors.Is(err, shared.ErrPasswordHashing):
 			http.Error(w, "error hashing password", http.StatusInternalServerError)
 		default:
 			http.Error(w, "internal error", http.StatusInternalServerError)
@@ -126,7 +126,7 @@ func (h *AuthHandler) GetUserByIDHandler(w http.ResponseWriter, r *http.Request,
 
 	user, err := h.authService.GetUserFromIDService(uint(id_int))
 	if err != nil {
-		if errors.Is(err, utils.ErrUserNotFound) {
+		if errors.Is(err, shared.ErrUserNotFound) {
 			http.Error(w, "user not found", http.StatusNotFound)
 			return
 		}

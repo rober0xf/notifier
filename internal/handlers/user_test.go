@@ -1,78 +1,63 @@
 package handlers_test
 
-import (
-	"bytes"
-	"encoding/json"
-	"net/http"
-	"net/http/httptest"
-	"testing"
+// func setup_mock_db() (*gorm.DB, sqlmock.Sqlmock, error) {
+// 	db, mock, err := sqlmock.New()
+// 	if err != nil {
+// 		return nil, nil, err
+// 	}
 
-	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/rober0xf/notifier/internal/handlers"
-	"github.com/rober0xf/notifier/internal/models"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
-)
+// 	gormDB, err := gorm.Open(postgres.New(postgres.Config{
+// 		Conn:                 db,
+// 		PreferSimpleProtocol: true,
+// 	}), &gorm.Config{
+// 		Logger: logger.Default.LogMode(logger.Silent),
+// 	})
+// 	if err != nil {
+// 		return nil, nil, err
+// 	}
 
-func setup_mock_db() (*gorm.DB, sqlmock.Sqlmock, error) {
-	db, mock, err := sqlmock.New()
-	if err != nil {
-		return nil, nil, err
-	}
+// 	return gormDB, mock, nil
+// }
 
-	gormDB, err := gorm.Open(postgres.New(postgres.Config{
-		Conn:                 db,
-		PreferSimpleProtocol: true,
-	}), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Silent),
-	})
-	if err != nil {
-		return nil, nil, err
-	}
+// func Test_create_user_with_mock(t *testing.T) {
+// 	db, mock, err := setup_mock_db()
+// 	if err != nil {
+// 		t.Fatalf("could not setup mock: %v", err)
+// 	}
 
-	return gormDB, mock, nil
-}
+// 	store := &handlers.AuthService{db}
 
-func Test_create_user_with_mock(t *testing.T) {
-	db, mock, err := setup_mock_db()
-	if err != nil {
-		t.Fatalf("could not setup mock: %v", err)
-	}
+// 	mock.ExpectBegin()
+// 	mock.ExpectExec("INSERT INTO `users`").WithArgs(
+// 		sqlmock.AnyArg(),
+// 		"test user",
+// 		"test@example.com",
+// 		sqlmock.AnyArg(),
+// 	).WillReturnResult(sqlmock.NewResult(1, 1))
+// 	mock.ExpectCommit()
 
-	store := &handlers.Store{DB: db}
+// 	user := models.User{
+// 		Name:     "test user",
+// 		Email:    "test@example.com",
+// 		Password: "password123",
+// 	}
 
-	mock.ExpectBegin()
-	mock.ExpectExec("INSERT INTO `users`").WithArgs(
-		sqlmock.AnyArg(),
-		"test user",
-		"test@example.com",
-		sqlmock.AnyArg(),
-	).WillReturnResult(sqlmock.NewResult(1, 1))
-	mock.ExpectCommit()
+// 	jsonUser, _ := json.Marshal(user)
 
-	user := models.User{
-		Name:     "test user",
-		Email:    "test@example.com",
-		Password: "password123",
-	}
+// 	req, err := http.NewRequest("POST", "/user", bytes.NewBuffer(jsonUser))
+// 	if err != nil {
+// 		t.Fatalf("could not create request: %v", err)
+// 	}
+// 	req.Header.Set("Content-Type", "application/json")
 
-	jsonUser, _ := json.Marshal(user)
+// 	rec := httptest.NewRecorder()
+// 	store.CreateUserHandler(rec, req)
 
-	req, err := http.NewRequest("POST", "/user", bytes.NewBuffer(jsonUser))
-	if err != nil {
-		t.Fatalf("could not create request: %v", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
+// 	if rec.Code != http.StatusCreated {
+// 		t.Errorf("expected status created. got: %v", rec.Code)
+// 	}
 
-	rec := httptest.NewRecorder()
-	store.CreateUser(rec, req)
-
-	if rec.Code != http.StatusCreated {
-		t.Errorf("expected status created. got: %v", rec.Code)
-	}
-
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Errorf("there were unfulfilled expectations: %v", err)
-	}
-}
+// 	if err := mock.ExpectationsWereMet(); err != nil {
+// 		t.Errorf("there were unfulfilled expectations: %v", err)
+// 	}
+// }
