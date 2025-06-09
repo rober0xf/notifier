@@ -18,6 +18,15 @@ import (
 	"gorm.io/gorm"
 )
 
+type AuthServiceInterface interface {
+	CreateUserService(email string, password string) error
+	GetUserService(email string) (*models.User, error)
+	getAllUsers() ([]*models.User, error)
+	getUserFromID(id uint) (*models.User, error)
+	UpdateUser(*models.User) (*models.User, error)
+	DeleteUser(id uint) error
+}
+
 type AuthService struct {
 	db     *gorm.DB
 	jwtKey []byte
@@ -29,6 +38,8 @@ func NewAuthService(db *gorm.DB, jwtKey []byte) *AuthService {
 		jwtKey: jwtKey,
 	}
 }
+
+var _ AuthServiceInterface = (*AuthService)(nil)
 
 func (as *AuthService) get_userID_from_request(r *http.Request) (uint, error) {
 	tokenString := r.Header.Get(types.AuthHeaderName)
