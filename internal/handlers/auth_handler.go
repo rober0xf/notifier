@@ -185,11 +185,25 @@ func (h *AuthHandler) UpdateUserHandler(w http.ResponseWriter, r *http.Request) 
 
 // TODO: delete_user services and refactor the handler
 func (h *AuthHandler) DeleteUserHandler(w http.ResponseWriter, r *http.Request) {
-	_, _ = mux.Vars(r)["id"]
+	id_str := mux.Vars(r)["id"]
+	id, err := strconv.Atoi(id_str)
+	if err != nil {
+		utils.Write_error_response(w, http.StatusBadRequest, "invalid user id", "")
+		return
+	}
+
+	err = h.authService.DeleteUserService(uint(id))
+	if err != nil {
+		if errors.Is(err, shared.ErrUserNotFound) {
+			utils.Write_error_response(w, http.StatusNotFound, "user not found", "")
+		} else {
+			utils.Write_error_response(w, http.StatusInternalServerError, "could not delete usr", "")
+		}
+		return
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-
 	response := map[string]string{"message": "user deleted successfully"}
 	json.NewEncoder(w).Encode(response)
 }
