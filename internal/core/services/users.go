@@ -139,14 +139,25 @@ func (as *AuthService) UpdateUserService(user *models.User) (*models.User, error
 	return user, nil
 }
 
-// TODO
 func (as *AuthService) DeleteUserService(id uint) error {
-	return fmt.Errorf("format string")
+	var db_user models.User
+	if err := as.db.First(&db_user, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return shared.ErrUserNotFound
+		}
+		return err
+	}
+
+	if err := as.db.Delete(&db_user).Error; err != nil {
+		return err
+	}
+
+	return nil
 }
 
-// helper functions
+// ----------------------- helper functions -----------------------------------------
 func (as *AuthService) ValidateToken(token_string string) (uint, error) {
-	token, err := jwt.ParseWithClaims(token_string, &shared.JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(token_string, &shared.JWTClaims{}, func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("invalid signing method: %v", token.Header["alg"])
 		}
