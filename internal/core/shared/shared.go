@@ -20,3 +20,12 @@ type AuthServiceInterface interface {
 	GenerateToken(userID uint, email string) (string, error)
 	ExistsUser(ctx context.Context, credentials LoginRequest) (*models.User, error)
 }
+
+type PaymentServiceInterface interface {
+	CreatePaymentService(*models.Payment) error
+	GetPaymentService(id uint) (*models.Payment, error)
+	GetAllPaymentsService(user_id uint) ([]*models.Payment, error)
+	GetPaymentFromIDService(id uint, user_id uint) (*models.Payment, error)
+	UpdatePaymentService(*models.Payment) (*models.Payment, error)
+	DeletePaymentService(id uint) error
+}

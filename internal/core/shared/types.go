@@ -8,10 +8,16 @@ import (
 
 // custom errors
 var (
+	// users
 	ErrUserAlreadyExists = errors.New("user already exists")
 	ErrInvalidUserData   = errors.New("invalid user data")
 	ErrPasswordHashing   = errors.New("error hashing password")
 	ErrUserNotFound      = errors.New("user not found")
+
+	// payments
+	ErrPaymentAlreadyExists = errors.New("payment already exists")
+	ErrInvalidPaymentData   = errors.New("invalid payment data")
+	ErrPaymentNotFound      = errors.New("payment not found")
 )
 
 type LoginRequest struct {
