@@ -48,26 +48,15 @@ func (ps *PaymentService) CreatePaymentService(payment *models.Payment) error {
 	return nil
 }
 
-func (ps *PaymentService) GetPaymentService(id uint) (*models.Payment, error) {
-	var payment models.Payment
-
-	err := ps.db.Where("id = ?", id).First(&payment).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, shared.ErrPaymentNotFound
-		}
-		return nil, err
-	}
-
-	return &payment, nil
-}
-
 func (ps *PaymentService) GetAllPaymentsService(user_id uint) ([]*models.Payment, error) {
 	var payments []*models.Payment
 
 	err := ps.db.Where("user_id = ?", user_id).Find(&payments).Error
 	if err != nil {
 		return nil, err
+	}
+	if len(payments) == 0 {
+		return nil, shared.ErrPaymentNotFound
 	}
 
 	return payments, nil
