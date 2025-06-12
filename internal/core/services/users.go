@@ -48,42 +48,18 @@ func (as *AuthService) CreateUserService(email string, password string) error {
 	return nil
 }
 
-func (as *AuthService) RegisterUser(user *models.User) (*models.User, error) {
-	var existing_user models.User
-	err := as.db.Where("email = ?", user.Email).First(&existing_user).Error
-
-	if err == nil {
-		return nil, shared.ErrUserAlreadyExists
-	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, err
-	}
-
-	password, err := utils.Hash_password(user.Password)
-	if err != nil {
-		return nil, shared.ErrPasswordHashing
-	}
-	user.Password = password
-
-	if err := as.db.Create(user).Error; err != nil {
-		if strings.Contains(strings.ToLower(err.Error()), "null") || strings.Contains(err.Error(), "invalid") {
-			return nil, shared.ErrInvalidUserData
-		}
-		return nil, err
-	}
-
-	return user, nil
-}
-
 func (as *AuthService) GetUserService(email string) (*models.User, error) {
 	if email == "" {
 		return nil, shared.ErrInvalidUserData
 	}
 
 	var user models.User
-
 	err := as.db.Where("email = ?", email).First(&user).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, shared.ErrUserNotFound
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, shared.ErrUserNotFound
+		}
+		return nil, err
 	}
 
 	return &user, nil
@@ -156,6 +132,32 @@ func (as *AuthService) DeleteUserService(id uint) error {
 }
 
 // ----------------------- helper functions -----------------------------------------
+func (as *AuthService) RegisterUser(user *models.User) (*models.User, error) {
+	var existing_user models.User
+	err := as.db.Where("email = ?", user.Email).First(&existing_user).Error
+
+	if err == nil {
+		return nil, shared.ErrUserAlreadyExists
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
+	}
+
+	password, err := utils.Hash_password(user.Password)
+	if err != nil {
+		return nil, shared.ErrPasswordHashing
+	}
+	user.Password = password
+
+	if err := as.db.Create(user).Error; err != nil {
+		if strings.Contains(strings.ToLower(err.Error()), "null") || strings.Contains(err.Error(), "invalid") {
+			return nil, shared.ErrInvalidUserData
+		}
+		return nil, err
+	}
+
+	return user, nil
+}
+
 func (as *AuthService) ValidateToken(token_string string) (uint, error) {
 	token, err := jwt.ParseWithClaims(token_string, &shared.JWTClaims{}, func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
