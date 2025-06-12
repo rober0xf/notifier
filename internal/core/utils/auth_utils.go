@@ -52,19 +52,19 @@ func (au *AuthUtils) validate_token(token_string string) (uint, error) {
 func (au *AuthUtils) Get_userID_from_request(r *http.Request) (uint, error) {
 	token_string := r.Header.Get(AuthHeaderName)
 	if token_string == "" {
-		return 0, errors.New("missing authorization header")
+		return 0, shared.ErrMissingAuthHeader
 	}
 
 	// remove the bearer prefix
 	if len(token_string) > 7 && strings.ToUpper(token_string[:7]) == BearerPrefix {
 		token_string = token_string[7:]
 	} else {
-		return 0, errors.New("invalid authorization header format")
+		return 0, shared.ErrInvalidHeaderFormat
 	}
 
 	userID, err := au.validate_token(token_string)
 	if err != nil {
-		return 0, fmt.Errorf("invalid token: %w", err)
+		return 0, shared.ErrInvalidToken
 	}
 
 	return userID, nil
