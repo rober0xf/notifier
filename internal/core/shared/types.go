@@ -18,6 +18,11 @@ var (
 	ErrPaymentAlreadyExists = errors.New("payment already exists")
 	ErrInvalidPaymentData   = errors.New("invalid payment data")
 	ErrPaymentNotFound      = errors.New("payment not found")
+
+	// auth
+	ErrMissingAuthHeader   = errors.New("missing authorization header")
+	ErrInvalidHeaderFormat = errors.New("invalid authorization header format")
+	ErrInvalidToken        = errors.New("invalid or expired token")
 )
 
 type LoginRequest struct {
