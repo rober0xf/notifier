@@ -1,43 +1,65 @@
 package routes
 
-// func InitRouter(db *gorm.DB) *mux.Router {
-// 	r := mux.NewRouter()
-// 	store := &handlers.AuthHandler{}
+import (
+	"net/http"
 
-// 	// subrouters
-// 	_ = setupUserRoutes(r, store)
-// 	_ = setupProtectedRoutes(r, store)
-// 	_ = setupCategoryRoutes(r, store)
-// 	_ = setupPaymentRoutes(r, store)
+	"github.com/gorilla/mux"
+	"github.com/rober0xf/notifier/internal/handlers"
+	Mail "github.com/rober0xf/notifier/internal/handlers"
+	"github.com/rober0xf/notifier/internal/middlewares"
+	"gorm.io/gorm"
+)
 
-// 	return r
-// }
+func InitRouter(db *gorm.DB) *mux.Router {
+	r := mux.NewRouter()
+	handlers := &handlers.AuthHandler{}
 
-// func setupUserRoutes(r *mux.Router, store *handlers.Store) *mux.Router {
-// 	userRouter := r.PathPrefix("/api/users").Subrouter()
+	// subrouters
+	_ = setup_user_routes(r, handlers)
+	_ = setup_protected_routes(r, handlers)
 
-// 	userRouter.HandleFunc("", store.GetUser).Methods(http.MethodGet)
-// 	userRouter.HandleFunc("", store.CreateUser).Methods(http.MethodPost)
-// 	userRouter.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
-// 		handlers.LoginHandler(w, r)
-// 	}).Methods(http.MethodPost)
+	// TODO: implement category and payment routes when Store type is defined
+	// _ = setupCategoryRoutes(r, handlers)
+	// _ = setupPaymentRoutes(r, handlers)
 
-// 	return userRouter
-// }
+	return r
+}
 
-// func setupProtectedRoutes(r *mux.Router, store *handlers.Store) *mux.Router {
-// 	protectedRouter := r.PathPrefix("api/auth").Subrouter()
-// 	protectedRouter.Use(middlewares.JWTMiddleware)
+func setup_user_routes(r *mux.Router, handlers *handlers.AuthHandler) *mux.Router {
+	user_routes := r.PathPrefix("/api/users").Subrouter()
 
-// 	protectedRouter.HandleFunc("/users/{id}", store.GetUser).Methods(http.MethodGet)
-// 	protectedRouter.HandleFunc("/users/{id}", store.UpdateUser).Methods(http.MethodPut)
-// 	protectedRouter.HandleFunc("/users/{id}", store.DeleteUser).Methods(http.MethodDelete)
+	user_routes.HandleFunc("", handlers.GetAllUsersHandler).Methods(http.MethodGet)
+	user_routes.HandleFunc("", handlers.CreateUserHandler).Methods(http.MethodPost)
+	user_routes.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
+		handlers.LoginHandler(w, r)
+	}).Methods(http.MethodPost)
+	user_routes.HandleFunc("/mail", func(w http.ResponseWriter, r *http.Request) {
+		Mail.TestMail(w, r)
+	}).Methods(http.MethodGet)
 
-// 	protectedRouter.HandleFunc("/email", handlers.TestMail).Methods(http.MethodGet)
+	return user_routes
+}
 
-// 	return protectedRouter
-// }
+func setup_protected_routes(r *mux.Router, handlers *handlers.AuthHandler) *mux.Router {
+	protected_routes := r.PathPrefix("api/auth").Subrouter()
+	protected_routes.Use(middlewares.JWTMiddleware)
 
+	protected_routes.HandleFunc("/users/{id}", func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		id := vars["id"]
+		handlers.GetUserByIDHandler(w, r, id)
+	}).Methods(http.MethodGet)
+	protected_routes.HandleFunc("/users/{id}", handlers.UpdateUserHandler).Methods(http.MethodPut)
+	protected_routes.HandleFunc("/users/{id}", handlers.DeleteUserHandler).Methods(http.MethodDelete)
+
+	protected_routes.HandleFunc("/email", func(w http.ResponseWriter, r *http.Request) {
+		Mail.TestMail(w, r)
+	}).Methods(http.MethodGet)
+
+	return protected_routes
+}
+
+// TODO:
 // func setupCategoryRoutes(r *mux.Router, store *handlers.Store) *mux.Router {
 // 	categoryRouter := r.PathPrefix("/api/categories").Subrouter()
 // 	categoryRouter.Use(middlewares.JWTMiddleware)
