@@ -17,6 +17,13 @@ type AuthUtils struct {
 	authService shared.AuthServiceInterface
 }
 
+// for routes
+func NewAuthUtils(authService shared.AuthServiceInterface) *AuthUtils {
+	return &AuthUtils{
+		authService: authService,
+	}
+}
+
 // used in auth_handler.go
 func (au *AuthUtils) Parse_login_request(r *http.Request) (shared.LoginRequest, error) {
 	var credentials shared.LoginRequest

@@ -2,8 +2,11 @@ package routes
 
 import (
 	"net/http"
+	"os"
 
 	"github.com/gorilla/mux"
+	"github.com/rober0xf/notifier/internal/core/services"
+	"github.com/rober0xf/notifier/internal/core/utils"
 	"github.com/rober0xf/notifier/internal/handlers"
 	Mail "github.com/rober0xf/notifier/internal/handlers"
 	"github.com/rober0xf/notifier/internal/middlewares"
@@ -12,7 +15,19 @@ import (
 
 func InitRouter(db *gorm.DB) *mux.Router {
 	r := mux.NewRouter()
-	handlers := &handlers.AuthHandler{}
+
+	// Get JWT key from environment variable
+	jwtKey := []byte(os.Getenv("JWT_KEY"))
+	if len(jwtKey) == 0 {
+		jwtKey = []byte("default-secret-key") // fallback for development
+	}
+
+	// Initialize dependencies
+	authService := services.NewAuthService(db, jwtKey)
+	authUtils := utils.NewAuthUtils(authService)
+
+	// Initialize handlers with dependencies using constructor
+	handlers := handlers.NewAuthHandler(authService, *authUtils)
 
 	// subrouters
 	_ = setup_user_routes(r, handlers)
@@ -28,7 +43,12 @@ func InitRouter(db *gorm.DB) *mux.Router {
 func setup_user_routes(r *mux.Router, handlers *handlers.AuthHandler) *mux.Router {
 	user_routes := r.PathPrefix("/api/users").Subrouter()
 
-	user_routes.HandleFunc("", handlers.GetAllUsersHandler).Methods(http.MethodGet)
+	user_routes.HandleFunc("/", handlers.GetAllUsersHandler).Methods(http.MethodGet)
+	user_routes.HandleFunc("/{id}", func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		id := vars["id"]
+		handlers.GetUserByIDHandler(w, r, id)
+	})
 	user_routes.HandleFunc("", handlers.CreateUserHandler).Methods(http.MethodPost)
 	user_routes.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
 		handlers.LoginHandler(w, r)
