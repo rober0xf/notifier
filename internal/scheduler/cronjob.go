@@ -30,25 +30,16 @@ func InitCron() {
 		log.Print("error creating new job: ", err)
 	}
 
-	log.Printf("job id: %v", job.ID())
+	log.Printf("ID: %v", job.ID())
 	s.Start()
-
-	select {
-	case <-time.After(time.Minute):
-	}
-
-	err = s.Shutdown()
-	if err != nil {
-		log.Print("error shutting down:", err)
-	}
 }
 
 func SendDailyAlert() {
 	mailsend := models.MailSender{
-		Host:     os.Getenv("EMAIL_HOST"),
-		Port:     os.Getenv("EMAIL_PORT"),
-		Username: os.Getenv("EMAIL_USERNAME"),
-		Password: os.Getenv("EMAIL_PASSWORD"),
+		Host:     os.Getenv("SMTP_HOST"),
+		Port:     os.Getenv("SMTP_PORT"),
+		Username: os.Getenv("SMTP_USERNAME"),
+		Password: os.Getenv("SMTP_PASSWORD"),
 	}
 
 	var email, name string
