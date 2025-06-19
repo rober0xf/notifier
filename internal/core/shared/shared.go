@@ -7,7 +7,7 @@ import (
 )
 
 type AuthServiceInterface interface {
-	CreateUserService(email string, password string) error
+	CreateUserService(name string, email string, password string) error
 	GetUserService(email string) (*models.User, error)
 	GetAllUsersService() ([]*models.User, error)
 	GetUserFromIDService(id uint) (*models.User, error)

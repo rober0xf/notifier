@@ -30,12 +30,13 @@ func NewAuthService(db *gorm.DB, jwtKey []byte) *AuthService {
 var _ shared.AuthServiceInterface = (*AuthService)(nil)
 
 // user services
-func (as *AuthService) CreateUserService(email string, password string) error {
-	if email == "" || password == "" {
+func (as *AuthService) CreateUserService(name string, email string, password string) error {
+	if name == "" || email == "" || password == "" {
 		return shared.ErrInvalidUserData
 	}
 
 	user := models.User{
+		Name:     name,
 		Email:    email,
 		Password: password,
 	}
@@ -97,7 +98,7 @@ func (as *AuthService) UpdateUserService(user *models.User) (*models.User, error
 		return nil, err
 	}
 
-	if user.Email == "" || user.Name == "" || user.Password == "" || user.Username == "" {
+	if user.Name == "" || user.Email == "" || user.Password == "" {
 		return nil, shared.ErrInvalidUserData
 	}
 

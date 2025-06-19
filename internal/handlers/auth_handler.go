@@ -18,6 +18,14 @@ type AuthHandler struct {
 	authUtils   utils.AuthUtils
 }
 
+// for routes
+func NewAuthHandler(authService shared.AuthServiceInterface, authUtils utils.AuthUtils) *AuthHandler {
+	return &AuthHandler{
+		authService: authService,
+		authUtils:   authUtils,
+	}
+}
+
 func (h *AuthHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -64,6 +72,7 @@ func (h *AuthHandler) CreateUserHandler(w http.ResponseWriter, r *http.Request) 
 
 	// struct used for decode the input
 	var input_user struct {
+		Name     string `json:"name"`
 		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
@@ -74,13 +83,13 @@ func (h *AuthHandler) CreateUserHandler(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// check if empty fields
-	if input_user.Email == "" || input_user.Password == "" {
+	if input_user.Name == "" || input_user.Email == "" || input_user.Password == "" {
 		http.Error(w, "empty fields", http.StatusBadRequest)
 		return
 	}
 
 	// here we use the service logic
-	err := h.authService.CreateUserService(input_user.Email, input_user.Password)
+	err := h.authService.CreateUserService(input_user.Name, input_user.Email, input_user.Password)
 	if err != nil {
 		switch {
 		case errors.Is(err, shared.ErrUserAlreadyExists):
@@ -97,7 +106,15 @@ func (h *AuthHandler) CreateUserHandler(w http.ResponseWriter, r *http.Request) 
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(input_user)
+
+	// we return a custum structure without the password
+	json.NewEncoder(w).Encode(struct {
+		Name  string `json:"name"`
+		Email string `json:"email"`
+	}{
+		Name:  input_user.Name,
+		Email: input_user.Email,
+	})
 }
 
 func (h *AuthHandler) GetAllUsersHandler(w http.ResponseWriter, r *http.Request) {
@@ -163,10 +180,9 @@ func (h *AuthHandler) UpdateUserHandler(w http.ResponseWriter, r *http.Request) 
 
 	// create the user with the new data
 	user := &models.User{
-		ID:       userID,
-		Name:     input_user.Name,
-		Username: input_user.Username,
-		Email:    input_user.Email,
+		ID:    userID,
+		Name:  input_user.Name,
+		Email: input_user.Email,
 	}
 
 	updated_user, err := h.authService.UpdateUserService(user)
