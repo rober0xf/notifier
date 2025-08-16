@@ -3,7 +3,8 @@ package database
 import (
 	"fmt"
 	"log"
-	"github.com/rober0xf/notifier/internal/models"
+
+	"github.com/rober0xf/notifier/internal/domain"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -31,9 +32,9 @@ func Connect() (*gorm.DB, error) {
 	fmt.Println("migrating schema")
 
 	err = DB.AutoMigrate(
-		&models.User{},
-		&models.Category{},
-		&models.Payment{},
+		&domain.User{},
+		&domain.Category{},
+		&domain.Payment{},
 	)
 	if err != nil {
 		log.Fatalf("failed to migrate models: %v", err.Error())
