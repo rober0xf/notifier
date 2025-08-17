@@ -11,9 +11,9 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/mux"
-	"github.com/rober0xf/notifier/internal/core/shared"
-	"github.com/rober0xf/notifier/internal/core/utils"
-	"github.com/rober0xf/notifier/internal/models"
+	"github.com/rober0xf/notifier/internal/adapters/httphelpers"
+	"github.com/rober0xf/notifier/internal/adapters/httphelpers/dto"
+	"github.com/rober0xf/notifier/internal/domain"
 )
 
 type PaymentsHandler struct {
@@ -46,30 +46,30 @@ func (h *PaymentsHandler) CreatePaymentHandler(w http.ResponseWriter, r *http.Re
 	decoder.DisallowUnknownFields() // check all fields are filled
 
 	if err := decoder.Decode(&input); err != nil {
-		utils.Write_error_response(w, http.StatusBadRequest, "invalid request", "")
+		httphelpers.WriteErrorResponse(w, http.StatusBadRequest, "invalid request", "")
 		return
 	}
 
 	parsed_date, err := time.Parse("02-01-2006", input.Date)
 	if err != nil {
-		utils.Write_error_response(w, http.StatusBadRequest, "invalid data form, expected: YY-MM-DD", "")
+		httphelpers.WriteErrorResponse(w, http.StatusBadRequest, "invalid data form, expected: YY-MM-DD", "")
 		return
 	}
 
 	// validate the user input
 	if err := validate.Struct(input); err != nil {
 		log.Printf("validation error: %v", err)
-		utils.Write_error_response(w, http.StatusBadRequest, "invalid input", err.Error())
+		httphelpers.WriteErrorResponse(w, http.StatusBadRequest, "invalid input", err.Error())
 		return
 	}
 
 	userID, err := h.authUtils.Get_userID_from_request(r)
 	if err != nil || userID == 0 {
-		utils.Write_error_response(w, http.StatusBadRequest, "invalid user id", err.Error())
+		httphelpers.WriteErrorResponse(w, http.StatusBadRequest, "invalid user id", err.Error())
 		return
 	}
 
-	payment := &models.Payment{
+	payment := &domain.Payment{
 		UserID:      userID,
 		NetAmount:   input.NetAmount,
 		GrossAmount: input.GrossAmount,
@@ -83,7 +83,7 @@ func (h *PaymentsHandler) CreatePaymentHandler(w http.ResponseWriter, r *http.Re
 
 	// use the business logic
 	if err := h.paymentService.CreatePaymentService(payment); err != nil {
-		utils.Write_error_response(w, http.StatusInternalServerError, "could not create payment", "")
+		httphelpers.WriteErrorResponse(w, http.StatusInternalServerError, "could not create payment", "")
 		return
 	}
 
@@ -96,27 +96,27 @@ func (h *PaymentsHandler) GetAllPaymentsHandler(w http.ResponseWriter, r *http.R
 	user_id, err := h.authUtils.Get_userID_from_request(r)
 	if err != nil {
 		switch {
-		case errors.Is(err, shared.ErrMissingAuthHeader):
-			utils.Write_error_response(w, http.StatusUnauthorized, "missing Authorization header", "")
-		case errors.Is(err, shared.ErrInvalidHeaderFormat):
-			utils.Write_error_response(w, http.StatusBadRequest, "invalid Authorization header format", "")
-		case errors.Is(err, shared.ErrInvalidToken):
-			utils.Write_error_response(w, http.StatusUnauthorized, "invalid or expired token", "")
+		case errors.Is(err, dto.ErrMissingAuthHeader):
+			httphelpers.WriteErrorResponse(w, http.StatusUnauthorized, "missing Authorization header", "")
+		case errors.Is(err, dto.ErrInvalidHeaderFormat):
+			httphelpers.WriteErrorResponse(w, http.StatusBadRequest, "invalid Authorization header format", "")
+		case errors.Is(err, dto.ErrInvalidToken):
+			httphelpers.WriteErrorResponse(w, http.StatusUnauthorized, "invalid or expired token", "")
 		default:
 			log.Printf("unexpected auth error: %v", err)
-			utils.Write_error_response(w, http.StatusInternalServerError, "internal server error", "")
+			httphelpers.WriteErrorResponse(w, http.StatusInternalServerError, "internal server error", "")
 		}
 		return
 	}
 
 	payments, err := h.paymentService.GetAllPaymentsService(user_id)
 	if err != nil {
-		if errors.Is(err, shared.ErrPaymentNotFound) {
-			utils.Write_error_response(w, http.StatusNotFound, "no payments found", "")
+		if errors.Is(err, dto.ErrPaymentNotFound) {
+			httphelpers.WriteErrorResponse(w, http.StatusNotFound, "no payments found", "")
 			return
 		}
 		log.Printf("unexpected payment service error: %v", err)
-		utils.Write_error_response(w, http.StatusInternalServerError, "internal error", "")
+		httphelpers.WriteErrorResponse(w, http.StatusInternalServerError, "internal error", "")
 		return
 	}
 
@@ -124,7 +124,7 @@ func (h *PaymentsHandler) GetAllPaymentsHandler(w http.ResponseWriter, r *http.R
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(payments); err != nil {
 		log.Printf("error encoding payments: %v", err)
-		utils.Write_error_response(w, http.StatusInternalServerError, "internal server error", "")
+		httphelpers.WriteErrorResponse(w, http.StatusInternalServerError, "internal server error", "")
 		return
 	}
 }
@@ -133,16 +133,16 @@ func (h *PaymentsHandler) GetPaymentByIDHandler(w http.ResponseWriter, r *http.R
 	// get the id from the url
 	id_str := mux.Vars(r)["id"]
 	if id_str == "" {
-		utils.Write_error_response(w, http.StatusBadRequest, "must provide an id", "")
+		httphelpers.WriteErrorResponse(w, http.StatusBadRequest, "must provide an id", "")
 		return
 	}
 	id, err := strconv.Atoi(id_str)
 	if err != nil {
-		utils.Write_error_response(w, http.StatusBadRequest, "invalid id value", "")
+		httphelpers.WriteErrorResponse(w, http.StatusBadRequest, "invalid id value", "")
 		return
 	}
 	if id <= 0 {
-		utils.Write_error_response(w, http.StatusBadRequest, "id must be positive", "")
+		httphelpers.WriteErrorResponse(w, http.StatusBadRequest, "id must be positive", "")
 		return
 	}
 
@@ -151,26 +151,26 @@ func (h *PaymentsHandler) GetPaymentByIDHandler(w http.ResponseWriter, r *http.R
 	if err != nil {
 		switch {
 		case strings.Contains(err.Error(), "missing authorization header"):
-			utils.Write_error_response(w, http.StatusUnauthorized, "missing authorization header", "")
+			httphelpers.WriteErrorResponse(w, http.StatusUnauthorized, "missing authorization header", "")
 		case strings.Contains(err.Error(), "invalid authorization header format"):
-			utils.Write_error_response(w, http.StatusBadRequest, "invalid authorization header format", "")
+			httphelpers.WriteErrorResponse(w, http.StatusBadRequest, "invalid authorization header format", "")
 		case strings.Contains(err.Error(), "invalid token"):
-			utils.Write_error_response(w, http.StatusUnauthorized, "invalid or expired token", "")
+			httphelpers.WriteErrorResponse(w, http.StatusUnauthorized, "invalid or expired token", "")
 		default:
 			log.Printf("unexpected auth error: %v", err)
-			utils.Write_error_response(w, http.StatusInternalServerError, "internal error", "")
+			httphelpers.WriteErrorResponse(w, http.StatusInternalServerError, "internal error", "")
 		}
 		return
 	}
 
 	payment, err := h.paymentService.GetPaymentFromIDService(uint(id), user_id)
 	if err != nil {
-		if errors.Is(err, shared.ErrPaymentNotFound) {
-			utils.Write_error_response(w, http.StatusNotFound, "payment not found", "")
+		if errors.Is(err, dto.ErrPaymentNotFound) {
+			httphelpers.WriteErrorResponse(w, http.StatusNotFound, "payment not found", "")
 			return
 		}
 		log.Printf("Unexpected payment service error: %v", err)
-		utils.Write_error_response(w, http.StatusInternalServerError, "internal error", "")
+		httphelpers.WriteErrorResponse(w, http.StatusInternalServerError, "internal error", "")
 		return
 	}
 
