@@ -1,4 +1,4 @@
-package http
+package httphelpers
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/rober0xf/notifier/internal/adapters/http/dto"
+	"github.com/rober0xf/notifier/internal/adapters/httphelpers/dto"
 	"github.com/rober0xf/notifier/internal/domain"
 	"github.com/rober0xf/notifier/internal/ports/auth"
 )
@@ -56,7 +56,7 @@ func (h *AuthHelper) ParseLoginRequest(r *http.Request) (dto.LoginRequest, error
 	return credentials, nil
 }
 
-func (h *AuthHelper) validateToken(token_string string) (uint, error) {
+func (h *AuthHelper) ValidateToken(token_string string) (uint, error) {
 	return h.authService.ValidateToken(token_string)
 }
 
@@ -73,7 +73,7 @@ func (h *AuthHelper) GetUserIDFromRequest(r *http.Request) (uint, error) {
 		return 0, dto.ErrInvalidHeaderFormat
 	}
 
-	userID, err := h.validateToken(token_string)
+	userID, err := h.ValidateToken(token_string)
 	if err != nil {
 		return 0, dto.ErrInvalidToken
 	}
@@ -82,11 +82,11 @@ func (h *AuthHelper) GetUserIDFromRequest(r *http.Request) (uint, error) {
 }
 
 // creates a new jwt token for the user
-func (h *AuthHelper) generate_token(userID uint, email string) (string, error) {
+func (h *AuthHelper) GenerateToken(userID uint, email string) (string, error) {
 	return h.authService.GenerateToken(userID, email)
 }
 
 // validate the user using context instead of using the db directly
-func (h *AuthHelper) exists_user(ctx context.Context, credentials dto.LoginRequest) (*domain.User, error) {
+func (h *AuthHelper) ExistsUser(ctx context.Context, credentials dto.LoginRequest) (*domain.User, error) {
 	return h.authService.ExistsUser(ctx, credentials)
 }

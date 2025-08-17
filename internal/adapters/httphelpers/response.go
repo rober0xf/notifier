@@ -1,4 +1,4 @@
-package http
+package httphelpers
 
 import (
 	"encoding/json"
@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/rober0xf/notifier/internal/adapters/http/dto"
+	"github.com/rober0xf/notifier/internal/adapters/httphelpers/dto"
 )
 
 // HTTP handler helper functions

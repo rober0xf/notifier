@@ -1,4 +1,4 @@
-package auth
+package authentication
 
 import "net/http"
 
@@ -9,7 +9,7 @@ const (
 	AuthHeaderName       = "Authorization"
 )
 
-func Set_auth_cookie(w http.ResponseWriter, token string) {
+func SetAuthCookie(w http.ResponseWriter, token string) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     SessionCookieName,
 		Value:    token,
