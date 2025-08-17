@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/joho/godotenv"
-	"github.com/rober0xf/notifier/internal/models"
+	"github.com/rober0xf/notifier/internal/services/mail"
 )
 
 type Config struct {
@@ -18,7 +18,7 @@ type Config struct {
 }
 
 var JwtKey []byte
-var MailSender models.MailSender
+var MailSender mail.MailSender
 
 func GetConfig() Config {
 	err := godotenv.Load(".env")
