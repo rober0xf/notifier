@@ -5,45 +5,48 @@ import (
 
 	"github.com/rober0xf/notifier/internal/adapters/httphelpers/dto"
 	"github.com/rober0xf/notifier/internal/domain"
-	"gorm.io/gorm"
+	domainErrors "github.com/rober0xf/notifier/internal/domain/errors"
 )
 
-func (u *Users) Get(email string) (*domain.User, error) {
+func (s *Service) Get(email string) (*domain.User, error) {
 	if email == "" {
 		return nil, dto.ErrInvalidUserData
 	}
 
-	var user domain.User
-	err := u.db.Where("email = ?", email).First(&user).Error
+	user, err := s.Repo.GetByEmail(email)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, domainErrors.ErrNotFound) {
 			return nil, dto.ErrUserNotFound
 		}
 		return nil, err
 	}
 
-	return &user, nil
+	return user, nil
 }
 
-func (u *Users) GetAllUsers() ([]*domain.User, error) {
-	var users []*domain.User
-
-	if err := u.db.Find(&users).Error; err != nil {
+func (s Service) GetAllUsers() ([]*domain.User, error) {
+	users, err := s.Repo.GetAll()
+	if err != nil {
 		return nil, err
 	}
 
-	return users, nil
+	// cast []domain.User to []*domain.User
+	userPointers := make([]*domain.User, len(users))
+	for i := range users {
+		userPointers[i] = &users[i]
+	}
+
+	return userPointers, nil
 }
 
-func (u *Users) GetUserFromID(id uint) (*domain.User, error) {
-	var user domain.User
-
-	if err := u.db.Where("id = ?", id).First(&user).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+func (s Service) GetUserFromID(id uint) (*domain.User, error) {
+	user, err := s.Repo.GetByID(id)
+	if err != nil {
+		if errors.Is(err, domainErrors.ErrNotFound) {
 			return nil, dto.ErrUserNotFound
 		}
 		return nil, err
 	}
 
-	return &user, nil
+	return user, nil
 }

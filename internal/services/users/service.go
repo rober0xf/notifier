@@ -1,20 +1,19 @@
 package users
 
 import (
-	"github.com/rober0xf/notifier/internal/ports/users"
-	"gorm.io/gorm"
+	"github.com/rober0xf/notifier/internal/ports"
 )
 
-type Users struct {
-	db     *gorm.DB
+type Service struct {
+	Repo   ports.UserRepository
 	jwtKey []byte
 }
 
-func NewUsers(db *gorm.DB, jwtKey []byte) *Users {
-	return &Users{
-		db:     db,
+func NewUsers(repo ports.UserRepository, jwtKey []byte) *Service {
+	return &Service{
+		Repo:   repo,
 		jwtKey: jwtKey,
 	}
 }
 
-var _ users.UserService = (*Users)(nil)
+var _ ports.UserService = (*Service)(nil)

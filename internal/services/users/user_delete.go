@@ -4,22 +4,21 @@ import (
 	"errors"
 
 	"github.com/rober0xf/notifier/internal/adapters/httphelpers/dto"
-	"github.com/rober0xf/notifier/internal/domain"
-	"gorm.io/gorm"
+	domainErrors "github.com/rober0xf/notifier/internal/domain/errors"
 )
 
-func (u *Users) Delete(id uint) error {
-	var db_user domain.User
-	if err := u.db.First(&db_user, id).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+func (s *Service) Delete(id uint) error {
+
+	_, err := s.Repo.GetByID(id)
+	if err != nil {
+		if errors.Is(err, domainErrors.ErrNotFound) {
 			return dto.ErrUserNotFound
 		}
-		return err
+		return dto.ErrInternalServerError
 	}
 
-	if err := u.db.Delete(&db_user).Error; err != nil {
-		return err
+	if err := s.Repo.Delete(id); err != nil {
+		return dto.ErrInternalServerError
 	}
-
 	return nil
 }

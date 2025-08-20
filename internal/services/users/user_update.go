@@ -6,13 +6,13 @@ import (
 	"github.com/rober0xf/notifier/internal/adapters/authentication"
 	"github.com/rober0xf/notifier/internal/adapters/httphelpers/dto"
 	"github.com/rober0xf/notifier/internal/domain"
-	"gorm.io/gorm"
+	domainErrors "github.com/rober0xf/notifier/internal/domain/errors"
 )
 
-func (u *Users) Update(user *domain.User) (*domain.User, error) {
-	var db_user domain.User
-	if err := u.db.Where("id = ?", user.ID).First(&db_user).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+func (s Service) Update(user *domain.User) (*domain.User, error) {
+	_, err := s.Repo.GetByID(user.ID)
+	if err != nil {
+		if errors.Is(err, domainErrors.ErrNotFound) {
 			return nil, dto.ErrUserNotFound
 		}
 		return nil, err
@@ -28,8 +28,8 @@ func (u *Users) Update(user *domain.User) (*domain.User, error) {
 	}
 	user.Password = hashed_password
 
-	// update the user's fields using the input_user instance
-	if err := u.db.Model(&db_user).Updates(user).Error; err != nil {
+	// update the user's fields using the repository
+	if err := s.Repo.Update(user); err != nil {
 		return nil, err
 	}
 

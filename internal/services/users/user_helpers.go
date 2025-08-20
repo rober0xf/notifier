@@ -9,19 +9,19 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/rober0xf/notifier/internal/adapters/httphelpers/dto"
 	"github.com/rober0xf/notifier/internal/domain"
+	domainErrors "github.com/rober0xf/notifier/internal/domain/errors"
 	"github.com/rober0xf/notifier/internal/services/mail"
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 )
 
 var TokenExpirationHours = 6
 
-func (u *Users) ValidateToken(token_string string) (uint, error) {
+func (s *Service) ValidateToken(token_string string) (uint, error) {
 	token, err := jwt.ParseWithClaims(token_string, &dto.JWTClaims{}, func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("invalid signing method: %v", token.Header["alg"])
 		}
-		return u.jwtKey, nil
+		return s.jwtKey, nil
 	})
 
 	if err != nil {
@@ -37,16 +37,15 @@ func (u *Users) ValidateToken(token_string string) (uint, error) {
 }
 
 // TODO: fix return
-func (u *Users) ParseUserFromToken(token_string string) (*mail.MailSender, error) {
-	var user domain.User
-
-	userID, err := u.ValidateToken(token_string)
+func (s *Service) ParseUserFromToken(token_string string) (*mail.MailSender, error) {
+	userID, err := s.ValidateToken(token_string)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := u.db.Where("id = ?", userID).First(&user).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+	_, err = s.Repo.GetByID(userID)
+	if err != nil {
+		if errors.Is(err, domainErrors.ErrNotFound) {
 			return nil, dto.ErrUserNotFound
 		}
 		return nil, fmt.Errorf("internal error: %w", err)
@@ -55,7 +54,7 @@ func (u *Users) ParseUserFromToken(token_string string) (*mail.MailSender, error
 	return nil, nil
 }
 
-func (u *Users) GenerateToken(userID uint, email string) (string, error) {
+func (s *Service) GenerateToken(userID uint, email string) (string, error) {
 	expiration := time.Now().Add(time.Duration(TokenExpirationHours))
 	claims := &dto.JWTClaims{
 		Email:  email,
@@ -68,19 +67,21 @@ func (u *Users) GenerateToken(userID uint, email string) (string, error) {
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(u.jwtKey)
+	return token.SignedString(s.jwtKey)
 }
 
-func (u *Users) ExistsUser(ctx context.Context, credentials dto.LoginRequest) (*domain.User, error) {
+func (s *Service) ExistsUser(ctx context.Context, credentials dto.LoginRequest) (*domain.User, error) {
 	var user domain.User
 
 	// check if the user exists
-	if err := u.db.WithContext(ctx).Where("email = ?", credentials.Email).First(&user).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+	userPtr, err := s.Repo.GetByEmail(credentials.Email)
+	if err != nil {
+		if errors.Is(err, domainErrors.ErrNotFound) {
 			return nil, errors.New("invalid credentials")
 		}
 		return nil, fmt.Errorf("internal error: %w", err)
 	}
+	user = *userPtr
 
 	// compare the hashed password
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(credentials.Password)); err != nil {
