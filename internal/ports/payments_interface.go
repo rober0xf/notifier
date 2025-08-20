@@ -1,4 +1,4 @@
-package payments
+package ports
 
 import "github.com/rober0xf/notifier/internal/domain"
 
@@ -8,5 +8,14 @@ type PaymentService interface {
 	GetAllPayments(user_id uint) ([]*domain.Payment, error)
 	GetPaymentFromID(id uint, user_id uint) (*domain.Payment, error)
 	Update(*domain.Payment) (*domain.Payment, error)
+	Delete(id uint) error
+}
+
+type PaymentRepository interface {
+	Create(payment *domain.Payment) error
+	GetByID(id uint) (*domain.Payment, error)
+	GetAllByUserID(user_id uint) ([]*domain.Payment, error)
+	GetByIDAndUserID(id uint, user_id uint) (*domain.Payment, error)
+	Update(payment *domain.Payment) error
 	Delete(id uint) error
 }
