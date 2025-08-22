@@ -1,83 +1,80 @@
 package routes
 
-import (
-	"net/http"
-	"os"
+// import (
+// 	"net/http"
+// 	"os"
 
-	"github.com/gorilla/mux"
-	"github.com/rober0xf/notifier/internal/core/services"
-	"github.com/rober0xf/notifier/internal/core/utils"
-	"github.com/rober0xf/notifier/internal/handlers"
-	Mail "github.com/rober0xf/notifier/internal/handlers"
-	"github.com/rober0xf/notifier/internal/middlewares"
-	"gorm.io/gorm"
-)
+// 	"github.com/gorilla/mux"
+// 	Mail "github.com/rober0xf/notifier/internal/handlers"
+// 	"github.com/rober0xf/notifier/internal/middlewares"
+// 	"gorm.io/gorm"
+// )
 
-func InitRouter(db *gorm.DB) *mux.Router {
-	r := mux.NewRouter()
+// func InitRouter(db *gorm.DB) *mux.Router {
+// 	r := mux.NewRouter()
 
-	// Get JWT key from environment variable
-	jwtKey := []byte(os.Getenv("JWT_KEY"))
-	if len(jwtKey) == 0 {
-		jwtKey = []byte("default-secret-key") // fallback for development
-	}
+// 	// Get JWT key from environment variable
+// 	jwtKey := []byte(os.Getenv("JWT_KEY"))
+// 	if len(jwtKey) == 0 {
+// 		jwtKey = []byte("default-secret-key") // fallback for development
+// 	}
 
-	// Initialize dependencies
-	authService := services.NewAuthService(db, jwtKey)
-	authUtils := utils.NewAuthUtils(authService)
+// 	// Initialize dependencies
+// 	authService := services.NewAuthService(db, jwtKey)
+// 	authUtils := utils.NewAuthUtils(authService)
 
-	// Initialize handlers with dependencies using constructor
-	handlers := handlers.NewAuthHandler(authService, *authUtils)
+// 	// Initialize handlers with dependencies using constructor
+// 	handlers := handlers.NewAuthHandler(authService, *authUtils)
 
-	// subrouters
-	_ = setup_user_routes(r, handlers)
-	_ = setup_protected_routes(r, handlers)
+// 	// subrouters
+// 	_ = setup_user_routes(r, handlers)
+// 	_ = setup_protected_routes(r, handlers)
 
-	// TODO: implement category and payment routes when Store type is defined
-	// _ = setupCategoryRoutes(r, handlers)
-	// _ = setupPaymentRoutes(r, handlers)
+// TODO: implement category and payment routes when Store type is defined
+// _ = setupCategoryRoutes(r, handlers)
+// _ = setupPaymentRoutes(r, handlers)
 
-	return r
-}
+// 	return r
+// }
 
-func setup_user_routes(r *mux.Router, handlers *handlers.AuthHandler) *mux.Router {
-	user_routes := r.PathPrefix("/api/users").Subrouter()
+// func setup_user_routes(r *mux.Router, handlers *handlers.AuthHandler) *mux.Router {
+// 	user_routes := r.PathPrefix("/api/users").Subrouter()
 
-	user_routes.HandleFunc("/", handlers.GetAllUsersHandler).Methods(http.MethodGet)
-	user_routes.HandleFunc("/{id}", func(w http.ResponseWriter, r *http.Request) {
-		vars := mux.Vars(r)
-		id := vars["id"]
-		handlers.GetUserByIDHandler(w, r, id)
-	})
-	user_routes.HandleFunc("", handlers.CreateUserHandler).Methods(http.MethodPost)
-	user_routes.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
-		handlers.LoginHandler(w, r)
-	}).Methods(http.MethodPost)
-	user_routes.HandleFunc("/mail", func(w http.ResponseWriter, r *http.Request) {
-		Mail.TestMail(w, r)
-	}).Methods(http.MethodGet)
+// 	user_routes.HandleFunc("/", handlers.GetAllUsersHandler).Methods(http.MethodGet)
+// 	user_routes.HandleFunc("/{id}", func(w http.ResponseWriter, r *http.Request) {
+// 		vars := mux.Vars(r)
+// 		id := vars["id"]
+// 		handlers.GetUserByIDHandler(w, r, id)
+// 	})
+// 	user_routes.HandleFunc("", handlers.CreateUserHandler).Methods(http.MethodPost)
+// 	user_routes.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
+// 		handlers.LoginHandler(w, r)
+// 	}).Methods(http.MethodPost)
+// 	user_routes.HandleFunc("/mail", func(w http.ResponseWriter, r *http.Request) {
+// 		Mail.TestMail(w, r)
+// 	}).Methods(http.MethodGet)
 
-	return user_routes
-}
+// 	return user_routes
+// }
 
-func setup_protected_routes(r *mux.Router, handlers *handlers.AuthHandler) *mux.Router {
-	protected_routes := r.PathPrefix("api/auth").Subrouter()
-	protected_routes.Use(middlewares.JWTMiddleware)
+// func setup_protected_routes(r *mux.Router, handlers *handlers.AuthHandler) *mux.Router {
+// 	protected_routes := r.PathPrefix("api/auth").Subrouter()
+// 	protected_routes.Use(middlewares.JWTMiddleware)
 
-	protected_routes.HandleFunc("/users/{id}", func(w http.ResponseWriter, r *http.Request) {
-		vars := mux.Vars(r)
-		id := vars["id"]
-		handlers.GetUserByIDHandler(w, r, id)
-	}).Methods(http.MethodGet)
-	protected_routes.HandleFunc("/users/{id}", handlers.UpdateUserHandler).Methods(http.MethodPut)
-	protected_routes.HandleFunc("/users/{id}", handlers.DeleteUserHandler).Methods(http.MethodDelete)
+// 	protected_routes.HandleFunc("/users/{id}", func(w http.ResponseWriter, r *http.Request) {
+// 		vars := mux.Vars(r)
+// 		id := vars["id"]
+// 		handlers.GetUserByIDHandler(w, r, id)
+// 	}).Methods(http.MethodGet)
+// 	protected_routes.HandleFunc("/users/{id}", handlers.UpdateUserHandler).Methods(http.MethodPut)
+// 	protected_routes.HandleFunc("/users/{id}", handlers.DeleteUserHandler).Methods(http.MethodDelete)
 
-	protected_routes.HandleFunc("/email", func(w http.ResponseWriter, r *http.Request) {
-		Mail.TestMail(w, r)
-	}).Methods(http.MethodGet)
+// 	protected_routes.HandleFunc("/email", func(w http.ResponseWriter, r *http.Request) {
+// 		Mail.TestMail(w, r)
+// 	}).Methods(http.MethodGet)
 
-	return protected_routes
-}
+// 	return protected_routes
+// }
 
 // TODO:
 // func setupCategoryRoutes(r *mux.Router, store *handlers.Store) *mux.Router {
