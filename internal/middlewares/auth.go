@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
-	database "github.com/rober0xf/notifier/internal/db"
+	database "github.com/rober0xf/notifier/internal/ports/db"
 )
 
 var jwtKey = []byte(database.JwtKey)

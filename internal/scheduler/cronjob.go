@@ -8,8 +8,8 @@ import (
 
 	"github.com/go-co-op/gocron/v2"
 	_ "github.com/joho/godotenv/autoload"
-	database "github.com/rober0xf/notifier/internal/db"
-	"github.com/rober0xf/notifier/internal/models"
+	database "github.com/rober0xf/notifier/internal/ports/db"
+	"github.com/rober0xf/notifier/internal/services/mail"
 )
 
 func InitCron() {
@@ -35,7 +35,7 @@ func InitCron() {
 }
 
 func SendDailyAlert() {
-	mailsend := models.MailSender{
+	mailsend := mail.MailSender{
 		Host:     os.Getenv("SMTP_HOST"),
 		Port:     os.Getenv("SMTP_PORT"),
 		Username: os.Getenv("SMTP_USERNAME"),

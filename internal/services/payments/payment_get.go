@@ -1,50 +1,33 @@
 package payments
 
 import (
-	"errors"
-
 	"github.com/rober0xf/notifier/internal/adapters/httphelpers/dto"
 	"github.com/rober0xf/notifier/internal/domain"
-	"gorm.io/gorm"
 )
 
-func (p *Payments) Get(id uint) (*domain.Payment, error) {
-	var payment domain.Payment
-
-	err := p.db.Where("id = ?", id).First(&payment).Error
+func (s *Service) Get(id uint) (*domain.Payment, error) {
+	payment, err := s.Repo.GetPaymentByID(id)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, dto.ErrUserNotFound
-		}
-		return nil, err
+		return nil, dto.ErrInternalServerError
 	}
-	return &payment, nil
+	return payment, nil
 }
 
-func (p *Payments) GetAllPayments(user_id uint) ([]*domain.Payment, error) {
-	var payments []*domain.Payment
-
-	err := p.db.Where("user_id = ?", user_id).Find(&payments).Error
+func (s *Service) GetAllPayments(user_id uint) ([]domain.Payment, error) {
+	payments, err := s.Repo.GetAllPaymentsByUserID(user_id)
 	if err != nil {
-		return nil, err
+		return nil, dto.ErrInternalServerError
 	}
 	if len(payments) == 0 {
 		return nil, dto.ErrPaymentNotFound
 	}
-
 	return payments, nil
 }
 
-func (p *Payments) GetPaymentFromID(id uint, user_id uint) (*domain.Payment, error) {
-	var payment domain.Payment
-
-	err := p.db.Where("id = ? AND user_id", id, user_id).First(&payment).Error
+func (s *Service) GetPaymentFromIDAndUserID(id uint, user_id uint) (*domain.Payment, error) {
+	payment, err := s.Repo.GetPaymentByIDAndUserID(id, user_id)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, dto.ErrPaymentNotFound
-		}
-		return nil, err
+		return nil, dto.ErrInternalServerError
 	}
-
-	return &payment, nil
+	return payment, nil
 }

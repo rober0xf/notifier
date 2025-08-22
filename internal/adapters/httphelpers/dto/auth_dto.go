@@ -23,6 +23,9 @@ var (
 	ErrMissingAuthHeader   = errors.New("missing authorization header")
 	ErrInvalidHeaderFormat = errors.New("invalid authorization header format")
 	ErrInvalidToken        = errors.New("invalid or expired token")
+
+	// general
+	ErrInternalServerError = errors.New("internal server error")
 )
 
 type LoginRequest struct {

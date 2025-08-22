@@ -1,18 +1,17 @@
 package payments
 
 import (
-	"github.com/rober0xf/notifier/internal/ports/payments"
-	"gorm.io/gorm"
+	"github.com/rober0xf/notifier/internal/ports"
 )
 
-type Payments struct {
-	db *gorm.DB
+type Service struct {
+	Repo ports.PaymentRepository
 }
 
-func NewPayments(db *gorm.DB) *Payments {
-	return &Payments{
-		db: db,
+func NewPayments(repo ports.PaymentRepository) *Service {
+	return &Service{
+		Repo: repo,
 	}
 }
 
-var _ payments.PaymentService = (*Payments)(nil)
+var _ ports.PaymentService = (*Service)(nil)
