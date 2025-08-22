@@ -9,7 +9,7 @@ import (
 	"github.com/rober0xf/notifier/internal/services/mail"
 )
 
-type Config struct {
+type PostgresConfig struct {
 	DB_NAME string
 	DB_USER string
 	DB_PASS string
@@ -20,13 +20,13 @@ type Config struct {
 var JwtKey []byte
 var MailSender mail.MailSender
 
-func GetConfig() Config {
+func GetConfig() PostgresConfig {
 	err := godotenv.Load(".env")
 	if err != nil {
 		log.Fatalf("error loading env file: %v", err)
 	}
 
-	var config Config
+	var config PostgresConfig
 	config.DB_NAME = get_env_or_fatal("DB_NAME")
 	config.DB_USER = get_env_or_fatal("DB_USER")
 	config.DB_PASS = get_env_or_fatal("DB_PASSWORD")

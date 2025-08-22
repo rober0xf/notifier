@@ -3,16 +3,17 @@ package database
 import (
 	"fmt"
 	"log"
+	"path/filepath"
 
 	"github.com/rober0xf/notifier/internal/domain"
 	"gorm.io/driver/postgres"
+	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
 var DB *gorm.DB
 
-func Connect() (*gorm.DB, error) {
-	// from config.go
+func ConnectPostgres() (*gorm.DB, error) {
 	config := GetConfig()
 
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=UTC",
@@ -42,4 +43,30 @@ func Connect() (*gorm.DB, error) {
 
 	fmt.Println("schema migrated")
 	return DB, nil
+}
+
+func ConnectSQLite() (*gorm.DB, error) {
+	database_path, err := filepath.Abs("../../database.db")
+	if err != nil {
+		return nil, fmt.Errorf("could not read database path: %v", err)
+	}
+
+	db, err := gorm.Open(sqlite.Open(database_path), &gorm.Config{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to connecto to the database: %v", err)
+	}
+	fmt.Println("connected to sqlite")
+
+	err = db.AutoMigrate(
+		&domain.User{},
+		&domain.Category{},
+		&domain.Payment{},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to migrate models: %v", err)
+	}
+
+	fmt.Println("schema migrated")
+	return db, nil
+
 }
