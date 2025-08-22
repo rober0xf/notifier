@@ -9,7 +9,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/rober0xf/notifier/internal/adapters/httphelpers/dto"
 	"github.com/rober0xf/notifier/internal/domain"
-	domainErrors "github.com/rober0xf/notifier/internal/domain/errors"
+	"github.com/rober0xf/notifier/internal/domain/domain_errors"
 	"github.com/rober0xf/notifier/internal/services/mail"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -43,9 +43,9 @@ func (s *Service) ParseUserFromToken(token_string string) (*mail.MailSender, err
 		return nil, err
 	}
 
-	_, err = s.Repo.GetByID(userID)
+	_, err = s.Repo.GetUserByID(userID)
 	if err != nil {
-		if errors.Is(err, domainErrors.ErrNotFound) {
+		if errors.Is(err, domain_errors.ErrNotFound) {
 			return nil, dto.ErrUserNotFound
 		}
 		return nil, fmt.Errorf("internal error: %w", err)
@@ -74,9 +74,9 @@ func (s *Service) ExistsUser(ctx context.Context, credentials dto.LoginRequest) 
 	var user domain.User
 
 	// check if the user exists
-	userPtr, err := s.Repo.GetByEmail(credentials.Email)
+	userPtr, err := s.Repo.GetUserByEmail(credentials.Email)
 	if err != nil {
-		if errors.Is(err, domainErrors.ErrNotFound) {
+		if errors.Is(err, domain_errors.ErrNotFound) {
 			return nil, errors.New("invalid credentials")
 		}
 		return nil, fmt.Errorf("internal error: %w", err)

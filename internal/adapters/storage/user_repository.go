@@ -4,76 +4,66 @@ import (
 	"errors"
 
 	"github.com/rober0xf/notifier/internal/domain"
-	domainErrors "github.com/rober0xf/notifier/internal/domain/errors"
+	"github.com/rober0xf/notifier/internal/domain/domain_errors"
 	"github.com/rober0xf/notifier/internal/ports"
 	"gorm.io/gorm"
 )
 
-type Repository struct {
-	db *gorm.DB
-}
-
-func NewUserRepository(db *gorm.DB) *Repository {
-	return &Repository{
-		db: db,
-	}
-}
-
 var _ ports.UserRepository = (*Repository)(nil)
 
-func (r *Repository) Create(user *domain.User) error {
+func (r *Repository) CreateUser(user *domain.User) error {
 	if err := r.db.Create(user).Error; err != nil {
 		if errors.Is(err, gorm.ErrDuplicatedKey) {
-			return domainErrors.ErrNotFound
+			return domain_errors.ErrNotFound
 		}
-		return domainErrors.ErrRepository
+		return domain_errors.ErrRepository
 	}
 	return nil
 }
 
-func (r *Repository) GetByEmail(email string) (*domain.User, error) {
+func (r *Repository) GetUserByEmail(email string) (*domain.User, error) {
 	var user domain.User
 
 	if err := r.db.Where("email = ?", email).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, domainErrors.ErrNotFound
+			return nil, domain_errors.ErrNotFound
 		}
-		return nil, domainErrors.ErrRepository
+		return nil, domain_errors.ErrRepository
 	}
 	return &user, nil
 }
 
-func (r *Repository) GetAll() ([]domain.User, error) {
+func (r *Repository) GetAllUsers() ([]domain.User, error) {
 	var users []domain.User
 
 	if err := r.db.Find(&users).Error; err != nil {
-		return nil, domainErrors.ErrRepository
+		return nil, domain_errors.ErrRepository
 	}
 	return users, nil
 }
 
-func (r *Repository) GetByID(id uint) (*domain.User, error) {
+func (r *Repository) GetUserByID(id uint) (*domain.User, error) {
 	var user domain.User
 
 	if err := r.db.Where("id = ?", id).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, domainErrors.ErrNotFound
+			return nil, domain_errors.ErrNotFound
 		}
-		return nil, domainErrors.ErrRepository
+		return nil, domain_errors.ErrRepository
 	}
 	return &user, nil
 }
 
-func (r *Repository) Update(user *domain.User) error {
+func (r *Repository) UpdateUser(user *domain.User) error {
 	if err := r.db.Save(user).Error; err != nil {
-		return domainErrors.ErrRepository
+		return domain_errors.ErrRepository
 	}
 	return nil
 }
 
-func (r *Repository) Delete(id uint) error {
+func (r *Repository) DeleteUser(id uint) error {
 	if err := r.db.Delete(&domain.User{}, id).Error; err != nil {
-		return domainErrors.ErrRepository
+		return domain_errors.ErrRepository
 	}
 	return nil
 }

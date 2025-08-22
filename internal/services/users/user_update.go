@@ -6,13 +6,13 @@ import (
 	"github.com/rober0xf/notifier/internal/adapters/authentication"
 	"github.com/rober0xf/notifier/internal/adapters/httphelpers/dto"
 	"github.com/rober0xf/notifier/internal/domain"
-	domainErrors "github.com/rober0xf/notifier/internal/domain/errors"
+	"github.com/rober0xf/notifier/internal/domain/domain_errors"
 )
 
 func (s Service) Update(user *domain.User) (*domain.User, error) {
-	_, err := s.Repo.GetByID(user.ID)
+	_, err := s.Repo.GetUserByID(user.ID)
 	if err != nil {
-		if errors.Is(err, domainErrors.ErrNotFound) {
+		if errors.Is(err, domain_errors.ErrNotFound) {
 			return nil, dto.ErrUserNotFound
 		}
 		return nil, err
@@ -29,7 +29,7 @@ func (s Service) Update(user *domain.User) (*domain.User, error) {
 	user.Password = hashed_password
 
 	// update the user's fields using the repository
-	if err := s.Repo.Update(user); err != nil {
+	if err := s.Repo.UpdateUser(user); err != nil {
 		return nil, err
 	}
 

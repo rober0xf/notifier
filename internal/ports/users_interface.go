@@ -14,10 +14,10 @@ type UserService interface {
 }
 
 type UserRepository interface {
-	Create(user *domain.User) error
-	GetByEmail(email string) (*domain.User, error)
-	GetAll() ([]domain.User, error)
-	GetByID(id uint) (*domain.User, error)
-	Update(user *domain.User) error
-	Delete(id uint) error
+	CreateUser(user *domain.User) error
+	GetUserByEmail(email string) (*domain.User, error)
+	GetAllUsers() ([]domain.User, error)
+	GetUserByID(id uint) (*domain.User, error)
+	UpdateUser(user *domain.User) error
+	DeleteUser(id uint) error
 }

@@ -5,7 +5,7 @@ import (
 
 	"github.com/rober0xf/notifier/internal/adapters/httphelpers/dto"
 	"github.com/rober0xf/notifier/internal/domain"
-	domainErrors "github.com/rober0xf/notifier/internal/domain/errors"
+	"github.com/rober0xf/notifier/internal/domain/domain_errors"
 )
 
 func (s *Service) Get(email string) (*domain.User, error) {
@@ -13,9 +13,9 @@ func (s *Service) Get(email string) (*domain.User, error) {
 		return nil, dto.ErrInvalidUserData
 	}
 
-	user, err := s.Repo.GetByEmail(email)
+	user, err := s.Repo.GetUserByEmail(email)
 	if err != nil {
-		if errors.Is(err, domainErrors.ErrNotFound) {
+		if errors.Is(err, domain_errors.ErrNotFound) {
 			return nil, dto.ErrUserNotFound
 		}
 		return nil, err
@@ -25,7 +25,7 @@ func (s *Service) Get(email string) (*domain.User, error) {
 }
 
 func (s Service) GetAllUsers() ([]*domain.User, error) {
-	users, err := s.Repo.GetAll()
+	users, err := s.Repo.GetAllUsers()
 	if err != nil {
 		return nil, err
 	}
@@ -40,9 +40,9 @@ func (s Service) GetAllUsers() ([]*domain.User, error) {
 }
 
 func (s Service) GetUserFromID(id uint) (*domain.User, error) {
-	user, err := s.Repo.GetByID(id)
+	user, err := s.Repo.GetUserByID(id)
 	if err != nil {
-		if errors.Is(err, domainErrors.ErrNotFound) {
+		if errors.Is(err, domain_errors.ErrNotFound) {
 			return nil, dto.ErrUserNotFound
 		}
 		return nil, err

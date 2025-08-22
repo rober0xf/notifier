@@ -6,16 +6,16 @@ import (
 	"github.com/rober0xf/notifier/internal/adapters/authentication"
 	"github.com/rober0xf/notifier/internal/adapters/httphelpers/dto"
 	"github.com/rober0xf/notifier/internal/domain"
-	domainErrors "github.com/rober0xf/notifier/internal/domain/errors"
+	"github.com/rober0xf/notifier/internal/domain/domain_errors"
 )
 
 func (s *Service) Create(name string, email string, password string) (*domain.User, error) {
 	// check if the user already exists
-	exists, err := s.Repo.GetByEmail(email)
+	exists, err := s.Repo.GetUserByEmail(email)
 
 	if err == nil && exists != nil {
 		return nil, dto.ErrUserAlreadyExists
-	} else if err != nil && !errors.Is(err, domainErrors.ErrNotFound) {
+	} else if err != nil && !errors.Is(err, domain_errors.ErrNotFound) {
 		return nil, err
 	}
 
@@ -31,8 +31,8 @@ func (s *Service) Create(name string, email string, password string) (*domain.Us
 	}
 
 	// store the user
-	if err := s.Repo.Create(user); err != nil {
-		if errors.Is(err, domainErrors.ErrAlreadyExists) {
+	if err := s.Repo.CreateUser(user); err != nil {
+		if errors.Is(err, domain_errors.ErrAlreadyExists) {
 			return nil, dto.ErrUserAlreadyExists
 		}
 		return nil, dto.ErrInternalServerError
