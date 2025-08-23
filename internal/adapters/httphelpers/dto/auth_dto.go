@@ -3,8 +3,15 @@ package dto
 import (
 	"errors"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/golang-jwt/jwt/v5"
 )
+
+var validate *validator.Validate
+
+func init() {
+	validate = validator.New()
+}
 
 // custom errors
 var (
@@ -23,6 +30,9 @@ var (
 	ErrMissingAuthHeader   = errors.New("missing authorization header")
 	ErrInvalidHeaderFormat = errors.New("invalid authorization header format")
 	ErrInvalidToken        = errors.New("invalid or expired token")
+	ErrInvalidClaims       = errors.New("invalid JWT claims")
+	ErrInvalidClaimID      = errors.New("invalid claim id")
+	ErrInvalidCredentials  = errors.New("invalid credentials")
 
 	// general
 	ErrInternalServerError = errors.New("internal server error")
