@@ -5,11 +5,13 @@ import (
 	"log"
 	"net/http"
 
-	userHandler "github.com/rober0xf/notifier/cmd/api/handlers/users"
+	"github.com/gin-gonic/gin"
+	"github.com/rober0xf/notifier/internal/adapters/handlers/users"
+	"github.com/rober0xf/notifier/internal/adapters/httpmethod"
+	"github.com/rober0xf/notifier/internal/adapters/storage"
 	database "github.com/rober0xf/notifier/internal/ports/db"
-	"github.com/rober0xf/notifier/internal/routes"
 	cronjob "github.com/rober0xf/notifier/internal/scheduler"
-	"github.com/rober0xf/notifier/internal/services/users"
+	userService "github.com/rober0xf/notifier/internal/services/users"
 )
 
 func main() {
@@ -20,13 +22,16 @@ func main() {
 		log.Fatalf("could not connect to database: %v", err)
 	}
 
-	userService := &users.Service{}
-	userHandler := userHandler.Handler{
-		UserService: userService,
+	userSvc := &userService.Service{
+		Repo: storage.NewUserRepository(db),
 	}
+	userHandler := users.NewUserHandler(*userSvc)
 
-	r := routes.InitRouter(db)
+	router := gin.Default()
+	jwtKey := []byte("your-secret-key")
+
+	httpmethod.SetupRoutes(userHandler, jwtKey)
 
 	fmt.Println("running on port 3000")
-	log.Fatal(http.ListenAndServe(":3000", r))
+	log.Fatal(http.ListenAndServe(":3000", router))
 }

@@ -8,7 +8,6 @@ import (
 )
 
 func (s *Service) Delete(id uint) error {
-
 	_, err := s.Repo.GetUserByID(id)
 	if err != nil {
 		if errors.Is(err, domain_errors.ErrNotFound) {

@@ -2,48 +2,46 @@ package database
 
 import (
 	"fmt"
-	"log"
 	"path/filepath"
 
 	"github.com/rober0xf/notifier/internal/domain"
-	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
 var DB *gorm.DB
 
-func ConnectPostgres() (*gorm.DB, error) {
-	config := GetConfig()
+// func ConnectPostgres() (*gorm.DB, error) {
+// 	config := GetConfig()
 
-	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=UTC",
-		config.DB_HOST,
-		config.DB_USER,
-		config.DB_PASS,
-		config.DB_NAME,
-		config.DB_PORT)
+// 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=UTC",
+// 		config.DB_HOST,
+// 		config.DB_USER,
+// 		config.DB_PASS,
+// 		config.DB_NAME,
+// 		config.DB_PORT)
 
-	var err error
-	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
-	if err != nil {
-		log.Fatalf("failed to connect to db: %v", err.Error())
-	}
+// 	var err error
+// 	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
+// 	if err != nil {
+// 		log.Fatalf("failed to connect to db: %v", err.Error())
+// 	}
 
-	fmt.Println("database connected")
-	fmt.Println("migrating schema")
+// 	fmt.Println("database connected")
+// 	fmt.Println("migrating schema")
 
-	err = DB.AutoMigrate(
-		&domain.User{},
-		&domain.Category{},
-		&domain.Payment{},
-	)
-	if err != nil {
-		log.Fatalf("failed to migrate models: %v", err.Error())
-	}
+// 	err = DB.AutoMigrate(
+// 		&domain.User{},
+// 		&domain.Category{},
+// 		&domain.Payment{},
+// 	)
+// 	if err != nil {
+// 		log.Fatalf("failed to migrate models: %v", err.Error())
+// 	}
 
-	fmt.Println("schema migrated")
-	return DB, nil
-}
+// 	fmt.Println("schema migrated")
+// 	return DB, nil
+// }
 
 func ConnectSQLite() (*gorm.DB, error) {
 	database_path, err := filepath.Abs("../../database.db")
