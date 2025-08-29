@@ -1,6 +1,8 @@
 package authentication
 
-import "net/http"
+import (
+	"github.com/gin-gonic/gin"
+)
 
 const (
 	TokenExpirationHours = 6
@@ -9,14 +11,13 @@ const (
 	AuthHeaderName       = "Authorization"
 )
 
-func SetAuthCookie(w http.ResponseWriter, token string) {
-	http.SetCookie(w, &http.Cookie{
-		Name:     SessionCookieName,
-		Value:    token,
-		Path:     "/",
-		HttpOnly: true, // prevent XSS
-		Secure:   true,
-		SameSite: http.SameSiteStrictMode,
-		MaxAge:   int(TokenExpirationHours),
-	})
+func SetAuthCookie(c *gin.Context, token string) {
+	c.SetCookie(SessionCookieName,
+		token,
+		int(TokenExpirationHours),
+		"/",
+		"", // empty for current domain
+		true,
+		true,
+	)
 }
