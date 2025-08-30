@@ -20,12 +20,8 @@ func (h *userHandler) Login(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "user not found"})
 		return
 	}
-	hashed_password, err := authentication.HashPassword(credentials.Password)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "error hashing password"})
-		return
-	}
-	if !authentication.VerifyPassword(user.Password, hashed_password) {
+
+	if !authentication.VerifyPassword(credentials.Password, user.Password) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "incorrect password"})
 		return
 	}
@@ -43,5 +39,4 @@ func (h *userHandler) Login(c *gin.Context) {
 			ID:    user.ID,
 			Email: user.Email,
 		}})
-
 }
