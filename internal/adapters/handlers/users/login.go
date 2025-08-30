@@ -5,20 +5,28 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/rober0xf/notifier/internal/adapters/authentication"
-	"github.com/rober0xf/notifier/internal/adapters/httphelpers"
 	"github.com/rober0xf/notifier/internal/adapters/httphelpers/dto"
 )
 
 func (h *userHandler) Login(c *gin.Context) {
-	credentials, err := h.Utils.ParseLoginRequest(c.Request)
+	credentials, err := h.Utils.ParseLoginRequest(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	user, err := h.Utils.ExistsUser(c, credentials)
+	user, err := h.Utils.ExistsUser(c, credentials.Email)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "authentication failed"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "user not found"})
+		return
+	}
+	hashed_password, err := authentication.HashPassword(credentials.Password)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "error hashing password"})
+		return
+	}
+	if !authentication.VerifyPassword(user.Password, hashed_password) {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "incorrect password"})
 		return
 	}
 
@@ -30,16 +38,10 @@ func (h *userHandler) Login(c *gin.Context) {
 
 	authentication.SetAuthCookie(c, token)
 
-	// if it comes from json
-	if httphelpers.IsJSONRequest(c.Request) {
-		c.JSON(http.StatusOK, gin.H{"token": token,
-			"user": dto.UserInfo{
-				ID:    user.ID,
-				Email: user.Email,
-			}})
-	} else {
-		// from frontend
-		c.Header("HX-Redirect", "/dashboard")
-		c.Status(http.StatusOK)
-	}
+	c.JSON(http.StatusOK, gin.H{"token": token,
+		"user": dto.UserInfo{
+			ID:    user.ID,
+			Email: user.Email,
+		}})
+
 }

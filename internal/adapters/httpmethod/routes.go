@@ -1,8 +1,6 @@
 package httpmethod
 
 import (
-	"net/http"
-
 	"github.com/gin-gonic/gin"
 )
 
@@ -14,6 +12,7 @@ type UserHandler interface {
 
 	// POST
 	CreateUser(c *gin.Context)
+	Login(c *gin.Context)
 
 	// PUT-PATCH
 	UpdateUser(c *gin.Context)
@@ -40,9 +39,9 @@ type PaymentHandler interface {
 func SetupRoutes(userHandler UserHandler, jwtKey []byte) *gin.Engine {
 	r := gin.Default()
 
-	v1 := r.Group("/api/v1")
+	v1 := r.Group("/v1")
 	protected := v1.Group("/auth")
-	protected.Use()
+	// protected.Use()
 
 	setupUsersRoutes(v1, protected, userHandler)
 
@@ -53,10 +52,8 @@ func setupUsersRoutes(v1, protected *gin.RouterGroup, userHandler UserHandler) {
 	publicUsers := v1.Group("/users")
 
 	// public routes
-	publicUsers.POST("/", userHandler.CreateUser)
-	publicUsers.POST("/login", func(c *gin.Context) {
-		c.JSON(http.StatusNotImplemented, gin.H{"message": "login not implemented"})
-	})
+	publicUsers.POST("", userHandler.CreateUser)
+	publicUsers.POST("/login", userHandler.Login)
 
 	// protected routes
 	protectedUsers := protected.Group("/users")
@@ -75,4 +72,4 @@ func setupUsersRoutes(v1, protected *gin.RouterGroup, userHandler UserHandler) {
 	protectedUsers.DELETE("/:id", userHandler.DeleteUser)
 }
 
-func setupPaymentsRoutes(v1, protected *gin.RouterGroup, paymentHandler UserHandler)
+func setupPaymentsRoutes(v1, protected *gin.RouterGroup, paymentHandler UserHandler){}

@@ -9,7 +9,7 @@ type Service struct {
 	jwtKey []byte
 }
 
-func NewUsers(repo ports.UserRepository, jwtKey []byte) *Service {
+func NewUserService(repo ports.UserRepository, jwtKey []byte) *Service {
 	return &Service{
 		Repo:   repo,
 		jwtKey: jwtKey,
