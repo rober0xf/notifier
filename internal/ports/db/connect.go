@@ -44,7 +44,7 @@ var DB *gorm.DB
 // }
 
 func ConnectSQLite() (*gorm.DB, error) {
-	database_path, err := filepath.Abs("../../database.db")
+	database_path, err := filepath.Abs("./database.db")
 	if err != nil {
 		return nil, fmt.Errorf("could not read database path: %v", err)
 	}
