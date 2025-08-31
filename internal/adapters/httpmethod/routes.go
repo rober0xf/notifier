@@ -69,10 +69,16 @@ func setupUsersRoutes(v1, protected *gin.RouterGroup, userHandler UserHandler) {
 		}
 		userHandler.GetUser(email, ctx)
 	})
-	auth.GET("/:id", func(ctx *gin.Context) {
-		id := ctx.Param("id")
+
+	auth.GET("/", func(ctx *gin.Context) {
+		id := ctx.Query("id")
+		if id == "" {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": "id query parameter required"})
+			return
+		}
 		userHandler.GetUserByID(id, ctx)
 	})
+
 	auth.PUT("/:id", func(c *gin.Context) {
 		userHandler.UpdateUser(c)
 	})
