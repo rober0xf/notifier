@@ -1,7 +1,10 @@
 package httpmethod
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
+	"github.com/rober0xf/notifier/internal/adapters/authentication"
 )
 
 type UserHandler interface {
@@ -41,7 +44,7 @@ func SetupRoutes(userHandler UserHandler, jwtKey []byte) *gin.Engine {
 
 	v1 := r.Group("/v1")
 	protected := v1.Group("/auth")
-	// protected.Use()
+	protected.Use(authentication.JWTMiddleware(jwtKey))
 
 	setupUsersRoutes(v1, protected, userHandler)
 
@@ -49,27 +52,31 @@ func SetupRoutes(userHandler UserHandler, jwtKey []byte) *gin.Engine {
 }
 
 func setupUsersRoutes(v1, protected *gin.RouterGroup, userHandler UserHandler) {
-	publicUsers := v1.Group("/users")
+	public := v1.Group("/users")
+	auth := protected.Group("/users")
 
 	// public routes
-	publicUsers.POST("", userHandler.CreateUser)
-	publicUsers.POST("/login", userHandler.Login)
+	public.POST("", userHandler.CreateUser)
+	public.GET("", userHandler.GetAllUsers)
+	public.POST("/login", userHandler.Login)
 
 	// protected routes
-	protectedUsers := protected.Group("/users")
-	protectedUsers.GET("/", userHandler.GetAllUsers)
-	protectedUsers.GET("/email", func(ctx *gin.Context) {
+	auth.GET("/email", func(ctx *gin.Context) {
 		email := ctx.Query("email")
+		if email == "" {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": "email query parameter required"})
+			return
+		}
 		userHandler.GetUser(email, ctx)
 	})
-	protectedUsers.GET("/:id", func(ctx *gin.Context) {
-		id := ctx.Query("id")
+	auth.GET("/:id", func(ctx *gin.Context) {
+		id := ctx.Param("id")
 		userHandler.GetUserByID(id, ctx)
 	})
-	protectedUsers.PUT("/:id", func(c *gin.Context) {
+	auth.PUT("/:id", func(c *gin.Context) {
 		userHandler.UpdateUser(c)
 	})
-	protectedUsers.DELETE("/:id", userHandler.DeleteUser)
+	auth.DELETE("/:id", userHandler.DeleteUser)
 }
 
-func setupPaymentsRoutes(v1, protected *gin.RouterGroup, paymentHandler UserHandler){}
+func setupPaymentsRoutes(v1, protected *gin.RouterGroup, paymentHandler UserHandler) {}

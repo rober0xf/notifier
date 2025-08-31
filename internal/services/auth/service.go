@@ -5,15 +5,13 @@ import (
 )
 
 type Service struct {
-	AuthRepo ports.AuthRepository
 	UserRepo ports.UserRepository
 	jwtKey   []byte
 }
 
-func NewAuthService(authRepo ports.AuthRepository, userRepo ports.UserRepository, jwtKey []byte) *Service {
+func NewAuthService(repo ports.UserRepository, jwtKey []byte) *Service {
 	return &Service{
-		AuthRepo: authRepo,
-		UserRepo: userRepo,
+		UserRepo: repo,
 		jwtKey:   jwtKey,
 	}
 }

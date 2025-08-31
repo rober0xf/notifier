@@ -11,7 +11,7 @@ import (
 
 // TODO: fix return
 func (s *Service) ParseUserFromToken(token_string string) (*mail.MailSender, error) {
-	userID, err := s.ValidateToken(token_string)
+	userID, err := s.ValidateToken(token_string, s.jwtKey)
 	if err != nil {
 		return nil, err
 	}

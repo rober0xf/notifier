@@ -25,7 +25,7 @@ func (s *Service) GetUserIDFromRequest(r *http.Request) (uint, error) {
 		return 0, dto.ErrInvalidHeaderFormat
 	}
 
-	userID, err := s.ValidateToken(tokenString)
+	userID, err := s.ValidateToken(tokenString, s.jwtKey)
 	if err != nil {
 		return 0, dto.ErrInvalidToken
 	}

@@ -23,13 +23,12 @@ func main() {
 	}
 
 	// init repos
-	authRepo := storage.NewAuthRepository(db)
 	userRepo := storage.NewUserRepository(db)
 
 	// init services
-	jwtKey := []byte("your-secret-key")
-	authSvc := auth.NewAuthService(authRepo, userRepo, jwtKey)
-	userSvc := userService.NewUserService(authRepo, jwtKey)
+	jwtKey := database.JwtKey
+	authSvc := auth.NewAuthService(userRepo, jwtKey)
+	userSvc := userService.NewUserService(userRepo, jwtKey)
 
 	// init handlers
 	userHandler := users.NewUserHandler(userSvc, authSvc)
