@@ -6,18 +6,26 @@ import (
 
 const (
 	TokenExpirationHours = 6
-	BearerPrefix         = "BEARER "
+	BearerPrefix         = "Bearer "
 	SessionCookieName    = "session_token"
-	AuthHeaderName       = "Authorization"
 )
 
 func SetAuthCookie(c *gin.Context, token string) {
-	c.SetCookie(SessionCookieName,
+	c.SetCookie(
+		SessionCookieName,
 		token,
 		int(TokenExpirationHours),
-		"/",
+		"",
 		"", // empty for current domain
-		true,
+		false,
 		true,
 	)
+}
+
+func getAuthCookie(c *gin.Context) (string, error) {
+	tokenString, err := c.Cookie(SessionCookieName)
+	if err != nil {
+		return "", err
+	}
+	return tokenString, nil
 }

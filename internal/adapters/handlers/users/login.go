@@ -15,7 +15,7 @@ func (h *userHandler) Login(c *gin.Context) {
 		return
 	}
 
-	user, err := h.Utils.ExistsUser(c, credentials.Email)
+	user, err := h.UserService.Repo.GetUserByEmail(credentials.Email)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "user not found"})
 		return
@@ -32,6 +32,7 @@ func (h *userHandler) Login(c *gin.Context) {
 		return
 	}
 
+	c.SetSameSite(http.SameSiteLaxMode)
 	authentication.SetAuthCookie(c, token)
 
 	c.JSON(http.StatusOK, gin.H{"token": token,
