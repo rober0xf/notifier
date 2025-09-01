@@ -33,5 +33,12 @@ func ValidateJWT(c *gin.Context, jwtKey []byte) (uint, error) {
 		}
 	}
 
-	return validateTokenString(tokenString, jwtKey)
+	userID, err := validateTokenString(tokenString, jwtKey)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired token"})
+		c.Abort()
+		return 0, err
+	}
+	
+	return userID, nil
 }

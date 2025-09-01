@@ -14,7 +14,7 @@ func SetAuthCookie(c *gin.Context, token string) {
 	c.SetCookie(
 		SessionCookieName,
 		token,
-		int(TokenExpirationHours),
+		int(TokenExpirationHours*3600),
 		"",
 		"", // empty for current domain
 		false,

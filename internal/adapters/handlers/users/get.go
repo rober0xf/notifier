@@ -1,10 +1,12 @@
 package users
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rober0xf/notifier/internal/adapters/httphelpers/dto"
 )
 
 func (h *userHandler) GetUser(email string, c *gin.Context) {
@@ -34,7 +36,11 @@ func (h *userHandler) GetUserByID(id string, c *gin.Context) {
 
 	user, err := h.UserService.GetUserFromID(uint(id_int))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "error fetching user by id"})
+		if errors.Is(err, dto.ErrUserNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "error fetching user by id"})
+		}
 		return
 	}
 	c.JSON(http.StatusOK, user)

@@ -9,7 +9,7 @@ func JWTMiddleware(jwtKey []byte) gin.HandlerFunc {
 		// validatejwt handles cookie and header token
 		_, err := ValidateJWT(c, jwtKey)
 		if err != nil {
-			// we already return the error in the function
+			// validatejwt already handles the response and abort for all errors
 			return
 		}
 
