@@ -8,24 +8,23 @@ import (
 )
 
 const (
-	AuthHeaderName = "Authorization"
-	BearerPrefix   = "BEARER "
+	BearerPrefix = "BEARER "
 )
 
 func (s *Service) GetUserIDFromRequest(r *http.Request) (uint, error) {
-	token_string := r.Header.Get("AuthHeaderName")
-	if token_string == "" {
+	tokenString := r.Header.Get("Authorization")
+	if tokenString == "" {
 		return 0, dto.ErrMissingAuthHeader
 	}
 
 	// remove the bearer prefix
-	if len(token_string) > 7 && strings.ToUpper(token_string[:7]) == BearerPrefix {
-		token_string = token_string[7:]
+	if strings.HasPrefix(strings.ToUpper(tokenString), BearerPrefix) {
+		tokenString = tokenString[len(BearerPrefix):]
 	} else {
 		return 0, dto.ErrInvalidHeaderFormat
 	}
 
-	userID, err := s.Repo.ValidateToken(token_string)
+	userID, err := s.ValidateToken(tokenString, s.jwtKey)
 	if err != nil {
 		return 0, dto.ErrInvalidToken
 	}

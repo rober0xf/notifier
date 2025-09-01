@@ -1,16 +1,18 @@
 package auth
 
-import "github.com/rober0xf/notifier/internal/ports"
+import (
+	"github.com/rober0xf/notifier/internal/ports"
+)
 
 type Service struct {
-	Repo   ports.AuthRepository
-	jwtKey []byte
+	UserRepo ports.UserRepository
+	jwtKey   []byte
 }
 
-func NewAuthService(repo ports.AuthRepository, jwtKey []byte) *Service {
+func NewAuthService(repo ports.UserRepository, jwtKey []byte) *Service {
 	return &Service{
-		Repo:   repo,
-		jwtKey: jwtKey,
+		UserRepo: repo,
+		jwtKey:   jwtKey,
 	}
 }
 

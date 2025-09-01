@@ -10,7 +10,7 @@ import (
 )
 
 func (s Service) Update(user *domain.User) (*domain.User, error) {
-	_, err := s.Repo.GetUserByID(user.ID)
+	existing, err := s.Repo.GetUserByID(user.ID)
 	if err != nil {
 		if errors.Is(err, domain_errors.ErrNotFound) {
 			return nil, dto.ErrUserNotFound
@@ -18,20 +18,25 @@ func (s Service) Update(user *domain.User) (*domain.User, error) {
 		return nil, err
 	}
 
-	if user.Name == "" || user.Email == "" || user.Password == "" {
-		return nil, dto.ErrInvalidUserData
+	// update only given fields, more like a patch request
+	if user.Name != "" {
+		existing.Name = user.Name
 	}
-
-	hashed_password, err := authentication.HashPassword(user.Password)
-	if err != nil {
-		return nil, dto.ErrPasswordHashing
+	if user.Email != "" {
+		existing.Email = user.Email
 	}
-	user.Password = hashed_password
+	if user.Password != "" {
+		hashed_password, err := authentication.HashPassword(user.Password)
+		if err != nil {
+			return nil, dto.ErrPasswordHashing
+		}
+		existing.Password = hashed_password
+	}
 
 	// update the user's fields using the repository
-	if err := s.Repo.UpdateUser(user); err != nil {
+	if err := s.Repo.UpdateUser(existing); err != nil {
 		return nil, err
 	}
 
-	return user, nil
+	return existing, nil
 }

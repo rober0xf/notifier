@@ -33,6 +33,8 @@ var (
 	ErrInvalidClaims       = errors.New("invalid JWT claims")
 	ErrInvalidClaimID      = errors.New("invalid claim id")
 	ErrInvalidCredentials  = errors.New("invalid credentials")
+	ErrNoToken             = errors.New("no token provided")
+	ErrMalformedHeader     = errors.New("malformed authorization header")
 
 	// general
 	ErrInternalServerError = errors.New("internal server error")

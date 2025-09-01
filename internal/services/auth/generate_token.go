@@ -4,19 +4,23 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/rober0xf/notifier/internal/adapters/httphelpers/dto"
 )
 
-func (s *Service) GenerateToken(userID uint, email string) (string, error) {
-	claims := jwt.MapClaims{
-		"id":    userID,
-		"email": email,
-		"exp":   time.Now().Add(time.Hour * 24).Unix(),
-	}
+var TokenExpirationHours = 168
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	signed_token, err := token.SignedString(s.jwtKey)
-	if err != nil {
-		return "", err
+func (s *Service) GenerateToken(userID uint, email string) (string, error) {
+	expiration := time.Now().Add(time.Duration(TokenExpirationHours) * time.Hour)
+	claims := &dto.JWTClaims{
+		Email:  email,
+		UserID: userID,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(expiration),
+			Audience:  []string{"notifier"},
+			Issuer:    "notifier-service",
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
 	}
-	return signed_token, nil
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString(s.jwtKey)
 }

@@ -6,12 +6,13 @@ import (
 )
 
 type userHandler struct {
-	UserService users.Service
-	Utils       auth.Service
+	UserService *users.Service
+	Utils       *auth.Service
 }
 
-func NewUserHandler(service users.Service) *userHandler {
+func NewUserHandler(service *users.Service, authService *auth.Service) *userHandler {
 	return &userHandler{
 		UserService: service,
+		Utils:       authService,
 	}
 }
