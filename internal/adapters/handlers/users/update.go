@@ -9,8 +9,9 @@ import (
 
 func (h *userHandler) UpdateUser(c *gin.Context) {
 	var input_user struct {
-		Name  string `json:"name"`
-		Email string `json:"email"`
+		Name     string `json:"name"`
+		Email    string `json:"email"`
+		Password string `json:"password"`
 	}
 
 	// parse json
@@ -21,20 +22,21 @@ func (h *userHandler) UpdateUser(c *gin.Context) {
 
 	userID, err := h.Utils.GetUserIDFromRequest(c.Request)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "user unauthorized (update user)"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 
 	// create the user with the new data
 	user := &domain.User{
-		ID:    userID,
-		Name:  input_user.Name,
-		Email: input_user.Email,
+		ID:       userID,
+		Name:     input_user.Name,
+		Email:    input_user.Email,
+		Password: input_user.Password,
 	}
 
 	updated_user, err := h.UserService.Update(user)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "user unauthorized (update user)"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 

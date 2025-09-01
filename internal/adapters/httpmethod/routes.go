@@ -56,11 +56,12 @@ func setupUsersRoutes(v1, protected *gin.RouterGroup, userHandler UserHandler) {
 	auth := protected.Group("/users")
 
 	// public routes
-	public.POST("", userHandler.CreateUser)
+	public.POST("/register", userHandler.CreateUser)
 	public.GET("", userHandler.GetAllUsers)
 	public.POST("/login", userHandler.Login)
 
 	// protected routes
+	// get user by email
 	auth.GET("/email", func(ctx *gin.Context) {
 		email := ctx.Query("email")
 		if email == "" {
@@ -70,7 +71,8 @@ func setupUsersRoutes(v1, protected *gin.RouterGroup, userHandler UserHandler) {
 		userHandler.GetUser(email, ctx)
 	})
 
-	auth.GET("/", func(ctx *gin.Context) {
+	// get user by id
+	auth.GET("/:id", func(ctx *gin.Context) {
 		id := ctx.Query("id")
 		if id == "" {
 			ctx.JSON(http.StatusBadRequest, gin.H{"error": "id query parameter required"})
@@ -79,8 +81,14 @@ func setupUsersRoutes(v1, protected *gin.RouterGroup, userHandler UserHandler) {
 		userHandler.GetUserByID(id, ctx)
 	})
 
-	auth.PUT("/:id", func(c *gin.Context) {
-		userHandler.UpdateUser(c)
+	// update user
+	auth.PUT("/:id", func(ctx *gin.Context) {
+		id := ctx.Query("id")
+		if id == "" {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": "id query parameter required"})
+			return
+		}
+		userHandler.UpdateUser(ctx)
 	})
 	auth.DELETE("/:id", userHandler.DeleteUser)
 }
