@@ -90,7 +90,16 @@ func setupUsersRoutes(v1, protected *gin.RouterGroup, userHandler UserHandler) {
 		}
 		userHandler.UpdateUser(ctx)
 	})
-	auth.DELETE("/:id", userHandler.DeleteUser)
+
+	// delete user
+	auth.DELETE("/:id", func(ctx *gin.Context) {
+		id := ctx.Query("id")
+		if id == "" {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": "id query parameter required"})
+			return
+		}
+		userHandler.DeleteUser(ctx)
+	})
 }
 
 func setupPaymentsRoutes(v1, protected *gin.RouterGroup, paymentHandler UserHandler) {}

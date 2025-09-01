@@ -8,7 +8,7 @@ import (
 )
 
 func (h *userHandler) DeleteUser(c *gin.Context) {
-	id_str := c.Param("id")
+	id_str := c.Query("id")
 
 	id, err := strconv.Atoi(id_str)
 	if err != nil {
