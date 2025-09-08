@@ -11,19 +11,19 @@ import (
 type json_payment struct {
 	NetAmount   float64 `json:"net_amount" binding:"required"`
 	GrossAmount float64 `json:"gross_amount"`
-	Deductible  float64 `json:"deductible" binding:"required"`
+	Deductible  float64 `json:"deductible"`
 	Name        string  `gorm:"not null" json:"name" binding:"required"`
 	Type        string  `gorm:"not null" json:"type" binding:"required"`
 	Date        string  `gorm:"not null" json:"date"`
 	Recurrent   bool    `gorm:"not null" json:"recurrent"`
-	Paid        bool    `gorm:"not null" json:"paid" binding:"required"`
+	Paid        bool    `gorm:"not null" json:"paid"`
 }
 
 func (h *paymentHandler) CreatePayment(c *gin.Context) {
 	var input_payment json_payment
 
 	if err := c.ShouldBindJSON(&input_payment); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
