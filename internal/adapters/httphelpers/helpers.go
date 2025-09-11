@@ -19,3 +19,25 @@ func IDParameterNotProvided(ctx *gin.Context) {
 func EmailParameterNotProvided(ctx *gin.Context) {
 	ctx.JSON(http.StatusBadRequest, gin.H{"error": "email query parameter required"})
 }
+
+func InvalidIDParameter(c *gin.Context, err error) {
+	c.JSON(http.StatusBadRequest, gin.H{
+		"error": "invalid user id: " + err.Error(),
+	})
+}
+
+// func RequireQuery(query string, f func(*gin.Context, string)) gin.HandlerFunc {
+// 	return func(ctx *gin.Context) {
+// 		value := ctx.Query(query)
+// 		if value == "" {
+// 			switch query {
+// 			case "id":
+// 				IDParameterNotProvided(ctx)
+// 			case "email":
+// 				EmailParameterNotProvided(ctx)
+// 			}
+// 			return
+// 		}
+// 		f(ctx, value)
+// 	}
+// }
