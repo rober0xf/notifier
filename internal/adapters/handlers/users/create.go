@@ -6,7 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (h *userHandler) CreateUser(c *gin.Context) {
+func (h *userHandler) Create(c *gin.Context) {
 	// struct used for decode the input
 	var input_user struct {
 		Name     string `json:"name"`
@@ -21,7 +21,7 @@ func (h *userHandler) CreateUser(c *gin.Context) {
 
 	// check if empty fields
 	if input_user.Name == "" || input_user.Email == "" || input_user.Password == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "empty fields"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "name, email and password are required"})
 		return
 	}
 

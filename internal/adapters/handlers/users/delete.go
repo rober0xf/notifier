@@ -5,10 +5,15 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rober0xf/notifier/internal/adapters/httphelpers"
 )
 
-func (h *userHandler) DeleteUser(c *gin.Context) {
-	id_str := c.Query("id")
+func (h *userHandler) Delete(c *gin.Context) {
+	id_str := c.Param("id")
+	if id_str == "" {
+		httphelpers.IDParameterNotProvided(c)
+		return
+	}
 
 	id, err := strconv.Atoi(id_str)
 	if err != nil {
@@ -18,7 +23,7 @@ func (h *userHandler) DeleteUser(c *gin.Context) {
 
 	err = h.UserService.Delete(uint(id))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "error deleting user"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
