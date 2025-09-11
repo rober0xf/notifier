@@ -8,7 +8,7 @@ import (
 	"github.com/rober0xf/notifier/internal/domain/domain_errors"
 )
 
-func (s *Service) Get(email string) (*domain.User, error) {
+func (s *Service) GetByEmail(email string) (*domain.User, error) {
 	if email == "" {
 		return nil, dto.ErrInvalidUserData
 	}
@@ -24,7 +24,7 @@ func (s *Service) Get(email string) (*domain.User, error) {
 	return user, nil
 }
 
-func (s Service) GetAllUsers() ([]*domain.User, error) {
+func (s Service) GetAll() ([]*domain.User, error) {
 	users, err := s.Repo.GetAllUsers()
 	if err != nil {
 		return nil, err
@@ -39,7 +39,11 @@ func (s Service) GetAllUsers() ([]*domain.User, error) {
 	return userPointers, nil
 }
 
-func (s Service) GetUserFromID(id uint) (*domain.User, error) {
+func (s Service) GetByID(id uint) (*domain.User, error) {
+	if id == 0 {
+		return nil, dto.ErrInvalidUserData
+	}
+
 	user, err := s.Repo.GetUserByID(id)
 	if err != nil {
 		if errors.Is(err, domain_errors.ErrNotFound) {
