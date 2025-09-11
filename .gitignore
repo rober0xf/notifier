@@ -8,3 +8,5 @@ tailwind.config.js
 *_templ.go
 output.css
 *.db
+main
+/tmp

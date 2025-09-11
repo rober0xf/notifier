@@ -3,24 +3,23 @@ package httpmethod
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/rober0xf/notifier/internal/adapters/authentication"
-	"github.com/rober0xf/notifier/internal/adapters/httphelpers"
 )
 
 type UserHandler interface {
 	// GET
-	GetUser(email string, c *gin.Context)
-	GetAllUsers(c *gin.Context)
-	GetUserByID(id string, c *gin.Context)
+	GetByEmail(c *gin.Context)
+	GetByID(c *gin.Context)
+	GetAll(c *gin.Context)
 
 	// POST
-	CreateUser(c *gin.Context)
+	Create(c *gin.Context)
 	Login(c *gin.Context)
 
 	// PUT-PATCH
-	UpdateUser(c *gin.Context)
+	Update(c *gin.Context)
 
 	// DELETE
-	DeleteUser(c *gin.Context)
+	Delete(c *gin.Context)
 }
 
 type PaymentHandler interface {
@@ -52,90 +51,27 @@ func SetupRoutes(userHandler UserHandler, paymentHandler PaymentHandler, jwtKey 
 }
 
 func setupUsersRoutes(v1, protected *gin.RouterGroup, userHandler UserHandler) {
+	// TODO: make admin and self user handlers
 	public := v1.Group("/users")
 	auth := protected.Group("/users")
 
-	// public routes
-	public.POST("/register", userHandler.CreateUser)
-	public.GET("", userHandler.GetAllUsers)
+	/* ADMIN ROUTES */
+	public.GET("", userHandler.GetAll)
+	public.POST("/register", userHandler.Create)
 	public.POST("/login", userHandler.Login)
 
-	// protected routes
-	// get user by email
-	auth.GET("/email", func(ctx *gin.Context) {
-		email := ctx.Query("email")
-		if email == "" {
-			httphelpers.EmailParameterNotProvided(ctx)
-			return
-		}
-		userHandler.GetUser(email, ctx)
-	})
-
-	// get user by id
-	auth.GET("/:id", func(ctx *gin.Context) {
-		id := ctx.Query("id")
-		if id == "" {
-			httphelpers.IDParameterNotProvided(ctx)
-			return
-		}
-		userHandler.GetUserByID(id, ctx)
-	})
-
-	// update user
-	auth.PUT("/:id", func(ctx *gin.Context) {
-		id := ctx.Query("id")
-		if id == "" {
-			httphelpers.IDParameterNotProvided(ctx)
-			return
-		}
-		userHandler.UpdateUser(ctx)
-	})
-
-	// delete user
-	auth.DELETE("/:id", func(ctx *gin.Context) {
-		id := ctx.Query("id")
-		if id == "" {
-			httphelpers.IDParameterNotProvided(ctx)
-			return
-		}
-		userHandler.DeleteUser(ctx)
-	})
+	auth.GET("/email/:email", userHandler.GetByEmail)
+	auth.GET("/:id", userHandler.GetByID)
+	auth.PUT("/:id", userHandler.Update)
+	auth.DELETE("/:id", userHandler.Delete)
 }
 
 func setupPaymentsRoutes(protected *gin.RouterGroup, paymentHandler PaymentHandler) {
 	r := protected.Group("/payments")
 
-	// get method
 	r.GET("/", paymentHandler.GetAllPayments)
-	r.GET("/:id", func(c *gin.Context) {
-		id := c.Query("id")
-		if id == "" {
-			httphelpers.IDParameterNotProvided(c)
-			return
-		}
-		paymentHandler.GetPaymentByID(c)
-	})
-
-	// post method
 	r.POST("/", paymentHandler.CreatePayment)
-
-	// put method
-	r.PUT("/:id", func(c *gin.Context) {
-		id := c.Query("id")
-		if id == "" {
-			httphelpers.IDParameterNotProvided(c)
-			return
-		}
-		paymentHandler.UpdatePayment(c)
-	})
-
-	// delete method
-	r.DELETE("/:id", func(c *gin.Context) {
-		id := c.Query("id")
-		if id == "" {
-			httphelpers.IDParameterNotProvided(c)
-			return
-		}
-		paymentHandler.DeletePayment(c)
-	})
+	r.GET("/:id", paymentHandler.GetPaymentByID)
+	r.PUT("/:id", paymentHandler.UpdatePayment)
+	r.DELETE("/:id", paymentHandler.DeletePayment)
 }
