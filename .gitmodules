@@ -1,0 +1,3 @@
+[submodule "notifier-front"]
+	path = notifier-front
+	url = git@github.com:rober0xf/notifier-front.git
