@@ -47,6 +47,11 @@ func SetupRoutes(userHandler UserHandler, paymentHandler PaymentHandler, jwtKey 
 	setupUsersRoutes(v1, protected, userHandler)
 	setupPaymentsRoutes(protected, paymentHandler)
 
+	r.Static("/", "./frontend/dist")
+	r.GET("*", func(c *gin.Context) {
+		c.File("/frontend/dist/index.html")
+	})
+
 	return r
 }
 
