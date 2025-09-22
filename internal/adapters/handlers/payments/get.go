@@ -1,25 +1,43 @@
 package payments
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rober0xf/notifier/internal/adapters/httphelpers/dto"
+	"github.com/rober0xf/notifier/internal/domain/domain_errors"
 )
 
 func (h *paymentHandler) GetAllPayments(c *gin.Context) {
-	user_id, err := h.Utils.GetUserIDFromRequest(c.Request)
+	payments, err := h.PaymentService.GetAllPayments()
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "error parsing user id from request"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, payments)
+}
+
+func (h *paymentHandler) GetAllPaymentsFromUser(c *gin.Context) {
+	email := c.Query("email")
+	if email == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "must provide an email"})
 		return
 	}
 
-	payments, err := h.PaymentService.GetAllPayments(user_id)
+	payments, err := h.PaymentService.GetAllPaymentsFromUser(email)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "error fetching payments"})
+		switch {
+		case errors.Is(err, dto.ErrUserNotFound):
+			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+		case errors.Is(err, domain_errors.ErrRepository):
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "database error"})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+		}
 		return
 	}
-
 	c.JSON(http.StatusOK, payments)
 }
 
@@ -40,14 +58,12 @@ func (h *paymentHandler) GetPaymentByID(c *gin.Context) {
 		return
 	}
 
-	userID, err := h.Utils.GetUserIDFromRequest(c.Request)
+	payment, err := h.PaymentService.Get(uint(id))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "error parsing request"})
-		return
-	}
-
-	payment, err := h.PaymentService.GetPaymentFromIDAndUserID(uint(id), userID)
-	if err != nil {
+		if errors.Is(err, domain_errors.ErrNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "payment not found"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "error fetching payment"})
 		return
 	}
