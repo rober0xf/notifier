@@ -1,6 +1,7 @@
 package users
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -11,13 +12,20 @@ import (
 func (h *userHandler) Login(c *gin.Context) {
 	credentials, err := h.Utils.ParseLoginRequest(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "email and password are required"})
 		return
 	}
 
 	user, err := h.UserService.Repo.GetUserByEmail(credentials.Email)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "user not found"})
+		switch {
+		case errors.Is(err, dto.ErrUserNotFound):
+			c.JSON(http.StatusBadRequest, gin.H{"error": "user not found"})
+		case errors.Is(err, dto.ErrRepository):
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		}
 		return
 	}
 
@@ -35,9 +43,9 @@ func (h *userHandler) Login(c *gin.Context) {
 	c.SetSameSite(http.SameSiteLaxMode)
 	authentication.SetAuthCookie(c, token)
 
-	c.JSON(http.StatusOK, gin.H{"token": token,
-		"user": dto.UserInfo{
-			ID:    user.ID,
-			Email: user.Email,
-		}})
+	c.JSON(http.StatusOK, gin.H{"user": dto.LoginResponse{
+		Token: token,
+		ID:    user.ID,
+		Email: user.Email,
+	}})
 }

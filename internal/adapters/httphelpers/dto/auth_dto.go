@@ -3,15 +3,8 @@ package dto
 import (
 	"errors"
 
-	"github.com/go-playground/validator/v10"
 	"github.com/golang-jwt/jwt/v5"
 )
-
-var validate *validator.Validate
-
-func init() {
-	validate = validator.New()
-}
 
 // custom errors
 var (
@@ -38,30 +31,27 @@ var (
 
 	// general
 	ErrInternalServerError = errors.New("internal server error")
+
+	// repository
+	ErrNotFound      = errors.New("resource not found")
+	ErrAlreadyExists = errors.New("resource already exists")
+	ErrInvalidData   = errors.New("invalid data")
+	ErrRepository    = errors.New("repository error")
 )
 
 type LoginRequest struct {
-	Email    string `json:"email" validate:"required,email"`
-	Password string `json:"password" validate:"required,min=6"`
+	Email    string `json:"email" binding:"required,email,max=256"`
+	Password string `json:"password" binding:"required,min=8,max=128"`
 }
 
 type LoginResponse struct {
-	Token string   `json:"token"`
-	User  UserInfo `json:"user"`
-}
-
-type UserInfo struct {
-	ID    uint   `json:"id"`
+	Token string `json:"token"`
+	ID    int    `json:"id"`
 	Email string `json:"email"`
 }
 
 type JWTClaims struct {
 	Email  string `json:"email"`
-	UserID uint   `json:"user_id"`
+	UserID int    `json:"user_id"`
 	jwt.RegisteredClaims
-}
-
-type ErrorResponse struct {
-	Message    string `json:"message"`
-	StatusCode string `json:"code,omitempty"`
 }

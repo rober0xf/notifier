@@ -9,7 +9,7 @@ import (
 
 var TokenExpirationHours = 168
 
-func (s *Service) GenerateToken(userID uint, email string) (string, error) {
+func (s *Service) GenerateToken(userID int, email string) (string, error) {
 	expiration := time.Now().Add(time.Duration(TokenExpirationHours) * time.Hour)
 	claims := &dto.JWTClaims{
 		Email:  email,

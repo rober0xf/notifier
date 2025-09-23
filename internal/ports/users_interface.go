@@ -7,17 +7,17 @@ import (
 type UserService interface {
 	Create(name string, email string, password string) (*domain.User, error)
 	GetByEmail(email string) (*domain.User, error)
-	GetAll() ([]*domain.User, error)
-	GetByID(id uint) (*domain.User, error)
+	GetAll() ([]domain.User, error)
+	GetByID(id int) (*domain.User, error)
 	Update(*domain.User) (*domain.User, error)
-	Delete(id uint) error
+	Delete(id int) error
 }
 
 type UserRepository interface {
 	CreateUser(user *domain.User) error
 	GetUserByEmail(email string) (*domain.User, error)
 	GetAllUsers() ([]domain.User, error)
-	GetUserByID(id uint) (*domain.User, error)
+	GetUserByID(id int) (*domain.User, error)
 	UpdateUser(user *domain.User) error
-	DeleteUser(id uint) error
+	DeleteUser(id int) error
 }

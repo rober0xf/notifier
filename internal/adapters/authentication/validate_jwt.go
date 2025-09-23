@@ -11,7 +11,7 @@ const (
 	AuthHeaderName = "Authorization"
 )
 
-func ValidateJWT(c *gin.Context, jwtKey []byte) (uint, error) {
+func ValidateJWT(c *gin.Context, jwtKey []byte) (int, error) {
 	// first we try to get the token from the cookie
 	tokenString, err := getAuthCookie(c)
 	if err != nil {
@@ -39,6 +39,6 @@ func ValidateJWT(c *gin.Context, jwtKey []byte) (uint, error) {
 		c.Abort()
 		return 0, err
 	}
-	
+
 	return userID, nil
 }

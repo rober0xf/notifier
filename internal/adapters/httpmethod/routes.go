@@ -82,6 +82,7 @@ func setupPaymentsRoutes(protected *gin.RouterGroup, paymentHandler PaymentHandl
 
 	r.GET("/", paymentHandler.GetAllPayments)
 	r.POST("/", paymentHandler.CreatePayment)
+	r.GET("/email", paymentHandler.GetAllPaymentsFromUser)
 	r.GET("/:id", paymentHandler.GetPaymentByID)
 	r.PUT("/:id", paymentHandler.UpdatePayment)
 	r.DELETE("/:id", paymentHandler.DeletePayment)

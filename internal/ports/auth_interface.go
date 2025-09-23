@@ -9,7 +9,7 @@ import (
 
 type AuthService interface {
 	ParseLoginRequest(c *gin.Context) (dto.LoginRequest, error)
-	GetUserIDFromRequest(r *http.Request) (uint, error)
-	GenerateToken(userID uint, email string) (string, error)
-	ValidateToken(tokenString string, jwtKey []byte) (uint, error)
+	GetUserIDFromRequest(r *http.Request) (int, error)
+	GenerateToken(userID int, email string) (string, error)
+	ValidateToken(tokenString string, jwtKey []byte) (int, error)
 }

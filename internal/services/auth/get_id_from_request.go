@@ -11,7 +11,7 @@ const (
 	BearerPrefix = "BEARER "
 )
 
-func (s *Service) GetUserIDFromRequest(r *http.Request) (uint, error) {
+func (s *Service) GetUserIDFromRequest(r *http.Request) (int, error) {
 	tokenString := r.Header.Get("Authorization")
 	if tokenString == "" {
 		return 0, dto.ErrMissingAuthHeader

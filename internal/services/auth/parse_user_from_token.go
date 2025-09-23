@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/rober0xf/notifier/internal/adapters/httphelpers/dto"
-	"github.com/rober0xf/notifier/internal/domain/domain_errors"
 	"github.com/rober0xf/notifier/internal/services/mail"
 )
 
@@ -18,7 +17,7 @@ func (s *Service) ParseUserFromToken(token_string string) (*mail.MailSender, err
 
 	_, err = s.UserRepo.GetUserByID(userID)
 	if err != nil {
-		if errors.Is(err, domain_errors.ErrNotFound) {
+		if errors.Is(err, dto.ErrNotFound) {
 			return nil, dto.ErrUserNotFound
 		}
 		return nil, fmt.Errorf("internal error: %w", err)
