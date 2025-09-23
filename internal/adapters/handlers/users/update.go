@@ -1,20 +1,17 @@
 package users
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/rober0xf/notifier/internal/adapters/httphelpers"
+	"github.com/rober0xf/notifier/internal/adapters/httphelpers/dto"
 	"github.com/rober0xf/notifier/internal/domain"
 )
 
 func (h *userHandler) Update(c *gin.Context) {
 	id_str := c.Param("id")
-	if id_str == "" {
-		httphelpers.IDParameterNotProvided(c)
-		return
-	}
 
 	id, err := strconv.Atoi(id_str)
 	if err != nil {
@@ -23,34 +20,39 @@ func (h *userHandler) Update(c *gin.Context) {
 	}
 
 	var input_user struct {
-		Name     string `json:"name"`
+		Username string `json:"username"`
 		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
 
 	// parse json
 	if err := c.ShouldBindJSON(&input_user); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request (update user)"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
 		return
 	}
 
-	// userID, err := h.Utils.GetUserIDFromRequest(c.Request)
-	// if err != nil {
-	// 	c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
-	// 	return
-	// }
-
 	// create the user with the new data
 	user := &domain.User{
-		ID:       uint(id),
-		Name:     input_user.Name,
+		ID:       id,
+		Username: input_user.Username,
 		Email:    input_user.Email,
 		Password: input_user.Password,
 	}
 
 	updated_user, err := h.UserService.Update(user)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		switch {
+		case errors.Is(err, dto.ErrInvalidUserData):
+			c.JSON(http.StatusBadRequest, gin.H{"error": "id must be positive & email format must be correct"})
+		case errors.Is(err, dto.ErrInternalServerError):
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+		case errors.Is(err, dto.ErrUserNotFound):
+			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+		case errors.Is(err, dto.ErrPasswordHashing):
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "error hashing"})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		}
 		return
 	}
 

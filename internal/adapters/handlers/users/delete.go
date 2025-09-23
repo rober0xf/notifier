@@ -1,19 +1,16 @@
 package users
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/rober0xf/notifier/internal/adapters/httphelpers"
+	"github.com/rober0xf/notifier/internal/adapters/httphelpers/dto"
 )
 
 func (h *userHandler) Delete(c *gin.Context) {
 	id_str := c.Param("id")
-	if id_str == "" {
-		httphelpers.IDParameterNotProvided(c)
-		return
-	}
 
 	id, err := strconv.Atoi(id_str)
 	if err != nil {
@@ -21,11 +18,18 @@ func (h *userHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	err = h.UserService.Delete(uint(id))
+	err = h.UserService.Delete(id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		switch {
+		case errors.Is(err, dto.ErrUserNotFound):
+			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+		case errors.Is(err, dto.ErrRepository):
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		}
 		return
 	}
 
-	c.JSON(http.StatusNoContent, gin.H{"message": "user deleted successfully"})
+	c.Status(http.StatusNoContent)
 }

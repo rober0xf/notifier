@@ -6,30 +6,26 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/rober0xf/notifier/internal/adapters/httphelpers"
 	"github.com/rober0xf/notifier/internal/adapters/httphelpers/dto"
 )
 
 func (h *userHandler) GetByID(c *gin.Context) {
 	id_str := c.Param("id") // comes from the url
-
-	if id_str == "" {
-		httphelpers.IDParameterNotProvided(c)
-		return
-	}
-
 	id, err := strconv.Atoi(id_str)
 	if err != nil {
-		httphelpers.InvalidIDParameter(c, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user data"})
 		return
 	}
 
-	user, err := h.UserService.GetByID(uint(id))
+	user, err := h.UserService.GetByID(id)
 	if err != nil {
-		if errors.Is(err, dto.ErrUserNotFound) {
+		switch {
+		case errors.Is(err, dto.ErrInvalidUserData):
+			c.JSON(http.StatusBadRequest, gin.H{"error": "id must be positive"})
+		case errors.Is(err, dto.ErrUserNotFound):
 			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "error fetching user by id"})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error fetching user"})
 		}
 		return
 	}
@@ -38,19 +34,24 @@ func (h *userHandler) GetByID(c *gin.Context) {
 	c.JSON(http.StatusOK, user)
 }
 
+func (h *userHandler) GetByEmailEmpty(c *gin.Context) {
+	c.JSON(http.StatusBadRequest, gin.H{"error": "email parameter required"})
+}
+
 func (h *userHandler) GetByEmail(c *gin.Context) {
 	email := c.Param("email")
-	if email == "" {
-		httphelpers.EmailParameterNotProvided(c)
-		return
-	}
 
 	user, err := h.UserService.GetByEmail(email)
 	if err != nil {
-		if errors.Is(err, dto.ErrUserNotFound) {
+		switch {
+		case errors.Is(err, dto.ErrInvalidUserData):
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid email format"})
+		case errors.Is(err, dto.ErrUserNotFound):
 			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "error fetching user by email"})
+		case errors.Is(err, dto.ErrRepository):
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		}
 		return
 	}
@@ -62,7 +63,14 @@ func (h *userHandler) GetByEmail(c *gin.Context) {
 func (h *userHandler) GetAll(c *gin.Context) {
 	users, err := h.UserService.GetAll()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "error fetching all users"})
+		switch {
+		case errors.Is(err, dto.ErrUserNotFound):
+			c.JSON(http.StatusNotFound, gin.H{"error": "no users found"})
+		case errors.Is(err, dto.ErrRepository):
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "error fetching all users"})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+		}
 		return
 	}
 	c.JSON(http.StatusOK, users)
