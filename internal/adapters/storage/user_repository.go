@@ -45,28 +45,36 @@ func (r *Repository) GetAllUsers() ([]domain.User, error) {
 	return users, nil
 }
 
-func (r *Repository) GetUserByID(id uint) (*domain.User, error) {
+func (r *Repository) GetUserByID(id int) (*domain.User, error) {
 	var user domain.User
 
 	if err := r.db.Where("id = ?", id).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, domain_errors.ErrNotFound
+			return nil, dto.ErrNotFound
 		}
-		return nil, domain_errors.ErrRepository
+		return nil, dto.ErrRepository
 	}
 	return &user, nil
 }
 
 func (r *Repository) UpdateUser(user *domain.User) error {
-	if err := r.db.Save(user).Error; err != nil {
-		return domain_errors.ErrRepository
+	result := r.db.Model(&domain.User{}).Where("id = ?", user.ID).Updates(user)
+	if result.Error != nil {
+		return dto.ErrRepository
+	}
+	if result.RowsAffected == 0 {
+		return dto.ErrUserNotFound
 	}
 	return nil
 }
 
-func (r *Repository) DeleteUser(id uint) error {
-	if err := r.db.Delete(&domain.User{}, id).Error; err != nil {
-		return domain_errors.ErrRepository
+func (r *Repository) DeleteUser(id int) error {
+	result := r.db.Delete(&domain.User{}, id)
+	if result.Error != nil {
+		return dto.ErrRepository
+	}
+	if result.RowsAffected == 0 {
+		return dto.ErrUserNotFound
 	}
 	return nil
 }
