@@ -7,13 +7,17 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/rober0xf/notifier/internal/adapters/httphelpers/dto"
-	"github.com/rober0xf/notifier/internal/domain/domain_errors"
 )
 
 func (h *paymentHandler) GetAllPayments(c *gin.Context) {
 	payments, err := h.PaymentService.GetAllPayments()
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		switch {
+		case errors.Is(err, dto.ErrRepository):
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		}
 		return
 	}
 	c.JSON(http.StatusOK, payments)
@@ -31,10 +35,12 @@ func (h *paymentHandler) GetAllPaymentsFromUser(c *gin.Context) {
 		switch {
 		case errors.Is(err, dto.ErrUserNotFound):
 			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
-		case errors.Is(err, domain_errors.ErrRepository):
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "database error"})
-		default:
+		case errors.Is(err, dto.ErrInvalidPaymentData):
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid email format"})
+		case errors.Is(err, dto.ErrInternalServerError):
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		}
 		return
 	}
@@ -58,15 +64,17 @@ func (h *paymentHandler) GetPaymentByID(c *gin.Context) {
 		return
 	}
 
-	payment, err := h.PaymentService.Get(uint(id))
+	payment, err := h.PaymentService.Get(id)
 	if err != nil {
-		if errors.Is(err, domain_errors.ErrNotFound) {
+		switch {
+		case errors.Is(err, dto.ErrNotFound):
 			c.JSON(http.StatusNotFound, gin.H{"error": "payment not found"})
-			return
+		case errors.Is(err, dto.ErrRepository):
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "error fetching payment"})
 		return
 	}
-
 	c.JSON(http.StatusOK, payment)
 }

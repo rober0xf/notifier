@@ -1,61 +1,81 @@
 package payments
 
 import (
+	"errors"
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rober0xf/notifier/internal/adapters/httphelpers/dto"
 	"github.com/rober0xf/notifier/internal/domain"
 )
 
 type json_payment struct {
-	NetAmount   float64 `json:"net_amount" binding:"required"`
-	GrossAmount float64 `json:"gross_amount"`
-	Deductible  float64 `json:"deductible"`
-	Name        string  `gorm:"not null" json:"name" binding:"required"`
-	Type        string  `gorm:"not null" json:"type" binding:"required"`
-	Date        string  `gorm:"not null" json:"date"`
-	Recurrent   bool    `gorm:"not null" json:"recurrent"`
-	Paid        bool    `gorm:"not null" json:"paid"`
+	Name       string                 `json:"name" binding:"required,min=3,max=100"`
+	Amount     float64                `json:"amount" binding:"required,gt=0"`
+	Type       domain.TransactionType `json:"type" binding:"required,oneof=expense income subscription"`
+	Category   domain.CategoryType    `json:"category" binding:"required,oneof=electronics entertainment education clothing work sports"`
+	Date       string                 `json:"date" binding:"required,datetime=2006-01-02"`
+	DueDate    string                 `json:"due_date" binding:"omitempty,datetime=2006-01-02"`
+	Paid       bool                   `json:"paid"`
+	PaidAt     string                 `json:"paid_at" binding:"omitempty,datetime=2006-01-02"`
+	Recurrent  bool                   `json:"recurrent"`
+	Frequency  domain.FrequencyType   `json:"frequency" binding:"omitempty,oneof=daily weekly monthly yearly"`
+	ReceiptURL string                 `json:"receipt_url" binding:"omitempty,url"`
 }
 
 func (h *paymentHandler) CreatePayment(c *gin.Context) {
 	var input_payment json_payment
 
+	// return the custom error
 	if err := c.ShouldBindJSON(&input_payment); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": format_validation_error(err)})
+		return
+	}
+	if err := input_payment.validate(); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	userID, err := h.Utils.GetUserIDFromRequest(c.Request)
 	if err != nil || userID == 0 {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "error parsing request"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
 
-	parsed_date, err := time.Parse("02-01-2006", input_payment.Date)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "error parsing date, expected: %d-%m-%y"})
-		return
+	// some fields are pointers because they are not always needed
+	to_pointer := func(s string) *string {
+		if s == "" {
+			return nil
+		}
+		return &s
 	}
 
 	payment := &domain.Payment{
-		UserID:      userID,
-		NetAmount:   input_payment.NetAmount,
-		GrossAmount: input_payment.GrossAmount,
-		Deductible:  input_payment.Deductible,
-		Name:        input_payment.Name,
-		Type:        input_payment.Type,
-		Date:        parsed_date,
-		Recurrent:   input_payment.Recurrent,
-		Paid:        input_payment.Paid,
+		UserID:     userID,
+		Amount:     input_payment.Amount,
+		Name:       input_payment.Name,
+		Type:       input_payment.Type,
+		Category:   input_payment.Category,
+		Date:       input_payment.Date,
+		DueDate:    to_pointer(input_payment.DueDate),
+		Paid:       input_payment.Paid,
+		PaidAt:     to_pointer(input_payment.PaidAt),
+		Recurrent:  input_payment.Recurrent,
+		Frequency:  (*domain.FrequencyType)(to_pointer(string(input_payment.Frequency))),
+		ReceiptURL: to_pointer(input_payment.ReceiptURL),
 	}
 
 	payment, err = h.PaymentService.Create(payment)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "error creating payment"})
+		switch {
+		case errors.Is(err, dto.ErrPaymentAlreadyExists):
+			c.JSON(http.StatusBadRequest, gin.H{"error": "payment already exits"})
+		case errors.Is(err, dto.ErrInternalServerError):
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		}
 		return
 	}
-
-	c.JSON(http.StatusCreated, gin.H{"name": payment.Name, "type": payment.Type, "amount": payment.NetAmount})
+	c.JSON(http.StatusCreated, gin.H{"name": payment.Name, "type": payment.Type, "category": payment.Category, "amount": payment.Amount})
 }

@@ -3,8 +3,8 @@ package storage
 import (
 	"errors"
 
+	"github.com/rober0xf/notifier/internal/adapters/httphelpers/dto"
 	"github.com/rober0xf/notifier/internal/domain"
-	"github.com/rober0xf/notifier/internal/domain/domain_errors"
 	"github.com/rober0xf/notifier/internal/ports"
 	"gorm.io/gorm"
 )
@@ -14,9 +14,9 @@ var _ ports.UserRepository = (*Repository)(nil)
 func (r *Repository) CreateUser(user *domain.User) error {
 	if err := r.db.Create(user).Error; err != nil {
 		if errors.Is(err, gorm.ErrDuplicatedKey) {
-			return domain_errors.ErrNotFound
+			return dto.ErrUserAlreadyExists
 		}
-		return domain_errors.ErrRepository
+		return dto.ErrRepository
 	}
 	return nil
 }
@@ -26,9 +26,9 @@ func (r *Repository) GetUserByEmail(email string) (*domain.User, error) {
 
 	if err := r.db.Where("email = ?", email).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, domain_errors.ErrNotFound
+			return nil, dto.ErrUserNotFound
 		}
-		return nil, domain_errors.ErrRepository
+		return nil, dto.ErrRepository
 	}
 	return &user, nil
 }
@@ -37,7 +37,10 @@ func (r *Repository) GetAllUsers() ([]domain.User, error) {
 	var users []domain.User
 
 	if err := r.db.Find(&users).Error; err != nil {
-		return nil, domain_errors.ErrRepository
+		return nil, dto.ErrRepository
+	}
+	if len(users) == 0 {
+		return nil, dto.ErrUserNotFound
 	}
 	return users, nil
 }

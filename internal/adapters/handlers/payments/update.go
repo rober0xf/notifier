@@ -1,58 +1,60 @@
 package payments
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rober0xf/notifier/internal/adapters/httphelpers/dto"
 	"github.com/rober0xf/notifier/internal/domain"
 )
 
 func (h *paymentHandler) UpdatePayment(c *gin.Context) {
-	var input_payment json_payment
+	var input_payment domain.UpdatePayment
 
-	idStr := c.Param("id")
-	id, err := strconv.Atoi(idStr)
+	id_str := c.Param("id")
+	if id_str == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id parameter required"})
+		return
+	}
+	id, err := strconv.Atoi(id_str)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id format"})
 		return
 	}
-	if err := c.ShouldBindJSON(&input_payment); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request (update payment)"})
+	if id <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id must be positive"})
 		return
 	}
 
-	userID, err := h.Utils.GetUserIDFromRequest(c.Request)
+	if err := c.ShouldBindJSON(&input_payment); err != nil {
+		error_message := format_validation_error(err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": error_message})
+		return
+	}
+	if err := validate_update_payment(&input_payment); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	_, err = h.Utils.GetUserIDFromRequest(c.Request)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
 
-	parsed_date, err := time.Parse("02-01-2006", input_payment.Date)
+	updated_payment, err := h.PaymentService.Update(id, &input_payment)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "error parsing date, expected: %d-%m-%y"})
+		switch {
+		case errors.Is(err, dto.ErrPaymentNotFound):
+			c.JSON(http.StatusNotFound, gin.H{"error": "payment not found"})
+		case errors.Is(err, dto.ErrInternalServerError):
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		}
 		return
 	}
-
-	user_payment := &domain.Payment{
-		ID:          uint(id),
-		UserID:      userID,
-		NetAmount:   input_payment.NetAmount,
-		GrossAmount: input_payment.GrossAmount,
-		Deductible:  input_payment.Deductible,
-		Name:        input_payment.Name,
-		Type:        input_payment.Type,
-		Date:        parsed_date,
-		Recurrent:   input_payment.Recurrent,
-		Paid:        input_payment.Paid,
-	}
-
-	updated_payment, err := h.PaymentService.Update(user_payment)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "error updating payment"})
-		return
-	}
-
 	c.JSON(http.StatusOK, updated_payment)
 }
