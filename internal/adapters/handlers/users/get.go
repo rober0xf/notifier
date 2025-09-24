@@ -16,16 +16,20 @@ func (h *userHandler) GetByID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user data"})
 		return
 	}
+	if id <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id must be positive"})
+		return
+	}
 
 	user, err := h.UserService.GetByID(id)
 	if err != nil {
 		switch {
-		case errors.Is(err, dto.ErrInvalidUserData):
-			c.JSON(http.StatusBadRequest, gin.H{"error": "id must be positive"})
 		case errors.Is(err, dto.ErrUserNotFound):
 			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+		case errors.Is(err, dto.ErrInternalServerError):
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error fetching user"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		}
 		return
 	}

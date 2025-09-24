@@ -45,6 +45,15 @@ type PaymentHandler interface {
 func SetupRoutes(userHandler UserHandler, paymentHandler PaymentHandler, jwtKey []byte) *gin.Engine {
 	r := gin.Default()
 
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:5173"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		MaxAge:           48 * time.Hour,
+	}))
+
 	v1 := r.Group("/v1")
 	protected := v1.Group("/auth")
 	protected.Use(authentication.JWTMiddleware(jwtKey))
@@ -52,9 +61,10 @@ func SetupRoutes(userHandler UserHandler, paymentHandler PaymentHandler, jwtKey 
 	setupUsersRoutes(v1, protected, userHandler)
 	setupPaymentsRoutes(protected, paymentHandler)
 
-	r.Static("/", "./frontend/dist")
-	r.GET("*", func(c *gin.Context) {
-		c.File("/frontend/dist/index.html")
+	r.Static("/static", "./frontend/dist")
+
+	r.NoRoute(func(c *gin.Context) {
+		c.File("./frontend/dist/index.html")
 	})
 
 	return r
