@@ -47,7 +47,7 @@ func SetupRoutes(userHandler UserHandler, paymentHandler PaymentHandler, jwtKey 
 
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:5173"},
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
@@ -56,6 +56,16 @@ func SetupRoutes(userHandler UserHandler, paymentHandler PaymentHandler, jwtKey 
 
 	v1 := r.Group("/v1")
 	protected := v1.Group("/auth")
+
+	// again to protected routes to ensure it runs before auth
+	protected.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:5173"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		MaxAge:           48 * time.Hour,
+	}))
 	protected.Use(authentication.JWTMiddleware(jwtKey))
 
 	setupUsersRoutes(v1, protected, userHandler)
@@ -91,7 +101,7 @@ func setupPaymentsRoutes(protected *gin.RouterGroup, paymentHandler PaymentHandl
 	r := protected.Group("/payments")
 
 	r.GET("/", paymentHandler.GetAllPayments)
-	r.POST("/", paymentHandler.CreatePayment)
+	r.POST("", paymentHandler.CreatePayment)
 	r.GET("/email", paymentHandler.GetAllPaymentsFromUser)
 	r.GET("/:id", paymentHandler.GetPaymentByID)
 	r.PUT("/:id", paymentHandler.UpdatePayment)

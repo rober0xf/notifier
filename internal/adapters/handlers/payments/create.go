@@ -36,9 +36,15 @@ func (h *paymentHandler) CreatePayment(c *gin.Context) {
 		return
 	}
 
-	userID, err := h.Utils.GetUserIDFromRequest(c.Request)
-	if err != nil || userID == 0 {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+	// get user_id from the context
+	userIDf, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized: user_id not in context"})
+		return
+	}
+	userID, ok := userIDf.(int)
+	if !ok || userID == 0 {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized: invalid user_id"})
 		return
 	}
 
@@ -65,6 +71,7 @@ func (h *paymentHandler) CreatePayment(c *gin.Context) {
 		ReceiptURL: to_pointer(input_payment.ReceiptURL),
 	}
 
+	var err error
 	payment, err = h.PaymentService.Create(payment)
 	if err != nil {
 		switch {
