@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rober0xf/notifier/internal/adapters/authentication"
 	"github.com/rober0xf/notifier/internal/adapters/httphelpers/dto"
 )
 
@@ -37,9 +38,18 @@ func (h *userHandler) Create(c *gin.Context) {
 		return
 	}
 
+	token, err := h.Utils.GenerateToken(user.ID, user.Email)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "error while token generation"})
+		return
+	}
+
+	c.SetSameSite(http.SameSiteLaxMode)
+	authentication.SetAuthCookie(c, token)
+
 	// we return a custom structure without the password
 	c.JSON(http.StatusCreated, gin.H{
-		"name":  user.Username,
 		"email": user.Email,
+		"token": token,
 	})
 }
