@@ -57,7 +57,6 @@ func ConnectSQLite() (*gorm.DB, error) {
 
 	err = db.AutoMigrate(
 		&domain.User{},
-		&domain.Category{},
 		&domain.Payment{},
 	)
 	if err != nil {
@@ -65,6 +64,6 @@ func ConnectSQLite() (*gorm.DB, error) {
 	}
 
 	fmt.Println("schema migrated")
-	return db, nil
 
+	return db, nil
 }

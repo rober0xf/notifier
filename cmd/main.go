@@ -37,7 +37,7 @@ func main() {
 
 	// init handlers
 	userHandler := users.NewUserHandler(userSvc, authSvc)
-	paymentHandler := payments.NewPaymentHandler(*paymentSvc)
+	paymentHandler := payments.NewPaymentHandler(paymentSvc, authSvc)
 
 	router := httpmethod.SetupRoutes(userHandler, paymentHandler, jwtKey)
 

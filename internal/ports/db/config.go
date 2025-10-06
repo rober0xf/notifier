@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/joho/godotenv"
 	"github.com/rober0xf/notifier/internal/services/mail"
@@ -43,9 +44,7 @@ func GetConfig() PostgresConfig {
 	MailSender.Username = get_env_or_fatal("SMTP_USERNAME")
 	MailSender.Password = get_env_or_fatal("SMTP_PASSWORD")
 
-	// temporal key to check
-	jwt_key := get_env_or_fatal("JWT_KEY")
-
+	jwt_key := strings.TrimSpace(get_env_or_fatal("JWT_KEY"))
 	JwtKey = []byte(jwt_key)
 
 	return config

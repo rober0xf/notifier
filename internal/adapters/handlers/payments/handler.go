@@ -6,12 +6,13 @@ import (
 )
 
 type paymentHandler struct {
-	PaymentService payments.Service
-	Utils          auth.Service
+	PaymentService *payments.Service
+	Utils          *auth.Service
 }
 
-func NewPaymentHandler(service payments.Service) *paymentHandler {
+func NewPaymentHandler(paymentService *payments.Service, authService *auth.Service) *paymentHandler {
 	return &paymentHandler{
-		PaymentService: service,
+		PaymentService: paymentService,
+		Utils:          authService,
 	}
 }
