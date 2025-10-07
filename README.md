@@ -1,56 +1,83 @@
-# Notifier - Payment Notifier
-Notifier is an application written in Go designed to automatically notify payments using cron jobs. This project allows you to schedule recurring tasks that send notifications about pending payments, payments made or any event related to payments.
+# Notifier - Payment Notification System
 
-## Characteristics
-- Automation of payment notifications through cron jobs.
-- Flexible configuration for different execution frequencies.
-- Integration with notification email services.
-- Detailed logs for monitoring and debugging.
+![Notifier Diagram](./frontend/public/bimage.png)
 
-## Requirements
-- Go 1.20 or higher.
-- Access to a supported MySQL database.
-- Configuration of the cron service to execute recurring tasks.
+A full-stack payment tracker application with automated email notifications and dashboard view. Built with Golang Gin Framework, SQLite database, and Vuejs frontend for managing payments and users.
 
-## Installation
-1. Clone this repository:
-    ```bash
-    git clone https://github.com/rober0xf/notifier.git
-    cd notifier
-    ```
-2. Init the project:
-  ```bash
-  go mod init github.com/rober0xf/notifier
-  ```
-3. Install the dependencyes:
-    ```bash
-    go mod tidy
-    ```
-4. Configure the env variables in a file `.env`:
-    ```env
-    DB_HOST=localhost
-    DB_PORT=5432
-    DB_USER=user
-    DB_PASSWORD=password
-    DB_NAME=notifier
+## Features
+
+### Backend
+- **Automated Scheduling** - Daily, weekly, and monthly payment notifications via cron job.
+- **Email Notifications** - Sends personalized payment reminders to users.
+- **SQLite** - Lightweight, embedded database with no external dependencies.
+- **REST API** - Clean and secure APIs.
+- **Logging** - Some logs for monitoring and debugging.
+
+### Frontend
+- **User Authentication** - Secure account creation and login through JWT.
+- **Payment Management** - Create, update, and delete payments.
+- **Dashboard** - Visual view of all payments.
+
+---
+## Prerequisites
+
+- Go 1.20 or higher
+- Node.js 20+ and npm (for frontend)
+- SMTP server credentials for sending emails
+
+---
+## Configuration
+**Configure the env variables in a file `.env`:**
+    
+    DB_HOST=localhost # ignore for sqlite
+    DB_PORT=5432 # ignore for sqlite
+    DB_USER=user # ignore for sqlite
+    DB_PASSWORD=password # ignore for sqlite
+    DB_NAME=notifier # ignore for sqlite
     SMTP_HOST=smtp.example.com
     SMTP_PORT=587
     SMTP_USER=mail@example.com
-    SMTP_PASSWORD=your_password
-    ```
-
-## Usage
-1. Compile the application:
-    ```bash
-    go build -o notifier
-    ```
-2. Execute the binary:
-    ```bash
-    ./notifier
-    ```
-3. Configure a cronjob to execute the application. For example each hour:
-    ```
-    0 * * * * /route/to/notifier >> /var/log/notifier.log 2>&1
-    ```
+    SMTP_PASSWORD=your_app_password
+    JWT_KEY=your_jwt_key
 
 ---
+## Installation
+
+#### 1. Clone the repository
+```
+# clone with frontend submodule
+git clone --recurse-submodules https://github.com/rober0xf/notifier.git
+cd notifier
+```
+
+#### 2. Backend setup
+```
+# install Go dependencies
+go mod tidy
+
+# Initialize the database (creates tables automatically on first run)
+```
+#### 3. Frontend setup
+```
+cd frontend
+pnpm install
+```
+#### 4. Environment configuration
+```
+# create a .env file in the root directory
+cp .env.example .env
+```
+#### 5. Run the application
+```
+air
+```
+#### 6. Test an endpoint
+```
+curl -X POST http://localhost:3000/v1/users/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@example.com",
+    "username": "username",
+    "password": "securepassword123"
+}'
+```
