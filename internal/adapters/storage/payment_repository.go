@@ -62,7 +62,10 @@ func (r *Repository) GetAllPaymentsFromUser(email string) ([]domain.Payment, err
 }
 
 func (r *Repository) UpdatePayment(payment *domain.Payment) error {
-	result := r.db.Model(&domain.Payment{}).Where("id = ?", payment.ID).Updates(payment)
+	result := r.db.Model(&domain.Payment{}).
+		Where("id = ?", payment.ID).
+		Select("name", "amount", "type", "category", "date", "due_date", "paid", "paid_at", "recurrent", "frequency", "receipt_url").
+		Updates(payment)
 	if result.Error != nil {
 		return dto.ErrRepository
 	}

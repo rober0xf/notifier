@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"log"
 	"net/http"
 	"strings"
 
@@ -26,6 +27,7 @@ func (s *Service) GetUserIDFromRequest(r *http.Request) (int, error) {
 
 	userID, err := s.ValidateToken(tokenString, s.jwtKey)
 	if err != nil {
+		log.Printf("token validation failed: %v", err)
 		return 0, dto.ErrInvalidToken
 	}
 

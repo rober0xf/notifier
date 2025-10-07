@@ -34,7 +34,7 @@ type UpdatePayment struct {
 	Category   *CategoryType    `json:"category,omitempty"`
 	Date       *string          `json:"date,omitempty"`
 	DueDate    *string          `json:"due_date,omitempty"`
-	Paid       *bool            `json:"paid,omitempty"`
+	Paid       *bool            `json:"paid"`
 	PaidAt     *string          `json:"paid_at,omitempty"`
 	Recurrent  *bool            `json:"recurrent,omitempty"`
 	Frequency  *FrequencyType   `json:"frequency,omitempty"`

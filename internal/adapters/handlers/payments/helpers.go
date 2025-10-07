@@ -47,9 +47,6 @@ func format_validation_error(err error) string {
 
 // this is for create payment. json_payment is local to the module
 func (p *json_payment) validate() error {
-	if p.Paid && p.PaidAt == "" {
-		return fmt.Errorf("paid_at is required when payment is marked as paid")
-	}
 	if p.Recurrent && p.Frequency == "" {
 		return fmt.Errorf("frequency is required for recurrent payments")
 	}
@@ -65,10 +62,8 @@ func (p *json_payment) validate() error {
 
 // for update payment
 func validate_update_payment(payment *domain.UpdatePayment) error {
-	if payment.Paid != nil && *payment.Paid {
-		if payment.PaidAt == nil || *payment.PaidAt == "" {
-			return fmt.Errorf("paid_at is required when payment is marked as paid")
-		}
+	if payment.Paid != nil && !*payment.Paid {
+		payment.PaidAt = nil
 	}
 	if payment.Paid != nil && !*payment.Paid && payment.PaidAt != nil && *payment.PaidAt != "" {
 		return fmt.Errorf("cannot set paid_at if the payment its not paid")

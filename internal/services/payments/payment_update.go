@@ -2,6 +2,7 @@ package payments
 
 import (
 	"errors"
+	"time"
 
 	"github.com/rober0xf/notifier/internal/adapters/httphelpers/dto"
 	"github.com/rober0xf/notifier/internal/domain"
@@ -41,10 +42,16 @@ func (s *Service) Update(id int, payment *domain.UpdatePayment) (*domain.Payment
 
 	if payment.Paid != nil {
 		existing.Paid = *payment.Paid
+		if *payment.Paid {
+			if existing.PaidAt == nil || *existing.PaidAt == "" {
+				date := time.Now().Format("2006-01-02")
+				existing.PaidAt = &date
+			}
+		} else {
+			existing.PaidAt = nil
+		}
 	}
-	if payment.PaidAt != nil {
-		existing.PaidAt = payment.PaidAt
-	}
+
 	if payment.Recurrent != nil {
 		existing.Recurrent = *payment.Recurrent
 	}
