@@ -28,9 +28,9 @@ func GetConfig() PostgresConfig {
 	}
 
 	var config PostgresConfig
-	config.DB_NAME = get_env_or_fatal("DB_NAME")
-	config.DB_USER = get_env_or_fatal("DB_USER")
-	config.DB_PASS = get_env_or_fatal("DB_PASSWORD")
+	config.DB_NAME = GetEnvOrFatal("DB_NAME")
+	config.DB_USER = GetEnvOrFatal("DB_USER")
+	config.DB_PASS = GetEnvOrFatal("DB_PASSWORD")
 	config.DB_HOST = fallback_env("DB_HOST", "localhost")
 	config.DB_PORT = fallback_env("DB_PORT", "5432")
 
@@ -39,18 +39,18 @@ func GetConfig() PostgresConfig {
 		log.Fatalf("PORT env is not a number: %v", err)
 	}
 
-	MailSender.Host = get_env_or_fatal("SMTP_HOST")
-	MailSender.Port = get_env_or_fatal("SMTP_PORT")
-	MailSender.Username = get_env_or_fatal("SMTP_USERNAME")
-	MailSender.Password = get_env_or_fatal("SMTP_PASSWORD")
+	MailSender.Host = GetEnvOrFatal("SMTP_HOST")
+	MailSender.Port = GetEnvOrFatal("SMTP_PORT")
+	MailSender.Username = GetEnvOrFatal("SMTP_USERNAME")
+	MailSender.Password = GetEnvOrFatal("SMTP_PASSWORD")
 
-	jwt_key := strings.TrimSpace(get_env_or_fatal("JWT_KEY"))
+	jwt_key := strings.TrimSpace(GetEnvOrFatal("JWT_KEY"))
 	JwtKey = []byte(jwt_key)
 
 	return config
 }
 
-func get_env_or_fatal(key string) string {
+func GetEnvOrFatal(key string) string {
 	value := os.Getenv(key)
 	if value == "" {
 		log.Fatalf("env variable %s empty", key)

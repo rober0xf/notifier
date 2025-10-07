@@ -3,6 +3,7 @@ package mail
 import (
 	"fmt"
 	"net/smtp"
+	"strings"
 )
 
 type MailSender struct {
@@ -12,20 +13,19 @@ type MailSender struct {
 	Password string
 }
 
-func (ms *MailSender) SendMail(reciever []string, subject string, body string) error {
-	if len(reciever) == 0 {
+func (ms *MailSender) SendMail(receiever []string, subject string, body string) error {
+	if len(receiever) == 0 {
 		return fmt.Errorf("no recipients specified")
 	}
 
 	address := fmt.Sprintf("%s:%s", ms.Host, ms.Port)
 	auth := smtp.PlainAuth("", ms.Username, ms.Password, ms.Host)
-	msg := []byte("To: " + reciever[0] + "\r\n" +
+	msg := []byte("To: " + strings.Join(receiever, ",") + "\r\n" +
 		"Subject: " + subject + "\r\n" +
 		"\r\n" +
 		body + "\r\n")
 
-	if err := smtp.SendMail(address, auth, ms.Username, reciever, msg); err != nil {
-		fmt.Println(err)
+	if err := smtp.SendMail(address, auth, ms.Username, receiever, msg); err != nil {
 		return err
 	}
 

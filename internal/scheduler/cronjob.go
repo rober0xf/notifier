@@ -3,7 +3,6 @@ package cronjob
 import (
 	"fmt"
 	"log"
-	"os"
 	"time"
 
 	"github.com/go-co-op/gocron/v2"
@@ -12,70 +11,157 @@ import (
 	"github.com/rober0xf/notifier/internal/services/mail"
 )
 
-func InitCron() {
-	s, err := gocron.NewScheduler()
-	if err != nil {
-		log.Fatalf("error creating scheduler: %v", err)
-		return
-	}
-
-	job, err := s.NewJob(
-		gocron.DailyJob(1, gocron.NewAtTimes(
-			gocron.NewAtTime(15, 27, 00),
-		),
-		),
-		gocron.NewTask(SendDailyAlert),
-	)
-	if err != nil {
-		log.Print("error creating new job: ", err)
-	}
-
-	log.Printf("ID: %v", job.ID())
-	s.Start()
+var mailsend = mail.MailSender{
+	Host:     database.GetEnvOrFatal("SMTP_HOST"),
+	Port:     database.GetEnvOrFatal("SMTP_PORT"),
+	Username: database.GetEnvOrFatal("SMTP_USERNAME"),
+	Password: database.GetEnvOrFatal("SMTP_PASSWORD"),
 }
 
-func SendDailyAlert() {
-	mailsend := mail.MailSender{
-		Host:     os.Getenv("SMTP_HOST"),
-		Port:     os.Getenv("SMTP_PORT"),
-		Username: os.Getenv("SMTP_USERNAME"),
-		Password: os.Getenv("SMTP_PASSWORD"),
-	}
+type payment struct {
+	Email   string
+	Name    string
+	Amount  float64
+	PayType string
+}
 
-	var email, name string
-	var net_amount, gross_amount float64
-	var listPayments = make(map[string]string)
+func InitCron() {
+	go func() {
+		s, err := gocron.NewScheduler(gocron.WithLocation(time.Local))
+		if err != nil {
+			log.Fatalf("error creating scheduler: %v", err)
+			return
+		}
 
+		// set daily cronjob
+		_, err = s.NewJob(
+			gocron.DailyJob(1, gocron.NewAtTimes(
+				gocron.NewAtTime(07, 00, 00),
+			),
+			),
+			gocron.NewTask(SendDailyAlert),
+		)
+		if err != nil {
+			log.Printf("error creating daily job: %v", err)
+			return
+		}
+		log.Println("daily cronjob set")
+
+		// set weekly cronjob
+		_, err = s.NewJob(
+			gocron.WeeklyJob(1, gocron.NewWeekdays(
+				time.Monday),
+				gocron.NewAtTimes(gocron.NewAtTime(07, 00, 00))),
+			gocron.NewTask(SendWeeklyAlert))
+		if err != nil {
+			log.Printf("error creating weekly job: %v", err)
+			return
+		}
+		log.Println("weekly cronjob set")
+
+		// set monthly cronjob
+		_, err = s.NewJob(
+			gocron.MonthlyJob(1, gocron.NewDaysOfTheMonth(1),
+				gocron.NewAtTimes(gocron.NewAtTime(07, 00, 00))),
+			gocron.NewTask(SendMonthlyAlert))
+		if err != nil {
+			log.Printf("error creating monthly job: %v", err)
+			return
+		}
+		log.Println("monthly cronjob set")
+
+		s.Start()
+
+		select {}
+	}()
+}
+
+func SendPaymentAlert(title string, target_date time.Time) error {
 	db := database.DB
 	if db == nil {
-		log.Fatal("could not initialize database")
+		return fmt.Errorf("could not initialize database")
 	}
-
-	tomorrow := time.Now().AddDate(0, 0, 1).Format("2006-01-02")
-	var count int64
+	log.Printf("starting SendPaymentAlert for date: %s", target_date.Format("2006-01-02"))
 
 	rows, err := db.Table("users").
-		Select("users.email, payments.name, payments.net_amount, payments.gross_amount").
+		Select("users.email, payments.name, payments.amount, payments.type").
 		Joins("left join payments on payments.user_id = users.id").
-		Where("DATE(payments.date) = ?", tomorrow).
-		Count(&count).
+		Where("DATE(payments.due_date) = ?", target_date.Format("2006-01-02")).
 		Rows()
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("database error: %v", err)
+		return err
 	}
 	defer rows.Close()
 
-	body_message := "these are the payments that will be executed tomorrow. \r\n"
-	if count > 0 {
-		for rows.Next() {
-			rows.Scan(&email, &name, &net_amount, &gross_amount)
-			details := fmt.Sprintf("payment: %s \r\n net amount: %.2f \r\n gross amount: %.2f \r\n", name, net_amount, gross_amount)
-			listPayments[email] += details
+	list_payments := make(map[string]string)
+	has_payments := false
+	payment_count := 0
+	for rows.Next() {
+		var p payment
+		if err := rows.Scan(&p.Email, &p.Name, &p.Amount, &p.PayType); err != nil {
+			log.Printf("error scanning row: %s", err)
+			continue
 		}
-		for key, val := range listPayments {
-			mailsend.SendMail([]string{key}, "payment alert", body_message+val)
+		has_payments = true
+		payment_count++
+		details := fmt.Sprintf("Payment: %s\r\nAmount: %.2f\r\nType: %s\r\n", p.Name, p.Amount, p.PayType)
+		list_payments[p.Email] += details
+		log.Printf("found payment: %s for %s (%f)", p.Name, p.Email, p.Amount)
+	}
+
+	if !has_payments {
+		log.Printf("there are no payments due on %s", target_date.Format("2006-01-02"))
+		return nil
+	}
+
+	bodyMessage := fmt.Sprintf("These are the payments that will be executed on %s:\r\n", target_date.Format("2006-01-02"))
+	emails_sent := 0
+	emails_failed := 0
+	for email, val := range list_payments {
+		log.Printf("trying to send email to: %s", email)
+		if err := mailsend.SendMail([]string{email}, title, bodyMessage+val); err != nil {
+			log.Printf("error sending email to %s: %v", email, err)
+			emails_failed++
+		} else {
+			log.Printf("email sent to: %s", email)
+			emails_sent++
 		}
+	}
+
+	log.Printf("email stats - Sent: %d, Failed: %d", emails_sent, emails_failed)
+	return nil
+}
+
+func SendDailyAlert() {
+	log.Println("========== SendDailyAlert triggered ==========")
+
+	tomorrow := time.Now().AddDate(0, 0, 1)
+	if err := SendPaymentAlert("daily payment alert", tomorrow); err != nil {
+		log.Printf("SendDailyAlert error: %v", err)
 	} else {
-		log.Print("there are no payments")
+		log.Println("========== SendDailyAlert finished ==========")
+	}
+}
+
+func SendWeeklyAlert() {
+	log.Println("========== SendWeeklyAlert triggered ==========")
+
+	next_week := time.Now().AddDate(0, 0, 7)
+	if err := SendPaymentAlert("weekly payment alert", next_week); err != nil {
+		log.Printf("SendWeeklyAlert error: %v", err)
+	} else {
+		log.Println("========== SendWeeklyAlert finished ==========")
+	}
+}
+
+func SendMonthlyAlert() {
+	log.Println("========== SendMonthlyAlert triggered ==========")
+
+	next_month := time.Now().AddDate(0, 1, 0)
+	if err := SendPaymentAlert("monthly payment alert", next_month); err != nil {
+		log.Printf("SendMonthlyAlert error: %v", err)
+	} else {
+		log.Println("========== SendMonthlyAlert finished ==========")
 	}
 }

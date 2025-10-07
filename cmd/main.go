@@ -17,13 +17,15 @@ import (
 )
 
 func main() {
-	cronjob.InitCron()
-
 	_ = database.GetConfig()
 	db, err := database.ConnectSQLite()
 	if err != nil {
 		log.Fatalf("could not connect to database: %v", err)
 	}
+
+	database.DB = db
+
+	cronjob.InitCron()
 
 	// init repos
 	userRepo := storage.NewUserRepository(db)
