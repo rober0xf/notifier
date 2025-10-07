@@ -83,3 +83,13 @@ curl -X POST http://localhost:3000/v1/users/register \
     "password": "securepassword123"
 }'
 ```
+---
+## Contributing
+Contributions are always welcome! Feel free to fork the repository and submit a pull request.
+
+1. Fork the project
+2. Create your feature branch (`git checkout -b feature/SomeFeature`)
+3. Commit your changes (`git commit -m 'Added some Feature'`)
+4. Push to the branch (`git push origin feature/SomeFeature`)
+5. Open a Pull Request
+---
