@@ -7,29 +7,45 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rober0xf/notifier/internal/adapters/authentication"
 	"github.com/rober0xf/notifier/internal/adapters/httphelpers/dto"
+	"github.com/rober0xf/notifier/internal/services/users"
 )
 
+type CreateUserRequest struct {
+	Username string `json:"username" binding:"required,min=4"`
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required,min=6"`
+}
+
 func (h *userHandler) Create(c *gin.Context) {
-	// struct used for decode the input
-	var input_user struct {
-		Username string `json:"username" binding:"required"`
-		Email    string `json:"email" binding:"required,email"`
-		Password string `json:"password" binding:"required,min=6"`
+	var input CreateUserRequest
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "username, email and password are required. password min length 6"})
+		return
 	}
 
-	if err := c.ShouldBindJSON(&input_user); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "username, email and password are required"})
+	err := users.ValidateEmail(input.Email)
+	if err != nil {
+		if validation_error, ok := err.(*users.EmailValidationError); ok {
+			c.JSON(http.StatusBadRequest, gin.H{"error": validation_error.Message,
+				"suggestion": validation_error.Suggestion})
+			return
+		}
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	// here we use the service logic
-	user, err := h.UserService.Create(input_user.Username, input_user.Email, input_user.Password)
+	user, err := h.UserService.Create(input.Username, input.Email, input.Password)
 	if err != nil {
 		switch {
 		case errors.Is(err, dto.ErrUserAlreadyExists):
-			c.JSON(http.StatusBadRequest, gin.H{"error": "user already exists"})
+			c.JSON(http.StatusConflict, gin.H{"error": "user already exists"})
 		case errors.Is(err, dto.ErrPasswordHashing):
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "error hashing password"})
+		case errors.Is(err, dto.ErrInvalidUsername):
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid username data"})
+		case errors.Is(err, dto.ErrInvalidPassword):
+			c.JSON(http.StatusBadRequest, gin.H{"error": "password must be stronger"})
 		case errors.Is(err, dto.ErrInternalServerError):
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
 		default:

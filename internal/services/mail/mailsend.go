@@ -13,7 +13,24 @@ type MailSender struct {
 	Password string
 }
 
-func (ms *MailSender) SendMail(receiever []string, subject string, body string) error {
+func NewMailSender(host, port, username, password string) *MailSender {
+	ms := &MailSender{
+		Host:     host,
+		Port:     port,
+		Username: username,
+		Password: password,
+	}
+
+	if ms.Host == "" {
+		ms.Host = "smtp.gmail.com"
+	}
+	if ms.Port == "" {
+		ms.Port = "587"
+	}
+	return ms
+}
+
+func SendMail(ms *MailSender, receiever []string, subject string, body string) error {
 	if len(receiever) == 0 {
 		return fmt.Errorf("no recipients specified")
 	}
@@ -22,6 +39,8 @@ func (ms *MailSender) SendMail(receiever []string, subject string, body string) 
 	auth := smtp.PlainAuth("", ms.Username, ms.Password, ms.Host)
 	msg := []byte("To: " + strings.Join(receiever, ",") + "\r\n" +
 		"Subject: " + subject + "\r\n" +
+		"MIME-Version: 1.0\r\n" +
+		"Content-Type: text/html; charset=\"UTF-8\"\r\n" +
 		"\r\n" +
 		body + "\r\n")
 

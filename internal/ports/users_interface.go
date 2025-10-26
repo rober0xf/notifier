@@ -5,10 +5,11 @@ import (
 )
 
 type UserService interface {
-	Create(name string, email string, password string) (*domain.User, error)
+	Create(username string, email string, password string) (*domain.User, error)
 	GetByEmail(email string) (*domain.User, error)
 	GetAll() ([]domain.User, error)
 	GetByID(id int) (*domain.User, error)
+	GetVerificationEmail(email string) (*domain.User, error)
 	Update(*domain.User) (*domain.User, error)
 	Delete(id int) error
 }
@@ -20,4 +21,5 @@ type UserRepository interface {
 	GetUserByID(id int) (*domain.User, error)
 	UpdateUser(user *domain.User) error
 	DeleteUser(id int) error
+	SetActive(user *domain.User) error
 }

@@ -12,6 +12,7 @@ import (
 var _ ports.UserRepository = (*Repository)(nil)
 
 func (r *Repository) CreateUser(user *domain.User) error {
+	user.Active = false
 	if err := r.db.Create(user).Error; err != nil {
 		if errors.Is(err, gorm.ErrDuplicatedKey) {
 			return dto.ErrUserAlreadyExists
@@ -70,6 +71,18 @@ func (r *Repository) UpdateUser(user *domain.User) error {
 
 func (r *Repository) DeleteUser(id int) error {
 	result := r.db.Delete(&domain.User{}, id)
+	if result.Error != nil {
+		return dto.ErrRepository
+	}
+	if result.RowsAffected == 0 {
+		return dto.ErrUserNotFound
+	}
+	return nil
+}
+
+func (r *Repository) SetActive(user *domain.User) error {
+	user.Active = true
+	result := r.db.Model(user).Update("active", user.Active)
 	if result.Error != nil {
 		return dto.ErrRepository
 	}

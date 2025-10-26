@@ -11,7 +11,7 @@ import (
 	"github.com/rober0xf/notifier/internal/services/mail"
 )
 
-var mailsend = mail.MailSender{
+var ms = mail.MailSender{
 	Host:     database.GetEnvOrFatal("SMTP_HOST"),
 	Port:     database.GetEnvOrFatal("SMTP_PORT"),
 	Username: database.GetEnvOrFatal("SMTP_USERNAME"),
@@ -120,7 +120,7 @@ func SendPaymentAlert(title string, target_date time.Time) error {
 	emails_failed := 0
 	for email, val := range list_payments {
 		log.Printf("trying to send email to: %s", email)
-		if err := mailsend.SendMail([]string{email}, title, bodyMessage+val); err != nil {
+		if err := mail.SendMail(&ms, []string{email}, title, bodyMessage+val); err != nil {
 			log.Printf("error sending email to %s: %v", email, err)
 			emails_failed++
 		} else {

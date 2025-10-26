@@ -39,11 +39,6 @@ func GetConfig() PostgresConfig {
 		log.Fatalf("PORT env is not a number: %v", err)
 	}
 
-	MailSender.Host = GetEnvOrFatal("SMTP_HOST")
-	MailSender.Port = GetEnvOrFatal("SMTP_PORT")
-	MailSender.Username = GetEnvOrFatal("SMTP_USERNAME")
-	MailSender.Password = GetEnvOrFatal("SMTP_PASSWORD")
-
 	jwt_key := strings.TrimSpace(GetEnvOrFatal("JWT_KEY"))
 	JwtKey = []byte(jwt_key)
 

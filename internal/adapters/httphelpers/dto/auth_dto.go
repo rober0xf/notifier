@@ -9,10 +9,18 @@ import (
 // custom errors
 var (
 	// users
-	ErrUserAlreadyExists = errors.New("user already exists")
-	ErrInvalidUserData   = errors.New("invalid user data")
-	ErrPasswordHashing   = errors.New("error hashing password")
-	ErrUserNotFound      = errors.New("user not found")
+	ErrUserAlreadyExists  = errors.New("user already exists")
+	ErrInvalidUserData    = errors.New("invalid user data")
+	ErrPasswordHashing    = errors.New("error hashing password")
+	ErrUserNotFound       = errors.New("user not found")
+	ErrInvalidUsername    = errors.New("only alphanumeric characters allowed")
+	ErrInvalidPassword    = errors.New("invalid password, weak strength")
+	ErrActivating         = errors.New("error activating account")
+	ErrValidatingEmail    = errors.New("error validating email")
+	ErrInvalidEmailFormat = errors.New("invalid email format")
+	ErrInvalidDomain      = errors.New("email domain cannot receive emails")
+	ErrDisposableEmail    = errors.New("we do not accept disposables emails")
+	ErrEmailNotReachable  = errors.New("email is not reachable")
 
 	// payments
 	ErrPaymentAlreadyExists = errors.New("payment already exists")

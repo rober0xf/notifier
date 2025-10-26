@@ -1,22 +1,22 @@
 package mail
 
 import (
-	"encoding/json"
-	"net/http"
+	"bufio"
+	"log"
+	"os"
 )
 
-func TestMail(w http.ResponseWriter, r *http.Request) {
-	sender := &MailSender{}
-
-	err := sender.SendMail([]string{"test@gmail.com"}, "sending test", "this is the body")
+// emails that we do not want
+func MustDisposableEmail() (disp_emails []string) {
+	file, err := os.Open("internal/services/mail/disposable_emails.txt")
 	if err != nil {
-		http.Error(w, "error sending the mail", http.StatusInternalServerError)
-		return
+		log.Panic(err)
 	}
+	defer file.Close()
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-
-	response := map[string]string{"message": "mail sent successfully"}
-	json.NewEncoder(w).Encode(response)
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		disp_emails = append(disp_emails, scanner.Text())
+	}
+	return disp_emails
 }

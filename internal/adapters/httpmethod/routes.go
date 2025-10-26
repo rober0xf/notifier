@@ -14,6 +14,7 @@ type UserHandler interface {
 	GetByEmail(c *gin.Context)
 	GetByID(c *gin.Context)
 	GetAll(c *gin.Context)
+	GetVerificationEmail(c *gin.Context)
 
 	// POST
 	Create(c *gin.Context)
@@ -87,6 +88,7 @@ func setupUsersRoutes(v1, protected *gin.RouterGroup, userHandler UserHandler) {
 
 	/* ADMIN ROUTES */
 	public.GET("", userHandler.GetAll)
+	public.GET("/email_verification/:email/:hash", userHandler.GetVerificationEmail)
 	public.POST("/register", userHandler.Create)
 	public.POST("/login", userHandler.Login)
 
