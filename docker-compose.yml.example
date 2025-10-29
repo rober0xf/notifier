@@ -1,0 +1,18 @@
+services:
+  backend:
+    build: ./notifier-backend
+    image: notifier-backend:0.1
+    ports:
+      - "3000:3000"
+    container_name: notifier-back
+    env_file:
+      - ./notifier-backend/.env
+
+  frontend:
+    build: ./notifier-front
+    image: notifier-frontend:0.1
+    ports:
+      - "8080:80"
+    container_name: notifier-front
+    depends_on:
+      - backend

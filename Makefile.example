@@ -1,0 +1,28 @@
+# move makefile and docker compose one level above
+.PHONY: help up down build logs restart clean
+
+help:
+	@echo "Available commands:"
+	@echo "  make up       - Start all services"
+	@echo "  make down     - Stop all services"
+	@echo "  make build    - Build all images"
+	@echo "  make logs     - View all logs"
+	@echo "  make restart  - Restart all services"
+	@echo "  make clean    - Stop and remove everything"
+
+up:
+	docker compose up -d
+
+down:
+	docker compose down
+
+build:
+	docker compose build
+
+logs:
+	docker compose logs -f
+
+restart: down build up
+
+clean:
+	docker compose down -v --rmi all
