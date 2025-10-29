@@ -45,4 +45,5 @@ func main() {
 
 	fmt.Println("running on port 3000")
 	log.Fatal(http.ListenAndServe(":3000", router))
+	log.Fatal(http.ListenAndServe("0.0.0.0:3000", router))
 }
