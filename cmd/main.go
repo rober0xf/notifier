@@ -18,7 +18,7 @@ import (
 
 func main() {
 	_ = database.GetConfig()
-	db, err := database.ConnectSQLite()
+	db, err := database.InitPostgres()
 	if err != nil {
 		log.Fatalf("could not connect to database: %v", err)
 	}
