@@ -1,20 +1,21 @@
 package storage
 
 import (
-	"gorm.io/gorm"
+	database "github.com/rober0xf/notifier/internal/ports/db"
 )
 
 type Repository struct {
-	db *gorm.DB
+	queries *database.Queries
 }
 
-func NewAuthRepository(db *gorm.DB) *Repository {
+func NewAuthRepository(db database.DBTX) *Repository {
 	return &Repository{
-		db: db,
+		queries: database.New(db),
 	}
 }
-func NewUserRepository(db *gorm.DB) *Repository {
+
+func NewUserRepository(db database.DBTX) *Repository {
 	return &Repository{
-		db: db,
+		queries: database.New(db),
 	}
 }
