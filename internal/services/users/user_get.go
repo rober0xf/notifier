@@ -24,8 +24,19 @@ func (s *Service) GetByEmail(email string) (*domain.User, error) {
 	return s.Repo.GetUserByEmail(email)
 }
 
-func (s Service) GetAll() ([]domain.User, error) {
-	return s.Repo.GetAllUsers()
+func (s Service) GetAll(ctx context.Context) ([]domain.User, error) {
+	users, err := s.Repo.GetAllUsers(ctx)
+	if err != nil {
+		switch {
+		case errors.Is(err, dto.ErrNotFound):
+			return nil, dto.ErrUserNotFound
+		case errors.Is(err, dto.ErrRepository):
+			return nil, dto.ErrInternalServerError
+		default:
+			return nil, dto.ErrInternalServerError
+		}
+	}
+	return users, nil
 }
 
 func (s Service) GetByID(id int) (*domain.User, error) {

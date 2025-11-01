@@ -65,7 +65,7 @@ func (h *userHandler) GetByEmail(c *gin.Context) {
 }
 
 func (h *userHandler) GetAll(c *gin.Context) {
-	users, err := h.UserService.GetAll()
+	users, err := h.UserService.GetAll(c)
 	if err != nil {
 		switch {
 		case errors.Is(err, dto.ErrUserNotFound):
@@ -73,7 +73,7 @@ func (h *userHandler) GetAll(c *gin.Context) {
 		case errors.Is(err, dto.ErrRepository):
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "error fetching all users"})
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
 		return
 	}
