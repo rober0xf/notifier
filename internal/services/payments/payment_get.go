@@ -1,6 +1,7 @@
 package payments
 
 import (
+	"context"
 	"errors"
 	"net/mail"
 	"strings"
@@ -9,29 +10,43 @@ import (
 	"github.com/rober0xf/notifier/internal/domain"
 )
 
-func (s *Service) Get(id int) (*domain.Payment, error) {
-	return s.Repo.GetPaymentByID(id)
-}
-
-func (s *Service) GetAllPayments() ([]domain.Payment, error) {
-	return s.Repo.GetAllPayments()
-}
-
-func (s *Service) GetAllPaymentsFromUser(email string) ([]domain.Payment, error) {
-	if !validateEmail(email) {
-		return nil, dto.ErrInvalidPaymentData
-	}
-	payments, err := s.Repo.GetAllPaymentsFromUser(email)
+func (s *Service) Get(ctx context.Context, id int) (*domain.Payment, error) {
+	payment, err := s.Repo.GetPaymentByID(ctx, id)
 	if err != nil {
 		switch {
 		case errors.Is(err, dto.ErrNotFound):
-			return nil, dto.ErrUserNotFound
-		case errors.Is(err, dto.ErrRepository):
-			return nil, dto.ErrInternalServerError
+			return nil, dto.ErrPaymentNotFound
 		default:
 			return nil, dto.ErrInternalServerError
 		}
 	}
+
+	return payment, nil
+}
+
+func (s *Service) GetAllPayments(ctx context.Context) ([]domain.Payment, error) {
+	payments, err := s.Repo.GetAllPayments(ctx)
+	if err != nil {
+		return nil, dto.ErrInternalServerError
+	}
+
+	return payments, nil
+}
+
+func (s *Service) GetAllPaymentsFromUser(ctx context.Context, email string) ([]domain.Payment, error) {
+	if !validateEmail(email) {
+		return nil, dto.ErrInvalidPaymentData
+	}
+	payments, err := s.Repo.GetAllPaymentsFromUser(ctx, email)
+	if err != nil {
+		switch {
+		case errors.Is(err, dto.ErrNotFound):
+			return nil, dto.ErrUserNotFound
+		default:
+			return nil, dto.ErrInternalServerError
+		}
+	}
+
 	return payments, nil
 }
 
