@@ -1,21 +1,21 @@
 package payments
 
 import (
+	"context"
 	"errors"
 
 	"github.com/rober0xf/notifier/internal/adapters/httphelpers/dto"
 )
 
-func (s *Service) Delete(id int) error {
-	if err := s.Repo.DeletePayment(id); err != nil {
+func (s *Service) Delete(ctx context.Context, id int) error {
+	if err := s.Repo.DeletePayment(ctx, id); err != nil {
 		switch {
 		case errors.Is(err, dto.ErrNotFound):
 			return dto.ErrPaymentNotFound
-		case errors.Is(err, dto.ErrRepository):
-			return dto.ErrInternalServerError
 		default:
 			return dto.ErrInternalServerError
 		}
 	}
+
 	return nil
 }

@@ -1,12 +1,14 @@
 package domain
 
+import "time"
+
 type User struct {
-	ID                    int    `gorm:"primaryKey" json:"id"`
-	Username              string `gorm:"not null" json:"username"`
-	Email                 string `gorm:"not null;unique" json:"email"`
-	Password              string `gorm:"not null" json:"password,omitempty"`
-	Active                bool   `gorm:"not null" json:"active"`
-	EmailVerificationHash string `json:"email_verification_hash"`
-	CreatedAt             string `gorm:"not null" json:"created_at"`
-	Timeout               string `json:"timeout"`
+	ID                    int           `json:"id"`
+	Username              string        `json:"username"`
+	Email                 string        `json:"email"`
+	Password              string        `json:"password,omitempty"`
+	Active                bool          `json:"active"`
+	EmailVerificationHash string        `json:"email_verification_hash"`
+	CreatedAt             time.Time     `json:"created_at"`
+	Timeout               time.Duration `json:"timeout"`
 }

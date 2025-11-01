@@ -21,7 +21,7 @@ func (h *userHandler) GetByID(c *gin.Context) {
 		return
 	}
 
-	user, err := h.UserService.GetByID(id)
+	user, err := h.UserService.GetByID(c, id)
 	if err != nil {
 		switch {
 		case errors.Is(err, dto.ErrUserNotFound):
@@ -45,7 +45,7 @@ func (h *userHandler) GetByEmailEmpty(c *gin.Context) {
 func (h *userHandler) GetByEmail(c *gin.Context) {
 	email := c.Param("email")
 
-	user, err := h.UserService.GetByEmail(email)
+	user, err := h.UserService.GetByEmail(c, email)
 	if err != nil {
 		switch {
 		case errors.Is(err, dto.ErrInvalidUserData):
@@ -65,7 +65,7 @@ func (h *userHandler) GetByEmail(c *gin.Context) {
 }
 
 func (h *userHandler) GetAll(c *gin.Context) {
-	users, err := h.UserService.GetAll()
+	users, err := h.UserService.GetAll(c)
 	if err != nil {
 		switch {
 		case errors.Is(err, dto.ErrUserNotFound):
@@ -73,9 +73,10 @@ func (h *userHandler) GetAll(c *gin.Context) {
 		case errors.Is(err, dto.ErrRepository):
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "error fetching all users"})
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
 		return
 	}
+
 	c.JSON(http.StatusOK, users)
 }

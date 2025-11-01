@@ -16,7 +16,7 @@ func (h *userHandler) Login(c *gin.Context) {
 		return
 	}
 
-	user, err := h.UserService.Repo.GetUserByEmail(credentials.Email)
+	user, err := h.UserService.Repo.GetUserByEmail(c, credentials.Email)
 	if err != nil {
 		switch {
 		case errors.Is(err, dto.ErrUserNotFound):
@@ -26,6 +26,7 @@ func (h *userHandler) Login(c *gin.Context) {
 		default:
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		}
+
 		return
 	}
 

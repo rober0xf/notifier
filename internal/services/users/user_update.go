@@ -1,6 +1,7 @@
 package users
 
 import (
+	"context"
 	"errors"
 
 	"github.com/rober0xf/notifier/internal/adapters/authentication"
@@ -8,12 +9,12 @@ import (
 	"github.com/rober0xf/notifier/internal/domain"
 )
 
-func (s *Service) Update(user *domain.User) (*domain.User, error) {
+func (s *Service) Update(ctx context.Context, user *domain.User) (*domain.User, error) {
 	if user.ID <= 0 {
 		return nil, dto.ErrInvalidUserData
 	}
 
-	existing, err := s.Repo.GetUserByID(user.ID)
+	existing, err := s.Repo.GetUserByID(ctx, user.ID)
 	if err != nil {
 		if errors.Is(err, dto.ErrRepository) {
 			return nil, dto.ErrInternalServerError
@@ -21,18 +22,23 @@ func (s *Service) Update(user *domain.User) (*domain.User, error) {
 		if errors.Is(err, dto.ErrNotFound) {
 			return nil, dto.ErrUserNotFound
 		}
+
 		return nil, err
 	}
 
-	// update only given fields, more like a patch request
-	if user.Username != "" {
+	var profile_changed = false
+	var password_changed = false
+
+	if user.Username != "" && user.Username != existing.Username {
 		existing.Username = user.Username
+		profile_changed = true
 	}
-	if user.Email != "" {
+	if user.Email != "" && user.Email != existing.Email {
 		if !validateEmail(user.Email) {
 			return nil, dto.ErrInvalidUserData
 		}
 		existing.Email = user.Email
+		profile_changed = true
 	}
 	if user.Password != "" {
 		hashed_password, err := authentication.HashPassword(user.Password)
@@ -40,11 +46,18 @@ func (s *Service) Update(user *domain.User) (*domain.User, error) {
 			return nil, dto.ErrPasswordHashing
 		}
 		existing.Password = hashed_password
+		password_changed = true
 	}
 
-	// update the user's fields using the repository
-	if err := s.Repo.UpdateUser(existing); err != nil {
-		return nil, err
+	if profile_changed {
+		if err := s.Repo.UpdateUserProfile(ctx, existing.ID, existing.Username, existing.Email); err != nil {
+			return nil, err
+		}
+	}
+	if password_changed {
+		if err := s.Repo.UpdateUserPassword(ctx, existing.ID, existing.Password); err != nil {
+			return nil, err
+		}
 	}
 
 	return existing, nil

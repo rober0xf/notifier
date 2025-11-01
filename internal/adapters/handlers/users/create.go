@@ -30,20 +30,31 @@ func (h *userHandler) Create(c *gin.Context) {
 				"suggestion": validation_error.Suggestion})
 			return
 		}
+
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	// here we use the service logic
-	user, err := h.UserService.Create(input.Username, input.Email, input.Password)
+	user, err := h.UserService.Create(c, input.Username, input.Email, input.Password)
 	if err != nil {
 		switch {
 		case errors.Is(err, dto.ErrUserAlreadyExists):
 			c.JSON(http.StatusConflict, gin.H{"error": "user already exists"})
 		case errors.Is(err, dto.ErrPasswordHashing):
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "error hashing password"})
+		case errors.Is(err, dto.ErrValidatingEmail):
+			c.JSON(http.StatusBadRequest, gin.H{"error": "error processing email"})
+		case errors.Is(err, dto.ErrInvalidEmailFormat):
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid email format"})
 		case errors.Is(err, dto.ErrInvalidUsername):
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid username data"})
+		case errors.Is(err, dto.ErrInvalidDomain):
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid email domain"})
+		case errors.Is(err, dto.ErrDisposableEmail):
+			c.JSON(http.StatusBadRequest, gin.H{"error": "disposable emails are not valid"})
+		case errors.Is(err, dto.ErrEmailNotReachable):
+			c.JSON(http.StatusBadRequest, gin.H{"error": "email is not reachable"})
 		case errors.Is(err, dto.ErrInvalidPassword):
 			c.JSON(http.StatusBadRequest, gin.H{"error": "password must be stronger"})
 		case errors.Is(err, dto.ErrInternalServerError):
@@ -51,6 +62,7 @@ func (h *userHandler) Create(c *gin.Context) {
 		default:
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		}
+
 		return
 	}
 

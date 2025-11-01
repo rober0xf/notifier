@@ -72,17 +72,18 @@ func (h *paymentHandler) CreatePayment(c *gin.Context) {
 	}
 
 	var err error
-	payment, err = h.PaymentService.Create(payment)
+	payment, err = h.PaymentService.Create(c, payment)
 	if err != nil {
 		switch {
 		case errors.Is(err, dto.ErrPaymentAlreadyExists):
-			c.JSON(http.StatusBadRequest, gin.H{"error": "payment already exits"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "payment already exists"})
 		case errors.Is(err, dto.ErrInternalServerError):
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"name": payment.Name, "type": payment.Type, "category": payment.Category, "amount": payment.Amount})
+
+	c.JSON(http.StatusCreated, gin.H{"name": payment.Name, "type": payment.Type, "category": payment.Category, "amount": payment.Amount, "due date": payment.DueDate})
 }

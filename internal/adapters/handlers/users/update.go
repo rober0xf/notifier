@@ -39,7 +39,7 @@ func (h *userHandler) Update(c *gin.Context) {
 		Password: input_user.Password,
 	}
 
-	updated_user, err := h.UserService.Update(user)
+	updated_user, err := h.UserService.Update(c, user)
 	if err != nil {
 		switch {
 		case errors.Is(err, dto.ErrInvalidUserData):

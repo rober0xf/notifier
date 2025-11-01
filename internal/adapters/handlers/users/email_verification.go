@@ -14,7 +14,7 @@ func (h *userHandler) GetVerificationEmail(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid verification link"})
 		return
 	}
-	user, err := h.UserService.GetVerificationEmail(email)
+	user, err := h.UserService.GetVerificationEmail(c, email)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

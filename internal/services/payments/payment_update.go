@@ -1,6 +1,7 @@
 package payments
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -8,19 +9,31 @@ import (
 	"github.com/rober0xf/notifier/internal/domain"
 )
 
-func (s *Service) Update(id int, payment *domain.UpdatePayment) (*domain.Payment, error) {
-	existing, err := s.Repo.GetPaymentByID(id)
+func (s *Service) Update(ctx context.Context, id int, payment *domain.UpdatePayment) (*domain.Payment, error) {
+	existing, err := s.Repo.GetPaymentByID(ctx, id)
 	if err != nil {
-		if errors.Is(err, dto.ErrRepository) {
-			return nil, dto.ErrInternalServerError
-		}
 		if errors.Is(err, dto.ErrNotFound) {
 			return nil, dto.ErrPaymentNotFound
 		}
-		return nil, err
+		return nil, dto.ErrInternalServerError
 	}
 
-	/* check fields from the json */
+	// partial updates
+	apply_payment_updates(payment, existing)
+
+	if err := s.Repo.UpdatePayment(ctx, existing); err != nil {
+		switch {
+		case errors.Is(err, dto.ErrNotFound):
+			return nil, dto.ErrPaymentNotFound
+		default:
+			return nil, dto.ErrInternalServerError
+		}
+	}
+
+	return existing, nil
+}
+
+func apply_payment_updates(payment *domain.UpdatePayment, existing *domain.Payment) {
 	if payment.Name != nil {
 		existing.Name = *payment.Name
 	}
@@ -39,6 +52,15 @@ func (s *Service) Update(id int, payment *domain.UpdatePayment) (*domain.Payment
 	if payment.DueDate != nil {
 		existing.DueDate = payment.DueDate
 	}
+	if payment.Recurrent != nil {
+		existing.Recurrent = *payment.Recurrent
+	}
+	if payment.Frequency != nil {
+		existing.Frequency = payment.Frequency
+	}
+	if payment.ReceiptURL != nil {
+		existing.ReceiptURL = payment.ReceiptURL
+	}
 
 	if payment.Paid != nil {
 		existing.Paid = *payment.Paid
@@ -51,27 +73,4 @@ func (s *Service) Update(id int, payment *domain.UpdatePayment) (*domain.Payment
 			existing.PaidAt = nil
 		}
 	}
-
-	if payment.Recurrent != nil {
-		existing.Recurrent = *payment.Recurrent
-	}
-	if payment.Frequency != nil {
-		existing.Frequency = payment.Frequency
-	}
-	if payment.ReceiptURL != nil {
-		existing.ReceiptURL = payment.ReceiptURL
-	}
-	/* --------------------------- */
-
-	if err := s.Repo.UpdatePayment(existing); err != nil {
-		switch {
-		case errors.Is(err, dto.ErrPaymentNotFound):
-			return nil, dto.ErrPaymentNotFound
-		case errors.Is(err, dto.ErrRepository):
-			return nil, dto.ErrInternalServerError
-		default:
-			return nil, dto.ErrInternalServerError
-		}
-	}
-	return existing, nil
 }

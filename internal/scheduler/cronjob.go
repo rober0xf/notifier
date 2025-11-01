@@ -1,6 +1,7 @@
 package cronjob
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"time"
@@ -77,17 +78,16 @@ func InitCron() {
 }
 
 func SendPaymentAlert(title string, target_date time.Time) error {
-	db := database.DB
-	if db == nil {
-		return fmt.Errorf("could not initialize database")
-	}
+	ctx := context.Background()
 	log.Printf("starting SendPaymentAlert for date: %s", target_date.Format("2006-01-02"))
 
-	rows, err := db.Table("users").
-		Select("users.email, payments.name, payments.amount, payments.type").
-		Joins("left join payments on payments.user_id = users.id").
-		Where("DATE(payments.due_date) = ?", target_date.Format("2006-01-02")).
-		Rows()
+	query := `
+			SELECT users.email, payments.name, payments.amount, payments.type
+			FROM users
+			LEFT JOIN payments ON payments.user_id = users.id
+			WHERE DATE(payments.due_date) = DATE($1)
+			`
+	rows, err := database.DB.Query(ctx, query, target_date)
 	if err != nil {
 		log.Printf("database error: %v", err)
 		return err
@@ -103,6 +103,7 @@ func SendPaymentAlert(title string, target_date time.Time) error {
 			log.Printf("error scanning row: %s", err)
 			continue
 		}
+
 		has_payments = true
 		payment_count++
 		details := fmt.Sprintf("Payment: %s\r\nAmount: %.2f\r\nType: %s\r\n", p.Name, p.Amount, p.PayType)
