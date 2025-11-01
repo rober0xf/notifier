@@ -18,7 +18,7 @@ func (h *userHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	err = h.UserService.Delete(id)
+	err = h.UserService.Delete(c, id)
 	if err != nil {
 		switch {
 		case errors.Is(err, dto.ErrUserNotFound):

@@ -21,7 +21,7 @@ func (h *userHandler) GetByID(c *gin.Context) {
 		return
 	}
 
-	user, err := h.UserService.GetByID(id)
+	user, err := h.UserService.GetByID(c, id)
 	if err != nil {
 		switch {
 		case errors.Is(err, dto.ErrUserNotFound):
@@ -45,7 +45,7 @@ func (h *userHandler) GetByEmailEmpty(c *gin.Context) {
 func (h *userHandler) GetByEmail(c *gin.Context) {
 	email := c.Param("email")
 
-	user, err := h.UserService.GetByEmail(email)
+	user, err := h.UserService.GetByEmail(c, email)
 	if err != nil {
 		switch {
 		case errors.Is(err, dto.ErrInvalidUserData):
@@ -77,5 +77,6 @@ func (h *userHandler) GetAll(c *gin.Context) {
 		}
 		return
 	}
+
 	c.JSON(http.StatusOK, users)
 }
