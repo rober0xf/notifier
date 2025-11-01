@@ -1,6 +1,7 @@
 package users
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
@@ -57,6 +58,7 @@ func ValidateEmail(email string) error {
 			Suggestion: ret.Suggestion,
 		}
 	}
+
 	return nil
 }
 
@@ -66,12 +68,13 @@ func validatePassword(passw string) error {
 	if err != nil {
 		return dto.ErrInvalidPassword
 	}
+
 	return nil
 }
 
-func (s *Service) Create(username string, email string, password string) (*domain.User, error) {
+func (s *Service) Create(ctx context.Context, username string, email string, password string) (*domain.User, error) {
 	// check if the user already exists
-	exists_user, err := s.Repo.GetUserByEmail(email)
+	exists_user, err := s.Repo.GetUserByEmail(ctx, email)
 	if err != nil && !errors.Is(err, dto.ErrUserNotFound) {
 		return nil, err
 	}
@@ -100,6 +103,7 @@ func (s *Service) Create(username string, email string, password string) (*domai
 	verification_token := hex.EncodeToString(b) // plain token
 	verification_token_hash := sha256.Sum256([]byte(verification_token))
 	expires_at := time.Now().Add(12 * time.Hour)
+	timeout := time.Until(expires_at)
 
 	user := &domain.User{
 		Username:              username,
@@ -107,18 +111,18 @@ func (s *Service) Create(username string, email string, password string) (*domai
 		Password:              hashed,
 		Active:                false,
 		EmailVerificationHash: hex.EncodeToString(verification_token_hash[:]),
-		CreatedAt:             time.Now().Format("2006-01-02"),
-		Timeout:               expires_at.Format(time.RFC3339),
+		Timeout:               timeout,
 	}
 
 	// store the user
-	if err := s.Repo.CreateUser(user); err != nil {
+	if err := s.Repo.CreateUser(ctx, user); err != nil {
 		if errors.Is(err, dto.ErrAlreadyExists) {
 			return nil, dto.ErrUserAlreadyExists
 		}
 		if errors.Is(err, dto.ErrRepository) {
 			return nil, dto.ErrInternalServerError
 		}
+
 		return nil, err
 	}
 

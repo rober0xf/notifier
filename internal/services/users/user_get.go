@@ -1,6 +1,7 @@
 package users
 
 import (
+	"context"
 	"errors"
 	"net/mail"
 	"strings"
@@ -17,11 +18,12 @@ func validateEmail(email string) bool {
 	return err == nil
 }
 
-func (s *Service) GetByEmail(email string) (*domain.User, error) {
+func (s *Service) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
 	if !validateEmail(email) {
 		return nil, dto.ErrInvalidUserData
 	}
-	return s.Repo.GetUserByEmail(email)
+
+	return s.Repo.GetUserByEmail(ctx, email)
 }
 
 func (s Service) GetAll(ctx context.Context) ([]domain.User, error) {
@@ -36,11 +38,12 @@ func (s Service) GetAll(ctx context.Context) ([]domain.User, error) {
 			return nil, dto.ErrInternalServerError
 		}
 	}
+
 	return users, nil
 }
 
-func (s Service) GetByID(id int) (*domain.User, error) {
-	user, err := s.Repo.GetUserByID(id)
+func (s Service) GetByID(ctx context.Context, id int) (*domain.User, error) {
+	user, err := s.Repo.GetUserByID(ctx, id)
 	if err != nil {
 		switch {
 		case errors.Is(err, dto.ErrNotFound):
@@ -51,5 +54,6 @@ func (s Service) GetByID(id int) (*domain.User, error) {
 			return nil, dto.ErrInternalServerError
 		}
 	}
+
 	return user, nil
 }

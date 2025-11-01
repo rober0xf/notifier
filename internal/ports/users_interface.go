@@ -1,25 +1,28 @@
 package ports
 
 import (
+	"context"
+
 	"github.com/rober0xf/notifier/internal/domain"
 )
 
 type UserService interface {
-	Create(username string, email string, password string) (*domain.User, error)
-	GetByEmail(email string) (*domain.User, error)
-	GetAll() ([]domain.User, error)
-	GetByID(id int) (*domain.User, error)
-	GetVerificationEmail(email string) (*domain.User, error)
-	Update(*domain.User) (*domain.User, error)
-	Delete(id int) error
+	Create(ctx context.Context, username string, email string, password string) (*domain.User, error)
+	GetByEmail(ctx context.Context, email string) (*domain.User, error)
+	GetAll(ctx context.Context) ([]domain.User, error)
+	GetByID(ctx context.Context, id int) (*domain.User, error)
+	GetVerificationEmail(ctx context.Context, email string) (*domain.User, error)
+	Update(ctx context.Context, user *domain.User) (*domain.User, error)
+	Delete(ctx context.Context, id int) error
 }
 
 type UserRepository interface {
-	CreateUser(user *domain.User) error
-	GetUserByEmail(email string) (*domain.User, error)
-	GetAllUsers() ([]domain.User, error)
-	GetUserByID(id int) (*domain.User, error)
-	UpdateUser(user *domain.User) error
-	DeleteUser(id int) error
-	SetActive(user *domain.User) error
+	CreateUser(ctx context.Context, user *domain.User) error
+	GetUserByEmail(ctx context.Context, email string) (*domain.User, error)
+	GetAllUsers(ctx context.Context) ([]domain.User, error)
+	GetUserByID(ctx context.Context, id int) (*domain.User, error)
+	UpdateUserProfile(ctx context.Context, id int, username, email string) error
+	UpdateUserPassword(ctx context.Context, id int, password string) error
+	UpdateUserActive(ctx context.Context, id int, active bool) error
+	DeleteUser(ctx context.Context, id int) error
 }
