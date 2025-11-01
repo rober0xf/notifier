@@ -10,16 +10,17 @@ import (
 )
 
 func (h *paymentHandler) GetAllPayments(c *gin.Context) {
-	payments, err := h.PaymentService.GetAllPayments()
+	payments, err := h.PaymentService.GetAllPayments(c)
 	if err != nil {
 		switch {
-		case errors.Is(err, dto.ErrRepository):
+		case errors.Is(err, dto.ErrInternalServerError):
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
 		return
 	}
+
 	c.JSON(http.StatusOK, payments)
 }
 
@@ -30,7 +31,7 @@ func (h *paymentHandler) GetAllPaymentsFromUser(c *gin.Context) {
 		return
 	}
 
-	payments, err := h.PaymentService.GetAllPaymentsFromUser(email)
+	payments, err := h.PaymentService.GetAllPaymentsFromUser(c, email)
 	if err != nil {
 		switch {
 		case errors.Is(err, dto.ErrUserNotFound):
@@ -40,10 +41,11 @@ func (h *paymentHandler) GetAllPaymentsFromUser(c *gin.Context) {
 		case errors.Is(err, dto.ErrInternalServerError):
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
 		return
 	}
+
 	c.JSON(http.StatusOK, payments)
 }
 
@@ -64,17 +66,18 @@ func (h *paymentHandler) GetPaymentByID(c *gin.Context) {
 		return
 	}
 
-	payment, err := h.PaymentService.Get(id)
+	payment, err := h.PaymentService.Get(c, id)
 	if err != nil {
 		switch {
-		case errors.Is(err, dto.ErrNotFound):
+		case errors.Is(err, dto.ErrPaymentNotFound):
 			c.JSON(http.StatusNotFound, gin.H{"error": "payment not found"})
-		case errors.Is(err, dto.ErrRepository):
+		case errors.Is(err, dto.ErrInternalServerError):
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
 		return
 	}
+
 	c.JSON(http.StatusOK, payment)
 }

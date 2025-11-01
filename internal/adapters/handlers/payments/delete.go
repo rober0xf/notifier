@@ -21,7 +21,7 @@ func (h *paymentHandler) DeletePayment(c *gin.Context) {
 		return
 	}
 
-	err = h.PaymentService.Delete(id)
+	err = h.PaymentService.Delete(c, id)
 	if err != nil {
 		switch {
 		case errors.Is(err, dto.ErrPaymentNotFound):
@@ -29,9 +29,10 @@ func (h *paymentHandler) DeletePayment(c *gin.Context) {
 		case errors.Is(err, dto.ErrInternalServerError):
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
 		return
 	}
+
 	c.Status(http.StatusNoContent)
 }

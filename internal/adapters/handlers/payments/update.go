@@ -44,7 +44,7 @@ func (h *paymentHandler) UpdatePayment(c *gin.Context) {
 		return
 	}
 
-	updated_payment, err := h.PaymentService.Update(id, &input_payment)
+	updated_payment, err := h.PaymentService.Update(c, id, &input_payment)
 	if err != nil {
 		switch {
 		case errors.Is(err, dto.ErrPaymentNotFound):
@@ -52,9 +52,10 @@ func (h *paymentHandler) UpdatePayment(c *gin.Context) {
 		case errors.Is(err, dto.ErrInternalServerError):
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
 		return
 	}
+
 	c.JSON(http.StatusOK, updated_payment)
 }
