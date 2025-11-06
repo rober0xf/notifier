@@ -30,7 +30,7 @@ func (r *Repository) CreateUser(ctx context.Context, user *domain.User) error {
 	if err != nil {
 		if strings.Contains(err.Error(), "duplicate key") ||
 			strings.Contains(err.Error(), "unique constraint") {
-			return dto.ErrUserAlreadyExists
+			return dto.ErrAlreadyExists
 		}
 		return dto.ErrRepository
 	}
@@ -43,7 +43,7 @@ func (r *Repository) GetUserByEmail(ctx context.Context, email string) (*domain.
 	user, err := r.queries.GetUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, dto.ErrUserNotFound
+			return nil, dto.ErrNotFound
 		}
 		return nil, dto.ErrRepository
 	}
@@ -90,7 +90,7 @@ func (r *Repository) UpdateUserProfile(ctx context.Context, id int, username, em
 		return dto.ErrRepository
 	}
 	if rows == 0 {
-		return dto.ErrUserNotFound
+		return dto.ErrNotFound
 	}
 
 	return nil
@@ -105,7 +105,7 @@ func (r *Repository) UpdateUserPassword(ctx context.Context, id int, password st
 		return dto.ErrRepository
 	}
 	if rows == 0 {
-		return dto.ErrUserNotFound
+		return dto.ErrNotFound
 	}
 
 	return nil
@@ -120,7 +120,7 @@ func (r *Repository) UpdateUserActive(ctx context.Context, id int, active bool) 
 		return dto.ErrRepository
 	}
 	if rows == 0 {
-		return dto.ErrUserNotFound
+		return dto.ErrNotFound
 	}
 
 	return nil
