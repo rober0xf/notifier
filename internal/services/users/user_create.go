@@ -7,6 +7,8 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"log"
+	"os"
 	"time"
 
 	emailverifier "github.com/AfterShip/email-verifier"
@@ -75,8 +77,8 @@ func validatePassword(passw string) error {
 func (s *Service) Create(ctx context.Context, username string, email string, password string) (*domain.User, error) {
 	// check if the user already exists
 	exists_user, err := s.Repo.GetUserByEmail(ctx, email)
-	if err != nil && !errors.Is(err, dto.ErrUserNotFound) {
-		return nil, err
+	if err != nil && !errors.Is(err, dto.ErrNotFound) {
+		return nil, dto.ErrUserNotFound
 	}
 	if exists_user != nil {
 		return nil, dto.ErrUserAlreadyExists
@@ -137,15 +139,20 @@ func (s *Service) Create(ctx context.Context, username string, email string, pas
 			</body>
 		</html>
 	`, url)
-	ms := mail.NewMailSender(
-		database.GetEnvOrFatal("SMTP_HOST"),
-		database.GetEnvOrFatal("SMTP_PORT"),
-		database.GetEnvOrFatal("SMTP_USERNAME"),
-		database.GetEnvOrFatal("SMTP_PASSWORD"),
-	)
-	if err := mail.SendMail(ms, []string{user.Email}, "verify account", HTMLBody); err != nil {
-		return nil, fmt.Errorf("error sending email verification: %w", err)
 
+	if os.Getenv("ENV") != "test" {
+		ms := mail.NewMailSender(
+			database.GetEnvOrFatal("SMTP_HOST"),
+			database.GetEnvOrFatal("SMTP_PORT"),
+			database.GetEnvOrFatal("SMTP_USERNAME"),
+			database.GetEnvOrFatal("SMTP_PASSWORD"),
+		)
+
+		if err := mail.SendMail(ms, []string{user.Email}, "verify account", HTMLBody); err != nil {
+			log.Printf("smtp is: %s", ms.Host)
+			return nil, fmt.Errorf("error sending email verification: %w", err)
+
+		}
 	}
 
 	return user, nil
