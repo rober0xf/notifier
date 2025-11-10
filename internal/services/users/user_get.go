@@ -23,7 +23,19 @@ func (s *Service) GetByEmail(ctx context.Context, email string) (*domain.User, e
 		return nil, dto.ErrInvalidUserData
 	}
 
-	return s.Repo.GetUserByEmail(ctx, email)
+	user, err := s.Repo.GetUserByEmail(ctx, email)
+	if err != nil {
+		switch {
+		case errors.Is(err, dto.ErrNotFound):
+			return nil, dto.ErrUserNotFound
+		case errors.Is(err, dto.ErrRepository):
+			return nil, dto.ErrInternalServerError
+		default:
+			return nil, dto.ErrInternalServerError
+		}
+	}
+
+	return user, nil
 }
 
 func (s Service) GetAll(ctx context.Context) ([]domain.User, error) {

@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/url"
 
 	"github.com/golang-migrate/migrate/v4"
@@ -35,7 +36,11 @@ func InitPostgres() (*pgxpool.Pool, error) {
 
 	// migrations
 	sqlDB := stdlib.OpenDB(*pool.Config().ConnConfig)
-	defer sqlDB.Close()
+	defer func() {
+		if err := sqlDB.Close(); err != nil {
+			log.Printf("error closing db: %v", err)
+		}
+	}()
 
 	driver, err := postgres.WithInstance(sqlDB, &postgres.Config{})
 	if err != nil {
