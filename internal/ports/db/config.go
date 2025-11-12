@@ -28,11 +28,11 @@ func GetConfig() PostgresConfig {
 	}
 
 	var config PostgresConfig
-	config.DB_NAME = GetEnvOrFatal("DB_NAME")
-	config.DB_USER = GetEnvOrFatal("DB_USER")
-	config.DB_PASS = GetEnvOrFatal("DB_PASSWORD")
-	config.DB_HOST = fallback_env("DB_HOST", "localhost")
-	config.DB_PORT = fallback_env("DB_PORT", "5432")
+	config.DB_NAME = GetEnvOrFatal("POSTGRES_NAME")
+	config.DB_USER = GetEnvOrFatal("POSTGRES_USER")
+	config.DB_PASS = GetEnvOrFatal("POSTGRES_PASSWORD")
+	config.DB_HOST = fallback_env("POSTGRES_HOST", "localhost")
+	config.DB_PORT = fallback_env("POSTGRES_PORT", "5432")
 
 	// validate that port is a number
 	if _, err := strconv.Atoi(config.DB_PORT); err != nil {
