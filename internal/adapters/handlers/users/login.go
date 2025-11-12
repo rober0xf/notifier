@@ -16,7 +16,7 @@ func (h *userHandler) Login(c *gin.Context) {
 		return
 	}
 
-	user, err := h.UserService.Repo.GetUserByEmail(c, credentials.Email)
+	user, err := h.UserService.GetByEmail(c, credentials.Email)
 	if err != nil {
 		switch {
 		case errors.Is(err, dto.ErrUserNotFound):
