@@ -19,3 +19,7 @@ func NewUserRepository(db database.DBTX) *Repository {
 		queries: database.New(db),
 	}
 }
+
+func NewPaymentRepository(db database.DBTX) *Repository {
+	return &Repository{queries: database.New(db)}
+}
