@@ -3,6 +3,7 @@ package users
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -20,15 +21,16 @@ func TestUpdateUserProfile(t *testing.T) {
 	username := "rober0xf"
 	email := "rober0xf@gmail.com"
 	password := "StrongP@ssw0rd!"
+
 	userID := create_test_user(t, deps, username, email, password)
-	userIDStr := strconv.Itoa(userID)
+	require.NotZero(t, userID)
 
 	updatePayload := `{
 		"username": "updated_rober",
 		"email": "rober0xf@gmail.com"
 	}`
 
-	req := httptest.NewRequest("PUT", "/users/"+userIDStr, strings.NewReader(updatePayload))
+	req := httptest.NewRequest("PUT", fmt.Sprintf("/users/%d", userID), strings.NewReader(updatePayload))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 

@@ -85,5 +85,5 @@ func (h *paymentHandler) CreatePayment(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"name": payment.Name, "type": payment.Type, "category": payment.Category, "amount": payment.Amount, "due date": payment.DueDate})
+	c.JSON(http.StatusCreated, gin.H{"id": payment.ID, "name": payment.Name, "type": payment.Type, "category": payment.Category, "amount": payment.Amount, "due_date": payment.DueDate})
 }
