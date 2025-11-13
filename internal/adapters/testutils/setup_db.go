@@ -17,8 +17,9 @@ import (
 
 func SetupTestDB(t *testing.T) *pgxpool.Pool {
 	if err := loadRootEnv(); err != nil {
-		log.Fatalf("error loading env file: %v", err)
+		log.Printf("warning: could not load env file: %v", err)
 	}
+
 	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
 		database.GetEnvOrFatal("POSTGRES_USER_TEST"),
 		url.QueryEscape(database.GetEnvOrFatal("POSTGRES_PASSWORD_TEST")),
@@ -62,6 +63,9 @@ func runMigrations(t *testing.T, db *pgxpool.Pool) {
 	require.NoError(t, err)
 
 	_, err = db.Exec(ctx, string(payments))
+	if err != nil {
+		t.Fatalf("failed to create payments table: %v\nSQL:\n%s", err, string(payments))
+	}
 	require.NoError(t, err)
 }
 
