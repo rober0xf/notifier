@@ -2,7 +2,9 @@ package mail
 
 import (
 	"fmt"
+	"log"
 	"net/smtp"
+	"os"
 	"strings"
 )
 
@@ -31,6 +33,11 @@ func NewMailSender(host, port, username, password string) *MailSender {
 }
 
 func SendMail(ms *MailSender, receiever []string, subject string, body string) error {
+	if os.Getenv("SKIP_EMAIL_SENDING") == "true" {
+		log.Printf("Test mode: skipping email send to %v (subject: %s)", receiever, subject)
+		return nil
+	}
+
 	if len(receiever) == 0 {
 		return fmt.Errorf("no recipients specified")
 	}

@@ -36,6 +36,7 @@ jobs:
       SMTP_PORT: 587
       SMTP_USERNAME: test@example.com
       SMTP_PASSWORD: testpass
+      SKIP_EMAIL_SENDING: "true"
         
     steps:
       - name: Checkout code

@@ -47,9 +47,13 @@ func runMigrations(t *testing.T, db *pgxpool.Pool) {
 	ctx := context.Background()
 
 	// first we drop if exists
-	_, _ = db.Exec(ctx, "DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
+	_, _ = db.Exec(ctx, `
+		DROP TYPE IF EXISTS transaction_type CASCADE;
+		DROP TYPE IF EXISTS category_type CASCADE;
+		DROP TYPE IF EXISTS frequency_type CASCADE;
+	`)
+	_, _ = db.Exec(ctx, "DROP SCHEMA public CASCADE; CREATE SCHEMA public;") // recreate
 
-	// then we create
 	users, err := os.ReadFile("../../../../sql/schemas/users.sql")
 	require.NoError(t, err)
 
