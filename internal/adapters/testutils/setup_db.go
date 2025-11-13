@@ -16,9 +16,12 @@ import (
 )
 
 func SetupTestDB(t *testing.T) *pgxpool.Pool {
-	if err := loadRootEnv(); err != nil {
-		log.Fatalf("error loading env file: %v", err)
+	if os.Getenv("CI") == "" {
+		if err := loadRootEnv(); err != nil {
+			log.Printf("warning: could not load .env file: %v", err)
+		}
 	}
+
 	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
 		database.GetEnvOrFatal("POSTGRES_USER_TEST"),
 		url.QueryEscape(database.GetEnvOrFatal("POSTGRES_PASSWORD_TEST")),
@@ -82,7 +85,7 @@ func loadRootEnv() error {
 	}
 
 	for {
-		envPath := filepath.Join(dir, ".env")
+		envPath := filepath.Join(dir, ".env.example")
 		if _, err := os.Stat(envPath); err == nil {
 			log.Printf("loading .env from: %s", envPath)
 			return godotenv.Load(envPath)
