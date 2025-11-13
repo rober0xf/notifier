@@ -23,4 +23,11 @@ jobs:
           cache: true
 
       - name: Run tests
+        env:
+          POSTGRES_NAME_TEST: notifier_test
+          POSTGRES_USER_TEST: ${{ secrets.POSTGRES_USER_TEST }}
+          POSTGRES_PASSWORD_TEST: ${{ secrets.POSTGRES_PASSWORD_TEST }}
+          POSTGRES_HOST_TEST: localhost
+          POSTGRES_PORT_TEST: 5432
+        
         run: go test -v ./...
