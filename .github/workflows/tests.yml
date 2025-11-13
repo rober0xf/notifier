@@ -32,6 +32,10 @@ jobs:
       POSTGRES_PASSWORD_TEST: testpass
       POSTGRES_HOST_TEST: localhost
       POSTGRES_PORT_TEST: 5432
+      SMTP_HOST: smtp.example.com
+      SMTP_PORT: 587
+      SMTP_USER: test@example.com
+      SMTP_PASSWORD: testpass
         
     steps:
       - name: Checkout code
