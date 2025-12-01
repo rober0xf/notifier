@@ -27,7 +27,7 @@ jobs:
           - 5432:5432
     
     env:
-      POSTGRES_NAME_TEST: notifier_test
+      POSTGRES_DB_TEST: notifier_test
       POSTGRES_USER_TEST: testuser
       POSTGRES_PASSWORD_TEST: testpass
       POSTGRES_HOST_TEST: localhost
