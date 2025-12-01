@@ -25,7 +25,7 @@ func SetupTestDB(t *testing.T) *pgxpool.Pool {
 		url.QueryEscape(database.GetEnvOrFatal("POSTGRES_PASSWORD_TEST")),
 		database.GetEnvOrFatal("POSTGRES_HOST_TEST"),
 		database.GetEnvOrFatal("POSTGRES_PORT_TEST"),
-		database.GetEnvOrFatal("POSTGRES_NAME_TEST"),
+		database.GetEnvOrFatal("POSTGRES_DB_TEST"),
 	)
 
 	db, err := pgxpool.New(context.Background(), dsn)
@@ -46,30 +46,22 @@ func SetupTestDB(t *testing.T) *pgxpool.Pool {
 func runMigrations(t *testing.T, db *pgxpool.Pool) {
 	ctx := context.Background()
 
-	// first we drop if exists
-	_, _ = db.Exec(ctx, `
-		DROP TYPE IF EXISTS transaction_type CASCADE;
-		DROP TYPE IF EXISTS category_type CASCADE;
-		DROP TYPE IF EXISTS frequency_type CASCADE;
-	`)
-	_, _ = db.Exec(ctx, "DROP SCHEMA public CASCADE; CREATE SCHEMA public;") // recreate
+	_, _ = db.Exec(ctx, `DROP TABLE IF EXISTS payments CASCADE;`)
+	_, _ = db.Exec(ctx, `DROP TABLE IF EXISTS users CASCADE;`)
+	_, _ = db.Exec(ctx, `DROP TYPE IF EXISTS transaction_type CASCADE;`)
+	_, _ = db.Exec(ctx, `DROP TYPE IF EXISTS category_type CASCADE;`)
+	_, _ = db.Exec(ctx, `DROP TYPE IF EXISTS frequency_type CASCADE;`)
 
 	users, err := os.ReadFile("../../../../sql/schemas/users.sql")
+	require.NoError(t, err)
+
+	_, err = db.Exec(ctx, string(users))
 	require.NoError(t, err)
 
 	payments, err := os.ReadFile("../../../../sql/schemas/payments.sql")
 	require.NoError(t, err)
 
-	_, err = db.Exec(ctx, string(users))
-	if err != nil {
-		t.Fatalf("failed to create users table: %v\nSQL:\n%s", err, string(users))
-	}
-	require.NoError(t, err)
-
 	_, err = db.Exec(ctx, string(payments))
-	if err != nil {
-		t.Fatalf("failed to create payments table: %v\nSQL:\n%s", err, string(payments))
-	}
 	require.NoError(t, err)
 }
 
