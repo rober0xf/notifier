@@ -1,28 +1,36 @@
 # move makefile and docker compose one level above
-.PHONY: help up down build logs restart clean
+.PHONY: help up down build logs restart clean test lint
 
 help:
-	@echo "Available commands:"
-	@echo "  make up       - Start all services"
-	@echo "  make down     - Stop all services"
-	@echo "  make build    - Build all images"
-	@echo "  make logs     - View all logs"
-	@echo "  make restart  - Restart all services"
-	@echo "  make clean    - Stop and remove everything"
+        @echo "Available commands:"
+        @echo "  make up       - start all services"
+        @echo "  make down     - stop all services"
+        @echo "  make build    - build all images"
+        @echo "  make logs     - view all logs"
+        @echo "  make restart  - restart all services"
+        @echo "  make clean    - stop and remove everything"
+        @echo "  make test     - run backend tests"
+        @echo "  make lint     - run linter on backend code"
 
 up:
-	docker compose up -d
+        docker compose up -d
 
 down:
-	docker compose down
+        docker compose down --remove-orphans
 
 build:
-	docker compose build
+        docker compose build
 
 logs:
-	docker compose logs -f
+        docker compose logs -f
 
 restart: down build up
 
 clean:
-	docker compose down -v --rmi all
+        docker compose down -v --rmi all
+
+test:
+        cd notifier-backend && go test ./... -v
+
+lint:
+        cd notifier-backend && golangci-lint run ./...

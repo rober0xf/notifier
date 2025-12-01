@@ -28,7 +28,7 @@ func GetConfig() PostgresConfig {
 	}
 
 	var config PostgresConfig
-	config.DB_NAME = GetEnvOrFatal("POSTGRES_NAME")
+	config.DB_NAME = GetEnvOrFatal("POSTGRES_DB")
 	config.DB_USER = GetEnvOrFatal("POSTGRES_USER")
 	config.DB_PASS = GetEnvOrFatal("POSTGRES_PASSWORD")
 	config.DB_HOST = fallback_env("POSTGRES_HOST", "localhost")

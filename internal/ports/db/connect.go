@@ -47,7 +47,7 @@ func InitPostgres() (*pgxpool.Pool, error) {
 		return nil, fmt.Errorf("error with driver: %w", err)
 	}
 
-	m, err := migrate.NewWithDatabaseInstance("file:///home/rober0xf/Work/notifier/notifier-backend/sql/migrations", "postgres", driver)
+	m, err := migrate.NewWithDatabaseInstance("file:///sql/migrations", "postgres", driver)
 	if err != nil {
 		return nil, fmt.Errorf("error while init migrate: %w", err)
 	}
