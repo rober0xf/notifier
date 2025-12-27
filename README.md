@@ -1,7 +1,7 @@
 # Notifier - Payment Notification System
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/rober0xf/notifier-front/master/public/bimage.png" alt="Notifier Dashboard" width="900">
+  <img src="https://raw.githubusercontent.com/rober0xf/notifier-front/master/public/dashboard.png" alt="Notifier Dashboard" width="900">
 </div>
 
 A full-stack payment tracker application with automated email notifications and dashboard view. Built with Golang Gin Framework, SQLite database, and Vuejs frontend for managing payments and users.
