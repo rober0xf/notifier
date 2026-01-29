@@ -147,6 +147,10 @@ func database_to_domain_payment(db_payment *database.Payment) *domain.Payment {
 		Paid:      db_payment.Paid,
 		Recurrent: db_payment.Recurrent,
 	}
+	if db_payment.Frequency.Valid {
+		freq := domain.FrequencyType(db_payment.Frequency.FrequencyType)
+		payment.Frequency = &freq
+	}
 	if db_payment.DueDate.Valid {
 		payment.DueDate = &db_payment.DueDate.String
 	}

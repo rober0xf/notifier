@@ -54,6 +54,7 @@ func TestCreatePayment(t *testing.T) {
 
 		name := "Electricity Bill"
 		amount := 75.50
+		freq := domain.Monthly
 		userID := 1
 
 		payment := &domain.Payment{
@@ -62,9 +63,10 @@ func TestCreatePayment(t *testing.T) {
 			Amount:    amount,
 			Type:      domain.Expense,
 			Category:  domain.Entertainment,
+			Frequency: &freq,
 			Date:      "2024-11-07",
 			Paid:      false,
-			Recurrent: false,
+			Recurrent: true,
 		}
 
 		created_payment, err := service.Create(context.Background(), payment)
