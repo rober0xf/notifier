@@ -1,4 +1,4 @@
-package domain
+package entity
 
 type Payment struct {
 	ID         int32           `json:"id"`
