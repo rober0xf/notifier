@@ -6,16 +6,6 @@ import (
 	"github.com/rober0xf/notifier/internal/domain/entity"
 )
 
-// type UserService interface {
-// 	Create(ctx context.Context, username string, email string, password string) (*domain.User, error)
-// 	GetByEmail(ctx context.Context, email string) (*domain.User, error)
-// 	GetAll(ctx context.Context) ([]domain.User, error)
-// 	GetByID(ctx context.Context, id int) (*domain.User, error)
-// 	GetVerificationEmail(ctx context.Context, email string) (*domain.User, error)
-// 	Update(ctx context.Context, user *domain.User) (*domain.User, error)
-// 	Delete(ctx context.Context, id int) error
-// }
-
 type UserRepository interface {
 	CreateUser(ctx context.Context, user *entity.User) error
 	GetUserByEmail(ctx context.Context, email string) (*entity.User, error)
