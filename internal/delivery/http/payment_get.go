@@ -24,6 +24,12 @@ func (h *PaymentHandler) GetPaymentByID(c *gin.Context) {
 		return
 	}
 
+	userID, err := auth.GetUserIDFromContext(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
 	payment, err := h.getPaymentByIDUC.Execute(c.Request.Context(), id)
 	if err != nil {
 		switch {
@@ -33,6 +39,11 @@ func (h *PaymentHandler) GetPaymentByID(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		}
 
+		return
+	}
+
+	if payment.UserID != userID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "cannot access payments from other user"})
 		return
 	}
 

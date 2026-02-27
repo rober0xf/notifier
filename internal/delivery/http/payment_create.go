@@ -50,14 +50,8 @@ func (h *PaymentHandler) CreatePayment(c *gin.Context) {
 		switch {
 		case errors.Is(err, domainErr.ErrPaymentAlreadyExists):
 			c.JSON(http.StatusConflict, gin.H{"error": "payment already exists"})
-		case errors.Is(err, domainErr.ErrInvalidAmount):
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid amount"})
-		case errors.Is(err, domainErr.ErrInvalidTransactionType):
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid transaction type"})
-		case errors.Is(err, domainErr.ErrInvalidCategory):
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid category"})
-		case errors.Is(err, domainErr.ErrInvalidFrequency):
-			c.JSON(http.StatusBadRequest, gin.H{"error": "frequency required for recurrent payments"})
+		case errors.Is(err, domainErr.ErrInvalidPaymentData):
+			c.JSON(http.StatusBadRequest, gin.H{"error": "paid_at is required when paid is true"})
 		default:
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		}

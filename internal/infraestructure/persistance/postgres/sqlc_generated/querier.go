@@ -14,7 +14,7 @@ type Querier interface {
 	DeletePayment(ctx context.Context, id int32) (int64, error)
 	DeleteUser(ctx context.Context, id int32) (int64, error)
 	GetAllPayments(ctx context.Context) ([]Payment, error)
-	GetAllPaymentsFromUser(ctx context.Context, email string) ([]Payment, error)
+	GetAllPaymentsFromUser(ctx context.Context, userID int32) ([]Payment, error)
 	GetAllUsers(ctx context.Context) ([]User, error)
 	GetPaymentByID(ctx context.Context, id int32) (Payment, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)

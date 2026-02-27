@@ -168,5 +168,5 @@ type User struct {
 	Active                bool               `json:"active"`
 	EmailVerificationHash pgtype.Text        `json:"email_verification_hash"`
 	CreatedAt             pgtype.Timestamptz `json:"created_at"`
-	Timeout               pgtype.Interval    `json:"timeout"`
+	TokenExpiresAt        pgtype.Timestamptz `json:"token_expires_at"`
 }

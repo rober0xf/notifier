@@ -1,8 +1,8 @@
 version: "2"
 sql:
   - engine: "postgresql"
-    queries: "sql/queries"
-    schema: "sql/schemas"
+    queries: "internal/infraestructure/persistance/postgres/sqlc/queries/*.sql"
+    schema: "internal/infraestructure/persistance/postgres/sqlc/schemas/*.sql"
     gen:
       go:
         package: "database"

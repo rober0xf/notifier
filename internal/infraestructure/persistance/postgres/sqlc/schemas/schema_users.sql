@@ -6,5 +6,5 @@ CREATE TABLE users (
     active bool NOT NULL DEFAULT FALSE,
     email_verification_hash text,
     created_at timestamptz NOT NULL DEFAULT now(),
-    timeout interval
+    token_expires_at timestamptz
 )
