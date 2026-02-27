@@ -1,4 +1,4 @@
-package payment
+package payment_test
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/rober0xf/notifier/internal/domain/entity"
+	"github.com/rober0xf/notifier/internal/usecase/payment"
 	"github.com/stretchr/testify/assert"
 
 	domainErr "github.com/rober0xf/notifier/internal/domain/errors"
@@ -15,7 +16,7 @@ func TestUpdatePayment(t *testing.T) {
 	t.Run("successful update payment", func(t *testing.T) {
 		uc, mockRepo := setupUpdatePaymentTest(t)
 
-		payment := &entity.Payment{
+		paymnt := &entity.Payment{
 			ID:        1,
 			Name:      "Nike",
 			Amount:    100.0,
@@ -25,11 +26,11 @@ func TestUpdatePayment(t *testing.T) {
 			Paid:      false,
 			Recurrent: false,
 		}
-		mockRepo.payments["1"] = payment
+		mockRepo.payments["1"] = paymnt
 
 		newName := "Adidas"
 		newAmount := 110.0
-		input := UpdatePaymentInput{
+		input := payment.UpdatePaymentInput{
 			Name:   &newName,
 			Amount: &newAmount,
 		}
@@ -39,10 +40,10 @@ func TestUpdatePayment(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, newName, updatedPayment.Name)
 		assert.Equal(t, newAmount, updatedPayment.Amount)
-		assert.Equal(t, payment.Type, updatedPayment.Type)
-		assert.Equal(t, payment.Category, updatedPayment.Category)
-		assert.Equal(t, payment.Date, updatedPayment.Date)
-		assert.Equal(t, payment.Paid, updatedPayment.Paid)
+		assert.Equal(t, paymnt.Type, updatedPayment.Type)
+		assert.Equal(t, paymnt.Category, updatedPayment.Category)
+		assert.Equal(t, paymnt.Date, updatedPayment.Date)
+		assert.Equal(t, paymnt.Paid, updatedPayment.Paid)
 
 		stored, _ := mockRepo.GetPaymentByID(context.Background(), 1)
 		assert.Equal(t, newName, stored.Name)
@@ -52,7 +53,7 @@ func TestUpdatePayment(t *testing.T) {
 	t.Run("successfully updates only name", func(t *testing.T) {
 		uc, mockRepo := setupUpdatePaymentTest(t)
 
-		payment := &entity.Payment{
+		paymnt := &entity.Payment{
 			ID:       1,
 			UserID:   1,
 			Name:     "Original",
@@ -61,10 +62,10 @@ func TestUpdatePayment(t *testing.T) {
 			Category: entity.CategoryTypeElectronics,
 			Date:     "2022-10-10",
 		}
-		mockRepo.payments["1"] = payment
+		mockRepo.payments["1"] = paymnt
 
 		newName := "updated name"
-		input := UpdatePaymentInput{
+		input := payment.UpdatePaymentInput{
 			Name: &newName,
 		}
 
@@ -79,7 +80,7 @@ func TestUpdatePayment(t *testing.T) {
 		uc, mockRepo := setupUpdatePaymentTest(t)
 
 		monthly := entity.FrequencyTypeMonthly
-		payment := &entity.Payment{
+		paymnt := &entity.Payment{
 			ID:        1,
 			UserID:    1,
 			Name:      "NBA",
@@ -90,10 +91,10 @@ func TestUpdatePayment(t *testing.T) {
 			Recurrent: true,
 			Frequency: &monthly,
 		}
-		mockRepo.payments["1"] = payment
+		mockRepo.payments["1"] = paymnt
 
 		yearly := entity.FrequencyTypeYearly
-		input := UpdatePaymentInput{
+		input := payment.UpdatePaymentInput{
 			Frequency: &yearly,
 		}
 
@@ -107,7 +108,7 @@ func TestUpdatePayment(t *testing.T) {
 		uc, _ := setupUpdatePaymentTest(t)
 
 		name := "GPT"
-		input := UpdatePaymentInput{
+		input := payment.UpdatePaymentInput{
 			Name: &name,
 		}
 
@@ -121,7 +122,7 @@ func TestUpdatePayment(t *testing.T) {
 		uc, _ := setupUpdatePaymentTest(t)
 
 		name := "claude"
-		input := UpdatePaymentInput{
+		input := payment.UpdatePaymentInput{
 			Name: &name,
 		}
 
@@ -135,7 +136,7 @@ func TestUpdatePayment(t *testing.T) {
 		uc, _ := setupUpdatePaymentTest(t)
 
 		name := "claude"
-		input := UpdatePaymentInput{
+		input := payment.UpdatePaymentInput{
 			Name: &name,
 		}
 
@@ -148,7 +149,7 @@ func TestUpdatePayment(t *testing.T) {
 	t.Run("returns error for invalid amount", func(t *testing.T) {
 		uc, mockRepo := setupUpdatePaymentTest(t)
 
-		payment := &entity.Payment{
+		paymnt := &entity.Payment{
 			ID:       1,
 			UserID:   1,
 			Name:     "claude",
@@ -156,10 +157,10 @@ func TestUpdatePayment(t *testing.T) {
 			Category: entity.CategoryTypeEducation,
 			Date:     "2026-03-21",
 		}
-		mockRepo.payments["1"] = payment
+		mockRepo.payments["1"] = paymnt
 
 		invalidAmount := -120.0
-		input := UpdatePaymentInput{
+		input := payment.UpdatePaymentInput{
 			Amount: &invalidAmount,
 		}
 
@@ -172,7 +173,7 @@ func TestUpdatePayment(t *testing.T) {
 	t.Run("returns error for invalid transaction type", func(t *testing.T) {
 		uc, mockRepo := setupUpdatePaymentTest(t)
 
-		payment := &entity.Payment{
+		paymnt := &entity.Payment{
 			ID:       1,
 			UserID:   1,
 			Name:     "codex",
@@ -181,10 +182,10 @@ func TestUpdatePayment(t *testing.T) {
 			Category: entity.CategoryTypeElectronics,
 			Date:     "2022-10-10",
 		}
-		mockRepo.payments["1"] = payment
+		mockRepo.payments["1"] = paymnt
 
 		invalidType := entity.TransactionType("invalid")
-		input := UpdatePaymentInput{
+		input := payment.UpdatePaymentInput{
 			Type: &invalidType,
 		}
 
@@ -200,7 +201,7 @@ func TestUpdatePayment(t *testing.T) {
 		mockRepo.err = errors.New("database connection failed")
 
 		name := "codex"
-		input := UpdatePaymentInput{
+		input := payment.UpdatePaymentInput{
 			Name: &name,
 		}
 
@@ -215,7 +216,7 @@ func TestUpdatePayment(t *testing.T) {
 
 		mockRepo.err = errors.New("database connection failed")
 
-		payment := &entity.Payment{
+		paymnt := &entity.Payment{
 			ID:       1,
 			Name:     "leetcode",
 			Amount:   10,
@@ -224,10 +225,10 @@ func TestUpdatePayment(t *testing.T) {
 			Date:     "2022-11-11",
 			Paid:     true,
 		}
-		mockRepo.payments["1"] = payment
+		mockRepo.payments["1"] = paymnt
 
 		newName := "HBO"
-		input := UpdatePaymentInput{
+		input := payment.UpdatePaymentInput{
 			Name: &newName,
 		}
 

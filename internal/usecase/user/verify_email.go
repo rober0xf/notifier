@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"time"
 
 	"github.com/rober0xf/notifier/internal/domain/entity"
 	domainErr "github.com/rober0xf/notifier/internal/domain/errors"
@@ -31,6 +32,10 @@ func (uc *VerifyEmailUseCase) Execute(ctx context.Context, email string, token s
 		}
 
 		return nil, err
+	}
+
+	if time.Now().After(user.TokenExpiresAt) {
+		return nil, auth.ErrInvalidToken
 	}
 
 	if user.Active {

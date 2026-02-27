@@ -1,10 +1,11 @@
-package user
+package user_test
 
 import (
 	"context"
 	"testing"
 
 	"github.com/rober0xf/notifier/internal/domain/entity"
+	"github.com/rober0xf/notifier/internal/usecase/user"
 	"github.com/rober0xf/notifier/pkg/auth"
 	"github.com/stretchr/testify/assert"
 
@@ -30,7 +31,7 @@ func TestUpdateUserProfile(t *testing.T) {
 		mockRepo.users["1"] = originalUser
 
 		// updated data
-		input := UpdateUserInput{
+		input := user.UpdateUserInput{
 			ID:       1,
 			Username: strPtr("username changed"),
 			Email:    strPtr("changed@gmail.com"),
@@ -41,7 +42,7 @@ func TestUpdateUserProfile(t *testing.T) {
 		assert.Equal(t, "changed@gmail.com", updatedUser.Email)
 		assert.Equal(t, hashedPassword, updatedUser.Password)
 
-		getUserByEmail := NewGetUserByEmailUseCase(mockRepo)
+		getUserByEmail := user.NewGetUserByEmailUseCase(mockRepo)
 		_, err = getUserByEmail.Execute(context.Background(), originalEmail)
 		assert.Error(t, err)
 	})
@@ -50,17 +51,17 @@ func TestUpdateUserProfile(t *testing.T) {
 		uc, mockRepo := setupUpdateUserTest(t)
 
 		email := "richard@gmail.com"
-		user := &entity.User{
+		usr := &entity.User{
 			ID:       1,
 			Username: "old username",
 			Email:    email,
 			Password: "hashedpassword",
 			Active:   true,
 		}
-		mockRepo.users[email] = user
-		mockRepo.users["1"] = user
+		mockRepo.users[email] = usr
+		mockRepo.users["1"] = usr
 
-		input := UpdateUserInput{
+		input := user.UpdateUserInput{
 			ID:       1,
 			Username: strPtr("new username"),
 		}
@@ -75,7 +76,7 @@ func TestUpdateUserProfile(t *testing.T) {
 	t.Run("returns error when user not found", func(t *testing.T) {
 		uc, _ := setupUpdateUserTest(t)
 
-		input := UpdateUserInput{
+		input := user.UpdateUserInput{
 			ID:       99999,
 			Username: strPtr("richard"),
 		}
@@ -95,18 +96,18 @@ func TestUpdateUserPassword(t *testing.T) {
 		oldHashedPassword, _ := auth.HashPassword("password123#!-")
 		email := "richard@gmail.com"
 
-		user := &entity.User{
+		usr := &entity.User{
 			ID:       1,
 			Username: "richard",
 			Email:    email,
 			Password: oldHashedPassword,
 			Active:   true,
 		}
-		mockRepo.users[email] = user
-		mockRepo.users["1"] = user
+		mockRepo.users[email] = usr
+		mockRepo.users["1"] = usr
 
 		newPassword, _ := auth.HashPassword("newPassword123#!-")
-		input := UpdateUserInput{
+		input := user.UpdateUserInput{
 			ID:       1,
 			Password: strPtr(newPassword),
 		}

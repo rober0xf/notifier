@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/rober0xf/notifier/internal/domain/entity"
 	domainErr "github.com/rober0xf/notifier/internal/domain/errors"
@@ -68,7 +69,7 @@ func (uc *CreateUserUseCase) Execute(ctx context.Context, username string, email
 		Password:              hashedPassword,
 		Active:                false,
 		EmailVerificationHash: verificationToken.Hash,
-		Timeout:               verificationToken.Timeout,
+		TokenExpiresAt:        time.Now().Add(24 * time.Hour),
 	}
 
 	// store the user
