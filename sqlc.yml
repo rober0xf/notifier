@@ -1,12 +1,12 @@
 version: "2"
 sql:
   - engine: "postgresql"
-    queries: "sql/queries"
-    schema: "sql/schemas"
+    queries: "internal/infraestructure/persistance/postgres/sqlc/queries/*.sql"
+    schema: "internal/infraestructure/persistance/postgres/sqlc/schemas/*.sql"
     gen:
       go:
         package: "database"
-        out: "internal/ports/db"
+        out: "internal/infraestructure/persistance/postgres/sqlc_generated/"
         sql_package: "pgx/v5"
         emit_json_tags: true
         emit_prepared_queries: false

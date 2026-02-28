@@ -4,16 +4,15 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
-	"github.com/rober0xf/notifier/internal/adapters/handlers/payments"
-	"github.com/rober0xf/notifier/internal/adapters/handlers/users"
-	"github.com/rober0xf/notifier/internal/adapters/httpmethod"
-	"github.com/rober0xf/notifier/internal/adapters/storage"
-	database "github.com/rober0xf/notifier/internal/ports/db"
-	cronjob "github.com/rober0xf/notifier/internal/scheduler"
-	"github.com/rober0xf/notifier/internal/services/auth"
-	paymentService "github.com/rober0xf/notifier/internal/services/payments"
-	userService "github.com/rober0xf/notifier/internal/services/users"
+	"github.com/rober0xf/notifier/cmd/api"
+	routes "github.com/rober0xf/notifier/internal/delivery/http"
+	"github.com/rober0xf/notifier/internal/infraestructure/persistance/postgres"
+	"github.com/rober0xf/notifier/internal/infraestructure/scheduler"
+	"github.com/rober0xf/notifier/pkg/auth"
+	"github.com/rober0xf/notifier/pkg/database"
+	"github.com/rober0xf/notifier/pkg/email"
 )
 
 func main() {
@@ -22,26 +21,33 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not connect to database: %v", err)
 	}
+	defer db.Close()
 
-	database.DB = db
-
-	cronjob.InitCron()
+	scheduler.InitCron()
 
 	// init repos
-	userRepo := storage.NewUserRepository(db)
-	paymentRepo := storage.NewAuthRepository(db)
+	userRepo := postgres.NewUserRepository(db)
+	paymentRepo := postgres.NewPaymentRepository(db)
 
-	// init services
+	// infra
 	jwtKey := database.JwtKey
-	authSvc := auth.NewAuthService(userRepo, jwtKey)
-	userSvc := userService.NewUserService(userRepo, jwtKey)
-	paymentSvc := paymentService.NewPayments(paymentRepo)
+	tokenGen := auth.NewJWTGenerator(jwtKey, 24)
+	emailSender := email.NewSMTPSender(
+		os.Getenv("SMTP_HOST"),
+		os.Getenv("SMTP_PORT"),
+		os.Getenv("SMTP_USERNAME"),
+		os.Getenv("SMTP_PASSWORD"),
+	)
+	disposableEmails := email.MustDisposableEmail()
+	baseURL := os.Getenv("BASE_URL")
 
-	// init handlers
-	userHandler := users.NewUserHandler(userSvc, authSvc)
-	paymentHandler := payments.NewPaymentHandler(paymentSvc, authSvc)
+	// handlers
+	userHandler := api.BuildUserRoutes(userRepo, tokenGen, emailSender, disposableEmails, baseURL)
+	paymentHandler := api.BuildPaymentRoutes(paymentRepo, userRepo)
 
-	router := httpmethod.SetupRoutes(userHandler, paymentHandler, jwtKey)
+	authMiddleware := auth.AuthMiddleware(tokenGen, "access_token")
+
+	router := routes.SetupRoutes(userHandler, paymentHandler, authMiddleware)
 
 	fmt.Println("running on port 3000")
 	log.Fatal(http.ListenAndServe(":3000", router))
