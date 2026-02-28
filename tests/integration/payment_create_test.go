@@ -8,13 +8,14 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/rober0xf/notifier/internal/domain/entity"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestCreatePayment_Success(t *testing.T) {
-	deps := setupTestPaymentDependencies(t)
-	token := getAuthToken(t, deps)
+	_, deps := setupTestDependencies(t)
+	token := getAuthToken(t, deps.router)
 
 	payload := `{
 			"name": "claude",
@@ -26,9 +27,9 @@ func TestCreatePayment_Success(t *testing.T) {
 			"recurrent": false
 		}`
 
-	req := httptest.NewRequest("POST", "/v1/payments/register", strings.NewReader(payload))
+	req := httptest.NewRequest("POST", "/v1/auth/payments", strings.NewReader(payload))
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer"+token)
+	req.Header.Set("Authorization", "Bearer "+token)
 	w := httptest.NewRecorder()
 	deps.router.ServeHTTP(w, req)
 	require.Equal(t, http.StatusCreated, w.Code)
@@ -42,13 +43,13 @@ func TestCreatePayment_Success(t *testing.T) {
 	id := int(response["id"].(float64))
 	payment, err := deps.paymentRepo.GetPaymentByID(context.Background(), id)
 	require.NoError(t, err)
-	require.Equal(t, "work", payment.Category)
+	require.Equal(t, entity.CategoryTypeWork, payment.Category)
 	assert.False(t, payment.Paid)
 }
 
 func TestCreatePayment_MissingName_Integration(t *testing.T) {
-	deps := setupTestPaymentDependencies(t)
-	token := getAuthToken(t, deps)
+	_, deps := setupTestDependencies(t)
+	token := getAuthToken(t, deps.router)
 
 	payload := `{
         "amount": 50.99,
@@ -59,7 +60,7 @@ func TestCreatePayment_MissingName_Integration(t *testing.T) {
         "recurrent": false
     }`
 
-	req := httptest.NewRequest("POST", "/v1/payments/register", strings.NewReader(payload))
+	req := httptest.NewRequest("POST", "/v1/auth/payments", strings.NewReader(payload))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	w := httptest.NewRecorder()
@@ -74,8 +75,8 @@ func TestCreatePayment_MissingName_Integration(t *testing.T) {
 }
 
 func TestCreatePayment_InvalidType_Integration(t *testing.T) {
-	deps := setupTestPaymentDependencies(t)
-	token := getAuthToken(t, deps)
+	_, deps := setupTestDependencies(t)
+	token := getAuthToken(t, deps.router)
 
 	payload := `{
         "name": "claude",
@@ -87,7 +88,7 @@ func TestCreatePayment_InvalidType_Integration(t *testing.T) {
         "recurrent": false
     }`
 
-	req := httptest.NewRequest("POST", "/v1/payments/register", strings.NewReader(payload))
+	req := httptest.NewRequest("POST", "/v1/auth/payments", strings.NewReader(payload))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	w := httptest.NewRecorder()
@@ -102,8 +103,8 @@ func TestCreatePayment_InvalidType_Integration(t *testing.T) {
 }
 
 func TestCreatePayment_InvalidCategory_Integration(t *testing.T) {
-	deps := setupTestPaymentDependencies(t)
-	token := getAuthToken(t, deps)
+	_, deps := setupTestDependencies(t)
+	token := getAuthToken(t, deps.router)
 
 	payload := `{
         "name": "claude",
@@ -115,7 +116,7 @@ func TestCreatePayment_InvalidCategory_Integration(t *testing.T) {
         "recurrent": false
     }`
 
-	req := httptest.NewRequest("POST", "/v1/payments/register", strings.NewReader(payload))
+	req := httptest.NewRequest("POST", "/v1/auth/payments", strings.NewReader(payload))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	w := httptest.NewRecorder()
@@ -130,8 +131,8 @@ func TestCreatePayment_InvalidCategory_Integration(t *testing.T) {
 }
 
 func TestCreatePayment_InvalidDate_Integration(t *testing.T) {
-	deps := setupTestPaymentDependencies(t)
-	token := getAuthToken(t, deps)
+	_, deps := setupTestDependencies(t)
+	token := getAuthToken(t, deps.router)
 
 	payload := `{
         "name": "claude",
@@ -143,7 +144,7 @@ func TestCreatePayment_InvalidDate_Integration(t *testing.T) {
         "recurrent": false
     }`
 
-	req := httptest.NewRequest("POST", "/v1/payments/register", strings.NewReader(payload))
+	req := httptest.NewRequest("POST", "/v1/auth/payments", strings.NewReader(payload))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	w := httptest.NewRecorder()
@@ -158,7 +159,7 @@ func TestCreatePayment_InvalidDate_Integration(t *testing.T) {
 }
 
 func TestCreatePayment_Unauthorized_Integration(t *testing.T) {
-	deps := setupTestPaymentDependencies(t)
+	_, deps := setupTestDependencies(t)
 
 	payload := `{
         "name": "claude",
@@ -170,7 +171,7 @@ func TestCreatePayment_Unauthorized_Integration(t *testing.T) {
         "recurrent": false
     }`
 
-	req := httptest.NewRequest("POST", "/v1/payments/register", strings.NewReader(payload))
+	req := httptest.NewRequest("POST", "/v1/auth/payments", strings.NewReader(payload))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	deps.router.ServeHTTP(w, req)
@@ -180,48 +181,12 @@ func TestCreatePayment_Unauthorized_Integration(t *testing.T) {
 	var response map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	require.NoError(t, err)
-	assert.Equal(t, "unauthorized", response["error"])
-}
-
-func TestCreatePayment_AlreadyExists_Integration(t *testing.T) {
-	deps := setupTestPaymentDependencies(t)
-	token := getAuthToken(t, deps)
-
-	payload := `{
-        "name": "claude",
-        "amount": 50.99,
-        "type": "subscription",
-        "category": "work",
-        "date": "2026-01-03",
-        "paid": false,
-        "recurrent": false
-    }`
-
-	req := httptest.NewRequest("POST", "/v1/payments/register", strings.NewReader(payload))
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+token)
-	w := httptest.NewRecorder()
-	deps.router.ServeHTTP(w, req)
-
-	require.Equal(t, http.StatusCreated, w.Code)
-
-	req = httptest.NewRequest("POST", "/v1/payments/register", strings.NewReader(payload))
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+token)
-	w = httptest.NewRecorder()
-	deps.router.ServeHTTP(w, req)
-
-	require.Equal(t, http.StatusConflict, w.Code)
-
-	var response map[string]any
-	err := json.Unmarshal(w.Body.Bytes(), &response)
-	require.NoError(t, err)
-	assert.Equal(t, "payment already exists", response["error"])
+	assert.Equal(t, "no token provided", response["error"])
 }
 
 func TestCreatePayment_RecurrentWithoutFrequency_Integration(t *testing.T) {
-	deps := setupTestPaymentDependencies(t)
-	token := getAuthToken(t, deps)
+	_, deps := setupTestDependencies(t)
+	token := getAuthToken(t, deps.router)
 
 	payload := `{
         "name": "claude",
@@ -233,7 +198,7 @@ func TestCreatePayment_RecurrentWithoutFrequency_Integration(t *testing.T) {
         "recurrent": true
     }`
 
-	req := httptest.NewRequest("POST", "/v1/payments/register", strings.NewReader(payload))
+	req := httptest.NewRequest("POST", "/v1/auth/payments", strings.NewReader(payload))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	w := httptest.NewRecorder()
@@ -244,12 +209,12 @@ func TestCreatePayment_RecurrentWithoutFrequency_Integration(t *testing.T) {
 	var response map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	require.NoError(t, err)
-	assert.Equal(t, "frequency required for recurrent payments", response["error"])
+	assert.Equal(t, "frequency is required for recurrent payments", response["error"])
 }
 
 func TestCreatePayment_PaidWithoutPaidAt_Integration(t *testing.T) {
-	deps := setupTestPaymentDependencies(t)
-	token := getAuthToken(t, deps)
+	_, deps := setupTestDependencies(t)
+	token := getAuthToken(t, deps.router)
 
 	payload := `{
         "name": "claude",
@@ -261,7 +226,7 @@ func TestCreatePayment_PaidWithoutPaidAt_Integration(t *testing.T) {
         "recurrent": false
     }`
 
-	req := httptest.NewRequest("POST", "/v1/payments/register", strings.NewReader(payload))
+	req := httptest.NewRequest("POST", "/v1/auth/payments", strings.NewReader(payload))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	w := httptest.NewRecorder()

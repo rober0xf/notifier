@@ -50,7 +50,7 @@ func (h *UserHandler) GetByEmail(c *gin.Context) {
 	user, err := h.getUserByEmailUC.Execute(c.Request.Context(), email)
 	if err != nil {
 		switch {
-		case errors.Is(err, domainErr.ErrInvalidUserData):
+		case errors.Is(err, domainErr.ErrInvalidEmailFormat):
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid email format"})
 		case errors.Is(err, domainErr.ErrUserNotFound):
 			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})

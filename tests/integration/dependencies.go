@@ -75,13 +75,13 @@ func runMigrations(t *testing.T, db *pgxpool.Pool) {
 	_, _ = db.Exec(ctx, `DROP TYPE IF EXISTS category_type CASCADE;`)
 	_, _ = db.Exec(ctx, `DROP TYPE IF EXISTS frequency_type CASCADE;`)
 
-	users, err := os.ReadFile("../../../../sql/schemas/users.sql")
+	users, err := os.ReadFile("../../internal/infraestructure/persistance/postgres/sqlc/schemas/schema_users.sql")
 	require.NoError(t, err)
 
 	_, err = db.Exec(ctx, string(users))
 	require.NoError(t, err)
 
-	payments, err := os.ReadFile("../../../../sql/schemas/payments.sql")
+	payments, err := os.ReadFile("../../internal/infraestructure/persistance/postgres/sqlc/schemas/schema_payments.sql")
 	require.NoError(t, err)
 
 	_, err = db.Exec(ctx, string(payments))

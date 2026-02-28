@@ -12,7 +12,7 @@ import (
 )
 
 func TestLogin_Success_Integration(t *testing.T) {
-	deps := setupTestUserDependencies(t)
+	deps, _ := setupTestDependencies(t)
 
 	_ = createTestUser(t, deps, "rober0xf", "rober0xf@gmail.com", "password1#!")
 	payload := `{"email": "rober0xf@gmail.com", "password": "password1#!"}`
@@ -36,7 +36,7 @@ func TestLogin_Success_Integration(t *testing.T) {
 }
 
 func TestLogin_MissingFields_Integration(t *testing.T) {
-	deps := setupTestUserDependencies(t)
+	deps, _ := setupTestDependencies(t)
 
 	payload := `{"email": "rober0xf@gmail.com"}`
 
@@ -53,7 +53,7 @@ func TestLogin_MissingFields_Integration(t *testing.T) {
 }
 
 func TestLogin_InvalidCredentials_Integration(t *testing.T) {
-	deps := setupTestUserDependencies(t)
+	deps, _ := setupTestDependencies(t)
 
 	_ = createTestUser(t, deps, "rober0xf", "rober0xf@gmail.com", "password1#!")
 	payload := `{"email": "rober0xf@gmail.com", "password": "wrongpassword!#"}`
@@ -71,7 +71,7 @@ func TestLogin_InvalidCredentials_Integration(t *testing.T) {
 }
 
 func TestLogin_UserNotFound_Integration(t *testing.T) {
-	deps := setupTestUserDependencies(t)
+	deps, _ := setupTestDependencies(t)
 
 	payload := `{"email": "rober0xf@gmail.com", "password": "password1!#"}`
 

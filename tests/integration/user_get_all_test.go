@@ -10,7 +10,7 @@ import (
 )
 
 func TestGetAllUsers_Success_Integration(t *testing.T) {
-	deps := setupTestUserDependencies(t)
+	deps, _ := setupTestDependencies(t)
 
 	_ = createTestUser(t, deps, "user1", "usermail1@gmail.com", "password1!#")
 	_ = createTestUser(t, deps, "user2", "usermail2@gmail.com", "password2!#")
@@ -31,7 +31,7 @@ func TestGetAllUsers_Success_Integration(t *testing.T) {
 }
 
 func TestGetAllUsers_Empty_Integration(t *testing.T) {
-	deps := setupTestUserDependencies(t)
+	deps, _ := setupTestDependencies(t)
 
 	req := httptest.NewRequest("GET", "/v1/users", nil)
 	w := httptest.NewRecorder()

@@ -8,30 +8,34 @@ import (
 	"strconv"
 	"testing"
 
-	domainErr "github.com/rober0xf/notifier/internal/domain/errors"
+	repoErr "github.com/rober0xf/notifier/internal/infraestructure/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestDeleteUser_Success_Integration(t *testing.T) {
-	deps := setupTestUserDependencies(t)
+	deps, _ := setupTestDependencies(t)
+	token := getAuthToken(t, deps.router)
 
 	userID := createTestUser(t, deps, "user1", "usermail1@gmail.com", "password1!#")
 	userIDStr := strconv.Itoa(userID)
 
-	req := httptest.NewRequest("DELETE", "/v1/users/"+userIDStr, nil)
+	req := httptest.NewRequest("DELETE", "/v1/auth/users/"+userIDStr, nil)
+	req.Header.Set("Authorization", "Bearer "+token)
 	w := httptest.NewRecorder()
 	deps.router.ServeHTTP(w, req)
 	require.Equal(t, http.StatusNoContent, w.Code)
 
 	_, err := deps.userRepo.GetUserByID(context.Background(), userID)
-	assert.ErrorIs(t, err, domainErr.ErrUserNotFound)
+	assert.ErrorIs(t, err, repoErr.ErrNotFound)
 }
 
 func TestDeleteUser_InvalidID_Integration(t *testing.T) {
-	deps := setupTestUserDependencies(t)
+	deps, _ := setupTestDependencies(t)
+	token := getAuthToken(t, deps.router)
 
-	req := httptest.NewRequest("DELETE", "/v1/users/aa", nil)
+	req := httptest.NewRequest("DELETE", "/v1/auth/users/aa", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
 	w := httptest.NewRecorder()
 	deps.router.ServeHTTP(w, req)
 	require.Equal(t, http.StatusBadRequest, w.Code)
@@ -43,9 +47,11 @@ func TestDeleteUser_InvalidID_Integration(t *testing.T) {
 }
 
 func TestDeleteUser_NotFound_Integration(t *testing.T) {
-	deps := setupTestUserDependencies(t)
+	deps, _ := setupTestDependencies(t)
+	token := getAuthToken(t, deps.router)
 
-	req := httptest.NewRequest("DELETE", "/v1/users/9999", nil)
+	req := httptest.NewRequest("DELETE", "/v1/auth/users/9999", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
 	w := httptest.NewRecorder()
 	deps.router.ServeHTTP(w, req)
 	require.Equal(t, http.StatusNotFound, w.Code)

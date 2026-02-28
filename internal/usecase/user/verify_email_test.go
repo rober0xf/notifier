@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"testing"
+	"time"
 
 	"github.com/rober0xf/notifier/internal/domain/entity"
 	domainErr "github.com/rober0xf/notifier/internal/domain/errors"
@@ -28,6 +29,7 @@ func TestVerifyEmail(t *testing.T) {
 			Password:              "hashedPassword",
 			Active:                false,
 			EmailVerificationHash: tokenHashString,
+			TokenExpiresAt:        time.Now().Add(24 * time.Hour),
 		}
 		mockRepo.users[email] = user
 		mockRepo.users["1"] = user
@@ -55,6 +57,7 @@ func TestVerifyEmail(t *testing.T) {
 			Email:                 email,
 			Active:                false,
 			EmailVerificationHash: hex.EncodeToString(tokenHash[:]),
+			TokenExpiresAt:        time.Now().Add(24 * time.Hour),
 		}
 		mockRepo.users[email] = user
 		mockRepo.users["1"] = user

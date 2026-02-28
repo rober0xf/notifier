@@ -37,8 +37,8 @@ func (r *UserRepository) CreateUser(ctx context.Context, user *entity.User) erro
 		Username:              user.Username,
 		Email:                 user.Email,
 		Password:              user.Password,
-		EmailVerificationHash: pgtype.Text{String: user.EmailVerificationHash},
-		TokenExpiresAt:        pgtype.Timestamptz{Time: (user.TokenExpiresAt)},
+		EmailVerificationHash: pgtype.Text{String: user.EmailVerificationHash, Valid: true},
+		TokenExpiresAt:        pgtype.Timestamptz{Time: user.TokenExpiresAt, Valid: true},
 	})
 
 	if err != nil {

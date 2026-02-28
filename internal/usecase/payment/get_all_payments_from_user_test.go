@@ -117,7 +117,7 @@ func TestGetAllPaymentsFromUser(t *testing.T) {
 		assert.Len(t, payments, 2) // just first user
 
 		for _, p := range payments {
-			assert.Equal(t, int32(1), p.UserID)
+			assert.Equal(t, int32(1), int32(p.UserID))
 		}
 	})
 

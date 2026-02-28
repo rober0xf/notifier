@@ -7,6 +7,7 @@ import (
 
 	"github.com/rober0xf/notifier/internal/domain/entity"
 	domainErr "github.com/rober0xf/notifier/internal/domain/errors"
+	repoErr "github.com/rober0xf/notifier/internal/infraestructure/errors"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -14,6 +15,7 @@ func TestCreatePayment(t *testing.T) {
 	t.Run("successfully creates a new payment", func(t *testing.T) {
 		uc, mockRepo := setupCreatePaymentTest(t)
 
+		paidAt := "2026-03-12"
 		input := &entity.Payment{
 			UserID:    1,
 			Name:      "copilot",
@@ -23,6 +25,7 @@ func TestCreatePayment(t *testing.T) {
 			Date:      "2026-02-10",
 			Paid:      true,
 			Recurrent: false,
+			PaidAt:    &paidAt,
 		}
 
 		payment, err := uc.Execute(context.Background(), input)
@@ -30,7 +33,7 @@ func TestCreatePayment(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, payment)
 		assert.Equal(t, "copilot", payment.Name)
-		assert.Equal(t, 100, payment.Amount)
+		assert.Equal(t, 100.0, payment.Amount)
 		assert.Equal(t, entity.TransactionTypeExpense, payment.Type)
 		assert.Equal(t, entity.CategoryTypeEducation, payment.Category)
 		assert.NotEqual(t, 0, payment.ID)
@@ -43,31 +46,28 @@ func TestCreatePayment(t *testing.T) {
 	t.Run("returns error when payment already exists", func(t *testing.T) {
 		uc, mockRepo := setupCreatePaymentTest(t)
 
+		mockRepo.err = repoErr.ErrAlreadyExists
 		payment := &entity.Payment{
-			ID:        1,
+			UserID:    1,
 			Name:      "infra",
 			Amount:    3500,
 			Type:      entity.TransactionTypeIncome,
 			Category:  entity.CategoryTypeWork,
 			Date:      "2025-11-07",
-			Paid:      true,
+			Paid:      false,
 			Recurrent: false,
 		}
-		mockRepo.payments["1"] = payment
 
 		_, err := uc.Execute(context.Background(), payment)
-		assert.NoError(t, err)
-
-		_, err = uc.Execute(context.Background(), payment)
 		assert.Error(t, err)
-
-		assert.Equal(t, domainErr.ErrPaymentAlreadyExists, err)
+		assert.ErrorIs(t, err, domainErr.ErrPaymentAlreadyExists)
 	})
 
 	t.Run("successfully creates recurrent payment with frequency", func(t *testing.T) {
 		uc, _ := setupCreatePaymentTest(t)
 
 		frequency := entity.FrequencyTypeWeekly
+		paidAt := "2026-06-12"
 		input := &entity.Payment{
 			UserID:    1,
 			Name:      "copilot",
@@ -78,6 +78,7 @@ func TestCreatePayment(t *testing.T) {
 			Paid:      true,
 			Recurrent: true,
 			Frequency: &frequency,
+			PaidAt:    &paidAt,
 		}
 
 		payment, err := uc.Execute(context.Background(), input)
@@ -227,6 +228,7 @@ func TestCreatePayment(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.Nil(t, payment)
+		assert.Contains(t, err.Error(), "date is required")
 	})
 
 	t.Run("returns error for recurrent payment without frequency", func(t *testing.T) {

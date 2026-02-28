@@ -13,7 +13,7 @@ import (
 )
 
 func TestCreateUser_Success_Integration(t *testing.T) {
-	deps := setupTestUserDependencies(t)
+	deps, _ := setupTestDependencies(t)
 
 	payload := `{
 		"username": "rober0xf",
@@ -41,7 +41,7 @@ func TestCreateUser_Success_Integration(t *testing.T) {
 }
 
 func TestCreateUser_AlreadyExists_Integration(t *testing.T) {
-	deps := setupTestUserDependencies(t)
+	deps, _ := setupTestDependencies(t)
 
 	originalUser := `{
 		"username": "rober0xf",
@@ -74,7 +74,7 @@ func TestCreateUser_AlreadyExists_Integration(t *testing.T) {
 }
 
 func TestCreateUser_InvalidEmail_Integration(t *testing.T) {
-	deps := setupTestUserDependencies(t)
+	deps, _ := setupTestDependencies(t)
 
 	payload := `{
 		"username": "rober0xf",
@@ -90,11 +90,11 @@ func TestCreateUser_InvalidEmail_Integration(t *testing.T) {
 }
 
 func TestCreateUser_DisposableEmail_Integration(t *testing.T) {
-	deps := setupTestUserDependencies(t)
+	deps, _ := setupTestDependencies(t)
 
 	payload := `{
 		"username": "rober0xf",
-		"email": "test@temp.com",
+		"email": "ignoremail.com",
 		"password": "password1#!"
 	}`
 
@@ -106,7 +106,7 @@ func TestCreateUser_DisposableEmail_Integration(t *testing.T) {
 }
 
 func TestCreateUser_WeakPassword_Integration(t *testing.T) {
-	deps := setupTestUserDependencies(t)
+	deps, _ := setupTestDependencies(t)
 
 	payload := `{
 		"username": "rober0xf",
@@ -122,7 +122,7 @@ func TestCreateUser_WeakPassword_Integration(t *testing.T) {
 }
 
 func TestCreateUser_MissingFields_Integration(t *testing.T) {
-	deps := setupTestUserDependencies(t)
+	deps, _ := setupTestDependencies(t)
 
 	payload := `{
 		"username": "rober0xf",

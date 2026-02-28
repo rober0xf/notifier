@@ -17,7 +17,6 @@ func setupTestRepo(t *testing.T) *MockUserRepository {
 }
 
 func setupCreateUserTest(t *testing.T) (*user.CreateUserUseCase, *MockUserRepository, *email.MockSender) {
-	t.Setenv("ENV", "test") // skip sending email
 	t.Helper()
 
 	mockRepo := setupTestRepo(t)

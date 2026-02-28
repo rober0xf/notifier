@@ -27,17 +27,19 @@ type TestPaymentDependencies struct {
 	userRepo    payment.UserIDGetter
 }
 
-func setupTestUserDependencies(t *testing.T) *TestUserDependencies {
+func setupTestDependencies(t *testing.T) (*TestUserDependencies, *TestPaymentDependencies) {
 	t.Helper()
 
 	db := setupTestDB(t)
 
 	userRepo := postgres.NewUserRepository(db)
-	emailSender := email.NewMockSender()
+	paymentRepo := postgres.NewPaymentRepository(db)
 
 	jwtKey := []byte("test-jwt")
 	tokenGen := auth.NewJWTGenerator(jwtKey, 160)
 	authMiddleware := auth.AuthMiddleware(tokenGen, auth.SessionCookieName)
+
+	emailSender := email.NewMockSender()
 
 	createUserUC := user.NewCreateUserUseCase(userRepo, emailSender, []string{}, "http://localhost:8080")
 	loginUserUC := user.NewLoginUseCase(userRepo, tokenGen)
@@ -60,28 +62,6 @@ func setupTestUserDependencies(t *testing.T) *TestUserDependencies {
 		tokenGen,
 	)
 
-	gin.SetMode(gin.TestMode)
-	router := http.SetupRoutes(userHandler, nil, authMiddleware)
-
-	return &TestUserDependencies{
-		router:   router,
-		db:       db,
-		userRepo: userRepo,
-	}
-}
-
-func setupTestPaymentDependencies(t *testing.T) *TestPaymentDependencies {
-	t.Helper()
-
-	db := setupTestDB(t)
-
-	paymentRepo := postgres.NewPaymentRepository(db)
-	userRepo := postgres.NewUserRepository(db)
-
-	jwtKey := []byte("test-jwt")
-	tokenGen := auth.NewJWTGenerator(jwtKey, 160)
-	authMiddleware := auth.AuthMiddleware(tokenGen, auth.SessionCookieName)
-
 	createPaymentUC := payment.NewCreatePaymentUseCase(paymentRepo)
 	getPaymentByIDUC := payment.NewGetPaymentByIDUseCase(paymentRepo)
 	getAllPaymentsFromUserUC := payment.NewGetAllPaymentsFromUserUseCase(paymentRepo, userRepo)
@@ -99,12 +79,16 @@ func setupTestPaymentDependencies(t *testing.T) *TestPaymentDependencies {
 	)
 
 	gin.SetMode(gin.TestMode)
-	router := http.SetupRoutes(nil, paymentHandler, authMiddleware)
+	router := http.SetupRoutes(userHandler, paymentHandler, authMiddleware)
 
-	return &TestPaymentDependencies{
-		router:      router,
-		db:          db,
-		paymentRepo: paymentRepo,
-		userRepo:    userRepo,
-	}
+	return &TestUserDependencies{
+			router:   router,
+			db:       db,
+			userRepo: userRepo,
+		}, &TestPaymentDependencies{
+			router:      router,
+			db:          db,
+			paymentRepo: paymentRepo,
+			userRepo:    userRepo,
+		}
 }

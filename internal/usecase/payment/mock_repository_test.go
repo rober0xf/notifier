@@ -28,6 +28,10 @@ func (m *MockPaymentRepository) CreatePayment(ctx context.Context, payment *enti
 	}
 
 	idStr := strconv.Itoa(int(payment.ID))
+	if _, exists := m.payments[idStr]; exists {
+		return repoErr.ErrAlreadyExists
+	}
+
 	m.payments[idStr] = payment
 
 	return nil

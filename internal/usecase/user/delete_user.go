@@ -20,6 +20,10 @@ func NewDeleteUserUseCase(userRepo repository.UserRepository) *DeleteUserUseCase
 }
 
 func (uc *DeleteUserUseCase) Execute(ctx context.Context, id int) error {
+	if id <= 0 {
+		return domainErr.ErrInvalidUserData
+	}
+
 	err := uc.userRepo.DeleteUser(ctx, id)
 	if err != nil {
 		if errors.Is(err, repoErr.ErrNotFound) {

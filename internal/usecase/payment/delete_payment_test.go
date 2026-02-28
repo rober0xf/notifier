@@ -34,7 +34,7 @@ func TestDeletePayment(t *testing.T) {
 		assert.NoError(t, err)
 
 		_, exists := mockRepo.payments["1"]
-		assert.Nil(t, exists)
+		assert.False(t, exists)
 	})
 
 	t.Run("returns error when payment not found", func(t *testing.T) {
@@ -86,7 +86,7 @@ func TestDeletePayment(t *testing.T) {
 		err := uc.Execute(context.Background(), 1)
 
 		assert.Error(t, err)
-		assert.Contains(t, err, "database connection failed")
+		assert.Contains(t, err.Error(), "database connection failed")
 
 		_, exists := mockRepo.payments["1"]
 		assert.True(t, exists)

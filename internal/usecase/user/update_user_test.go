@@ -84,9 +84,8 @@ func TestUpdateUserProfile(t *testing.T) {
 		_, err := uc.Execute(context.Background(), input)
 
 		assert.Error(t, err)
-		assert.Contains(t, err, domainErr.ErrUserNotFound)
+		assert.ErrorIs(t, err, domainErr.ErrUserNotFound)
 	})
-
 }
 
 func TestUpdateUserPassword(t *testing.T) {

@@ -40,7 +40,9 @@ func ValidatePayment(payment *entity.Payment) error {
 		}
 	}
 
-	// todo: add paid and paid_at relation
+	if payment.Paid && payment.PaidAt == nil {
+		return fmt.Errorf("paid_at is required when paid is true: %w", errors.ErrInvalidPaymentData)
+	}
 
 	return nil
 }

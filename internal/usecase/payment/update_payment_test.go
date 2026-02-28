@@ -17,6 +17,7 @@ func TestUpdatePayment(t *testing.T) {
 		uc, mockRepo := setupUpdatePaymentTest(t)
 
 		paymnt := &entity.Payment{
+			UserID:    1,
 			ID:        1,
 			Name:      "Nike",
 			Amount:    100.0,
@@ -164,7 +165,7 @@ func TestUpdatePayment(t *testing.T) {
 			Amount: &invalidAmount,
 		}
 
-		_, err := uc.Execute(context.Background(), -1, input)
+		_, err := uc.Execute(context.Background(), 1, input)
 
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, domainErr.ErrInvalidAmount)

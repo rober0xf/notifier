@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )
 
@@ -46,17 +47,18 @@ func createTestPayment(
 	t.Helper()
 
 	payload := fmt.Sprintf(`{
-        "user_id": %d,
+		"name": "%s",
         "amount": %f,
-        "payment_type": "%s",
+        "type": "%s",
         "category": "%s",
         "date": "%s",
         "paid": %t,
         "recurrent": %t
-    }`, amount, payment_type, category, date, paid, recurrent)
+    }`, name, amount, payment_type, category, date, paid, recurrent)
 
-	req := httptest.NewRequest("POST", "/v1/payments/create", strings.NewReader(payload))
+	req := httptest.NewRequest("POST", "/v1/auth/payments", strings.NewReader(payload))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
 	w := httptest.NewRecorder()
 	deps.router.ServeHTTP(w, req)
 	require.Equal(t, http.StatusCreated, w.Code)
@@ -68,18 +70,18 @@ func createTestPayment(
 	return int(response["id"].(float64))
 }
 
-func getAuthToken(t *testing.T, deps *TestPaymentDependencies) string {
-	return getAuthTokenWithCredentials(t, deps, "rober0xf", "rober0xf@gmail.com", "password1!#")
+func getAuthToken(t *testing.T, router *gin.Engine) string {
+	return getAuthTokenWithCredentials(t, router, "rober0xf", "rober0xf@gmail.com", "password1!#")
 }
 
-func getAuthTokenWithCredentials(t *testing.T, deps *TestPaymentDependencies, username, email, password string) string {
+func getAuthTokenWithCredentials(t *testing.T, router *gin.Engine, username, email, password string) string {
 	t.Helper()
 
 	payload := fmt.Sprintf(`{"username": "%s", "email": "%s", "password": "%s"}`, username, email, password)
 	req := httptest.NewRequest("POST", "/v1/users/register", strings.NewReader(payload))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
-	deps.router.ServeHTTP(w, req)
+	router.ServeHTTP(w, req)
 
 	require.Equal(t, http.StatusCreated, w.Code)
 

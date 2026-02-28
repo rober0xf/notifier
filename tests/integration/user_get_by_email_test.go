@@ -11,12 +11,15 @@ import (
 )
 
 func TestGetByEmail_Success_Integration(t *testing.T) {
-	deps := setupTestUserDependencies(t)
+	deps, _ := setupTestDependencies(t)
 
-	email := "rober0xf@gmail.com"
+	email := "rober0xf2@gmail.com"
 	_ = createTestUser(t, deps, "rober0xf", email, "password1#!")
 
-	req := httptest.NewRequest("GET", "/v1/users/email/"+email, nil)
+	token := getAuthToken(t, deps.router)
+
+	req := httptest.NewRequest("GET", "/v1/auth/users/email/"+email, nil)
+	req.Header.Set("Authorization", "Bearer "+token)
 	w := httptest.NewRecorder()
 	deps.router.ServeHTTP(w, req)
 
@@ -32,9 +35,11 @@ func TestGetByEmail_Success_Integration(t *testing.T) {
 }
 
 func TestGetByEmail_Empty_Integration(t *testing.T) {
-	deps := setupTestUserDependencies(t)
+	deps, _ := setupTestDependencies(t)
+	token := getAuthToken(t, deps.router)
 
-	req := httptest.NewRequest("GET", "/v1/users/email", nil)
+	req := httptest.NewRequest("GET", "/v1/auth/users/email", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
 	w := httptest.NewRecorder()
 	deps.router.ServeHTTP(w, req)
 
@@ -47,10 +52,12 @@ func TestGetByEmail_Empty_Integration(t *testing.T) {
 }
 
 func TestGetByEmail_Invalid_Integration(t *testing.T) {
-	deps := setupTestUserDependencies(t)
+	deps, _ := setupTestDependencies(t)
+	token := getAuthToken(t, deps.router)
 
 	invalidEmail := "richard.com"
-	req := httptest.NewRequest("GET", "/v1/users/email/"+invalidEmail, nil)
+	req := httptest.NewRequest("GET", "/v1/auth/users/email/"+invalidEmail, nil)
+	req.Header.Set("Authorization", "Bearer "+token)
 	w := httptest.NewRecorder()
 	deps.router.ServeHTTP(w, req)
 
@@ -63,10 +70,12 @@ func TestGetByEmail_Invalid_Integration(t *testing.T) {
 }
 
 func TestGetByEmail_NotFound_Integration(t *testing.T) {
-	deps := setupTestUserDependencies(t)
+	deps, _ := setupTestDependencies(t)
+	token := getAuthToken(t, deps.router)
 
 	nonExistingEmail := "doesnotexists@example.com"
-	req := httptest.NewRequest("GET", "/v1/users/email/"+nonExistingEmail, nil)
+	req := httptest.NewRequest("GET", "/v1/auth/users/email/"+nonExistingEmail, nil)
+	req.Header.Set("Authorization", "Bearer "+token)
 	w := httptest.NewRecorder()
 	deps.router.ServeHTTP(w, req)
 

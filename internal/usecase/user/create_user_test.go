@@ -47,6 +47,6 @@ func TestCreateUser(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.Nil(t, user)
-		assert.Contains(t, err.Error(), "error sending verification email")
+		assert.Contains(t, err.Error(), "error sending email verification")
 	})
 }

@@ -56,7 +56,7 @@ func (uc *UpdateUserUseCase) Execute(ctx context.Context, input UpdateUserInput)
 		*input.Email != "" &&
 		*input.Email != existingUser.Email {
 		if err := ValidateEmailFormat(*input.Email); err != nil {
-			return nil, domainErr.ErrInvalidUserData
+			return nil, domainErr.ErrInvalidEmailFormat
 		}
 
 		existingUser.Email = *input.Email
