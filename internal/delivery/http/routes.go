@@ -20,11 +20,14 @@ func SetupRoutes(userHandler *UserHandler, paymentHandler *PaymentHandler, authM
 	}))
 
 	v1 := r.Group("/v1")
-
-	setupPublicUsersRoutes(v1, userHandler)
-
 	protected := v1.Group("/auth")
+	admin := v1.Group("/admin")
+
 	protected.Use(authMiddleware)
+	admin.Use(authMiddleware)
+
+	setupAdminOnlyRoutes(admin, userHandler, paymentHandler)
+	setupPublicUsersRoutes(v1, userHandler)
 	setupProtectedUsersRoutes(protected, userHandler)
 	setupPaymentsRoutes(protected, paymentHandler)
 
@@ -56,6 +59,13 @@ func setupProtectedUsersRoutes(protected *gin.RouterGroup, userHandler *UserHand
 	users.DELETE("/:id", userHandler.Delete)
 }
 
+// /v1/admin/
+func setupAdminOnlyRoutes(admin *gin.RouterGroup, userHandler *UserHandler, paymentHandler *PaymentHandler) {
+	admin.GET("/users", userHandler.GetAll)
+	admin.GET("/payments", paymentHandler.GetAllPayments)
+}
+
+// /v1/auth/payments
 func setupPaymentsRoutes(protected *gin.RouterGroup, paymentHandler *PaymentHandler) {
 	payments := protected.Group("/payments")
 

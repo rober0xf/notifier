@@ -2,10 +2,11 @@ package postgres
 
 import (
 	"context"
+	"database/sql"
 	"errors"
-	"strings"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rober0xf/notifier/internal/domain/entity"
@@ -68,13 +69,8 @@ func (r *UserRepository) GetUserByEmail(ctx context.Context, email string) (*ent
 
 func (r *UserRepository) GetAllUsers(ctx context.Context) ([]entity.User, error) {
 	dbUsers, err := r.queries.GetAllUsers(ctx)
-
 	if err != nil {
 		return nil, repoErr.ErrRepository
-	}
-
-	if len(dbUsers) == 0 {
-		return []entity.User{}, nil
 	}
 
 	users := make([]entity.User, 0, len(dbUsers))

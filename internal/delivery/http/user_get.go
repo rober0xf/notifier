@@ -67,7 +67,7 @@ func (h *UserHandler) GetByEmail(c *gin.Context) {
 func (h *UserHandler) GetAll(c *gin.Context) {
 	users, err := h.getAllUsersUC.Execute(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": domainErr.ErrInternalServerError.Error()})
 		return
 	}
 

@@ -1,10 +1,10 @@
 CREATE TABLE users (
     id serial PRIMARY KEY,
-    username text NOT NULL,
+    username text NOT NULL UNIQUE,
     email text NOT NULL UNIQUE,
-    password text NOT NULL,
+    PASSWORD text,
+    name text,
+    google_id text UNIQUE,
     active bool NOT NULL DEFAULT FALSE,
-    email_verification_hash text,
-    created_at timestamptz NOT NULL DEFAULT now(),
-    timeout interval
-)
+    created_at timestamptz NOT NULL DEFAULT NOW()
+);

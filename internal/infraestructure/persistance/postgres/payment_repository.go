@@ -72,12 +72,8 @@ func (r *PaymentRepository) CreatePayment(ctx context.Context, payment *entity.P
 
 func (r *PaymentRepository) GetAllPayments(ctx context.Context) ([]entity.Payment, error) {
 	dbPayments, err := r.queries.GetAllPayments(ctx)
-
 	if err != nil {
-		return nil, fmt.Errorf("error getting all payments: %w", err)
-	}
-	if len(dbPayments) == 0 {
-		return []entity.Payment{}, nil
+		return nil, repoErr.ErrRepository
 	}
 
 	payments := make([]entity.Payment, 0, len(dbPayments))
