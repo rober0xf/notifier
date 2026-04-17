@@ -1,5 +1,7 @@
 package entity
 
+import "slices"
+
 type FrequencyType string
 
 const (
@@ -9,10 +11,13 @@ const (
 	FrequencyTypeYearly  FrequencyType = "yearly"
 )
 
+var AllFrequencyTypes = []FrequencyType{
+	FrequencyTypeDaily,
+	FrequencyTypeWeekly,
+	FrequencyTypeMonthly,
+	FrequencyTypeYearly,
+}
+
 func (f FrequencyType) IsValid() bool {
-	switch f {
-	case FrequencyTypeDaily, FrequencyTypeWeekly, FrequencyTypeMonthly, FrequencyTypeYearly:
-		return true
-	}
-	return false
+	return slices.Contains(AllFrequencyTypes, f)
 }

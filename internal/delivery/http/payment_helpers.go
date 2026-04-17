@@ -39,15 +39,6 @@ func formatValidationError(err error) string {
 				return fmt.Sprintf("%s must be at most %s chars", field, e.Param())
 			case "gt":
 				return fmt.Sprintf("%s must be greater than %s", field, e.Param())
-			case "oneof":
-				switch field {
-				case "type":
-					return "type must be: expense, income, or subscription"
-				case "category":
-					return "category must be: electronics, entertainment, education, clothing, work, or sports"
-				case "frequency":
-					return "frequency must be: daily, weekly, monthly, or yearly"
-				}
 			case "datetime":
 				return fmt.Sprintf("%s must be in YYYY-MM-DD format", field)
 			case "url":

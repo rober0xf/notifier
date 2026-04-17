@@ -24,14 +24,14 @@ type UpdatePaymentRequest struct {
 type CreatePaymentRequest struct {
 	Name       string                 `json:"name" binding:"required,min=3,max=100"`
 	Amount     float64                `json:"amount" binding:"required,gt=0"`
-	Type       entity.TransactionType `json:"type" binding:"required,oneof=expense income subscription"`
-	Category   entity.CategoryType    `json:"category" binding:"required,oneof=electronics entertainment education clothing work sports"`
+	Type       entity.TransactionType `json:"type" binding:"required"`
+	Category   entity.CategoryType    `json:"category" binding:"required"`
 	Date       string                 `json:"date" binding:"required,datetime=2006-01-02"`
 	DueDate    string                 `json:"due_date" binding:"omitempty,datetime=2006-01-02"`
 	Paid       bool                   `json:"paid"`
 	PaidAt     string                 `json:"paid_at" binding:"omitempty,datetime=2006-01-02"`
 	Recurrent  bool                   `json:"recurrent"`
-	Frequency  entity.FrequencyType   `json:"frequency" binding:"omitempty,oneof=daily weekly monthly yearly"`
+	Frequency  entity.FrequencyType   `json:"frequency" binding:"omitempty"`
 	ReceiptURL string                 `json:"receipt_url" binding:"omitempty,url"`
 }
 
@@ -51,8 +51,20 @@ type PaymentResponse struct {
 }
 
 func (p *CreatePaymentRequest) Validate() error {
+	if !p.Category.IsValid() {
+		return fmt.Errorf("invalid category")
+	}
+
+	if !p.Type.IsValid() {
+		return fmt.Errorf("invalid type")
+	}
+
 	if p.Recurrent && p.Frequency == "" {
 		return fmt.Errorf("frequency is required for recurrent payments")
+	}
+
+	if p.Frequency != "" && !p.Recurrent {
+		return fmt.Errorf("recurrent is required if frequency is set")
 	}
 
 	if p.Date != "" && p.DueDate != "" {

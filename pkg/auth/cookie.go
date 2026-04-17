@@ -2,14 +2,6 @@ package auth
 
 import "github.com/gin-gonic/gin"
 
-type CookieConfig struct {
-	Name            string
-	ExpirationHours int
-	Secure          bool // true in https
-	HttpOnly        bool
-	SameSite        int
-}
-
 func SetAuthCookie(c *gin.Context, token string, config CookieConfig) {
 	c.SetCookie(
 		config.Name,
