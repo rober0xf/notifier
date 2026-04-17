@@ -1,0 +1,63 @@
+services:
+  db:
+    image: postgres:16
+    restart: always
+    container_name: notifier-db
+    env_file:
+      - ./.env
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rober0xf -d notifier -p 5432"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+    networks:
+      - notifier-net
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - "8082:8080"
+    networks:
+      - notifier-net
+
+  backend:
+    build: ./notifier
+    image: notifier-backend:0.1
+    container_name: notifier-back
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./.env
+    environment:
+      MIGRATIONS_PATH: file:///sql/migrations
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./notifier/internal/infraestructure/persistance/postgres/sqlc/migrations:/sql/migrations
+    networks:
+      - notifier-net
+
+  frontend:
+    build:
+      context: ./notifier-front
+      args:
+        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID}
+    image: notifier-frontend:0.1
+    ports:
+      - "8080:80"
+    container_name: notifier-front
+    depends_on:
+      - backend
+    networks:
+      - notifier-net
+
+volumes:
+  postgres_data:
+networks:
+  notifier-net:
