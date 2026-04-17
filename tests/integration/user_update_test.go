@@ -174,6 +174,6 @@ func TestUpdateUser_Password_Integration(t *testing.T) {
 
 	user, err := deps.userRepo.GetUserByID(context.Background(), userID)
 	require.NoError(t, err)
-	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte("password2!#"))
+	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte("password2!#"))
 	assert.NoError(t, err)
 }

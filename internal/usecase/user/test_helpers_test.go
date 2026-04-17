@@ -12,7 +12,9 @@ func setupTestRepo(t *testing.T) *MockUserRepository {
 	t.Helper()
 
 	return &MockUserRepository{
-		users: make(map[string]*entity.User),
+		users:  make(map[int]*entity.User),
+		emails: make(map[string]*entity.User),
+		tokens: make(map[string]*entity.UserToken),
 	}
 }
 

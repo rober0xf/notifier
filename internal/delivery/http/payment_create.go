@@ -14,12 +14,24 @@ import (
 func (h *PaymentHandler) CreatePayment(c *gin.Context) {
 	var req dto.CreatePaymentRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": formatValidationError(err)})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": formatValidationError(err),
+			"meta": gin.H{
+				"allowed_types":       entity.AllTransactionTypes,
+				"allowed_categories":  entity.AllCategoryTypes,
+				"allowed_frequencies": entity.AllFrequencyTypes},
+		})
 		return
 	}
 
 	if err := req.Validate(); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest,
+			gin.H{"error": err.Error(),
+				"meta": gin.H{
+					"allowed_categories":  entity.AllCategoryTypes,
+					"allowed_types":       entity.AllTransactionTypes,
+					"allowed_frequencies": entity.AllFrequencyTypes},
+			})
 		return
 	}
 

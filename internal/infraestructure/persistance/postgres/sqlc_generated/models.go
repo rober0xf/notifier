@@ -101,6 +101,48 @@ func (ns NullFrequencyType) Value() (driver.Value, error) {
 	return string(ns.FrequencyType), nil
 }
 
+type TokenPurpose string
+
+const (
+	TokenPurposeEmailVerification TokenPurpose = "email_verification"
+	TokenPurposePasswordReset     TokenPurpose = "password_reset"
+)
+
+func (e *TokenPurpose) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = TokenPurpose(s)
+	case string:
+		*e = TokenPurpose(s)
+	default:
+		return fmt.Errorf("unsupported scan type for TokenPurpose: %T", src)
+	}
+	return nil
+}
+
+type NullTokenPurpose struct {
+	TokenPurpose TokenPurpose `json:"token_purpose"`
+	Valid        bool         `json:"valid"` // Valid is true if TokenPurpose is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullTokenPurpose) Scan(value interface{}) error {
+	if value == nil {
+		ns.TokenPurpose, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.TokenPurpose.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullTokenPurpose) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.TokenPurpose), nil
+}
+
 type TransactionType string
 
 const (
@@ -144,6 +186,48 @@ func (ns NullTransactionType) Value() (driver.Value, error) {
 	return string(ns.TransactionType), nil
 }
 
+type UserRole string
+
+const (
+	UserRoleUser  UserRole = "user"
+	UserRoleAdmin UserRole = "admin"
+)
+
+func (e *UserRole) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = UserRole(s)
+	case string:
+		*e = UserRole(s)
+	default:
+		return fmt.Errorf("unsupported scan type for UserRole: %T", src)
+	}
+	return nil
+}
+
+type NullUserRole struct {
+	UserRole UserRole `json:"user_role"`
+	Valid    bool     `json:"valid"` // Valid is true if UserRole is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullUserRole) Scan(value interface{}) error {
+	if value == nil {
+		ns.UserRole, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.UserRole.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullUserRole) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.UserRole), nil
+}
+
 type Payment struct {
 	ID         int32             `json:"id"`
 	UserID     int32             `json:"user_id"`
@@ -161,12 +245,23 @@ type Payment struct {
 }
 
 type User struct {
-	ID                    int32              `json:"id"`
-	Username              string             `json:"username"`
-	Email                 string             `json:"email"`
-	Password              string             `json:"password"`
-	Active                bool               `json:"active"`
-	EmailVerificationHash pgtype.Text        `json:"email_verification_hash"`
-	CreatedAt             pgtype.Timestamptz `json:"created_at"`
-	TokenExpiresAt        pgtype.Timestamptz `json:"token_expires_at"`
+	ID           int32              `json:"id"`
+	Username     string             `json:"username"`
+	Email        string             `json:"email"`
+	PasswordHash pgtype.Text        `json:"password_hash"`
+	Name         pgtype.Text        `json:"name"`
+	Role         UserRole           `json:"role"`
+	GoogleID     pgtype.Text        `json:"google_id"`
+	IsActive     bool               `json:"is_active"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+}
+
+type UserToken struct {
+	ID        int32              `json:"id"`
+	UserID    int32              `json:"user_id"`
+	TokenHash string             `json:"token_hash"`
+	Purpose   TokenPurpose       `json:"purpose"`
+	Used      bool               `json:"used"`
+	ExpiresAt pgtype.Timestamptz `json:"expires_at"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
 }

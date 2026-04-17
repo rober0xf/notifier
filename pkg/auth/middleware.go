@@ -11,21 +11,43 @@ func AuthMiddleware(tokenGen TokenGenerator, cookieName string) gin.HandlerFunc 
 	return func(ctx *gin.Context) {
 		tokenString, err := extractToken(ctx, cookieName)
 		if err != nil {
-			ctx.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
-			ctx.Abort()
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 			return
 		}
 
 		// validate token
 		claims, err := tokenGen.Validate(tokenString)
 		if err != nil {
-			ctx.JSON(http.StatusUnauthorized, gin.H{"error": ErrInvalidToken})
-			ctx.Abort()
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": ErrInvalidToken.Error()})
 			return
 		}
 
 		ctx.Set("user_id", claims.UserID)
 		ctx.Set("email", claims.Email)
+		ctx.Set("role", claims.Role)
+		ctx.Next()
+	}
+}
+
+func AdminOnly() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		role, ok := ctx.Get("role")
+		if !ok {
+			ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": ErrRoleMissing.Error()})
+			return
+		}
+
+		roleStr, ok := role.(string)
+		if !ok {
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": ErrInvalidRole.Error()})
+			return
+		}
+
+		if roleStr != "admin" {
+			ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "forbidden"})
+			return
+		}
+
 		ctx.Next()
 	}
 }

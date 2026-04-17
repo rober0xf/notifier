@@ -23,58 +23,53 @@ func TestVerifyEmail(t *testing.T) {
 
 		email := "richard@gmail.com"
 		user := &entity.User{
-			ID:                    1,
-			Username:              "richard",
-			Email:                 email,
-			Password:              "hashedPassword",
-			Active:                false,
-			EmailVerificationHash: tokenHashString,
-			TokenExpiresAt:        time.Now().Add(24 * time.Hour),
+			ID:       1,
+			Username: "richard",
+			Email:    email,
+			PasswordHash: "hashedPassword",
+			IsActive:   false,
 		}
-		mockRepo.users[email] = user
-		mockRepo.users["1"] = user
+		mockRepo.tokens[tokenHashString] = &entity.UserToken{
+			ID:        1,
+			UserID:    1,
+			TokenHash: tokenHashString,
+			Purpose:   entity.TokenPurposeEmailVerification,
+			Used:      false,
+			ExpiresAt: time.Now().Add(24 * time.Hour),
+		}
+		mockRepo.users[1] = user
 
-		verifiedUser, err := uc.Execute(context.Background(), email, plainToken)
-
+		verifiedUser, err := uc.Execute(context.Background(), plainToken)
 		assert.NoError(t, err)
-		assert.True(t, verifiedUser.Active)
+		assert.True(t, verifiedUser.IsActive)
 
 		storedUser, err := mockRepo.GetUserByID(context.Background(), 1)
-
-		assert.True(t, storedUser.Active)
+		assert.True(t, storedUser.IsActive)
 	})
 
 	t.Run("returns error when token is invalid", func(t *testing.T) {
-		uc, mockRepo := setupVerifyEmailTest(t)
+		uc, _ := setupVerifyEmailTest(t)
 
-		realToken := "real_token"
-		tokenHash := sha256.Sum256([]byte(realToken))
-
-		email := "richard@gmail.com"
-		user := &entity.User{
-			ID:                    1,
-			Username:              "richard",
-			Email:                 email,
-			Active:                false,
-			EmailVerificationHash: hex.EncodeToString(tokenHash[:]),
-			TokenExpiresAt:        time.Now().Add(24 * time.Hour),
-		}
-		mockRepo.users[email] = user
-		mockRepo.users["1"] = user
-
-		wrongToken := "wrong_token"
-		_, err := uc.Execute(context.Background(), email, wrongToken)
-
-		assert.Error(t, err)
+		_, err := uc.Execute(context.Background(), "wrong_token")
 		assert.ErrorIs(t, err, auth.ErrInvalidToken)
 	})
 
 	t.Run("returns error when user not found", func(t *testing.T) {
-		uc, _ := setupVerifyEmailTest(t)
+		uc, mockRepo := setupVerifyEmailTest(t)
+		plainToken := "plain_token"
+		tokenHash := sha256.Sum256([]byte(plainToken))
+		tokenHashString := hex.EncodeToString(tokenHash[:])
 
-		_, err := uc.Execute(context.Background(), "notfound@gmail.com", "no_token")
+		mockRepo.tokens[tokenHashString] = &entity.UserToken{
+			ID:        1,
+			UserID:    1,
+			TokenHash: tokenHashString,
+			Purpose:   entity.TokenPurposeEmailVerification,
+			Used:      false,
+			ExpiresAt: time.Now().Add(24 * time.Hour),
+		}
 
-		assert.Error(t, err)
+		_, err := uc.Execute(context.Background(), plainToken)
 		assert.ErrorIs(t, err, domainErr.ErrUserNotFound)
 	})
 }

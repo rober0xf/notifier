@@ -27,6 +27,8 @@ type TestPaymentDependencies struct {
 	userRepo    payment.UserIDGetter
 }
 
+type MockGoogleVerifier struct{}
+
 func setupTestDependencies(t *testing.T) (*TestUserDependencies, *TestPaymentDependencies) {
 	t.Helper()
 
@@ -49,6 +51,8 @@ func setupTestDependencies(t *testing.T) (*TestUserDependencies, *TestPaymentDep
 	updateUserUC := user.NewUpdateUserUseCase(userRepo)
 	verifyEmailUC := user.NewVerifyEmailUseCase(userRepo)
 	deleteUserUC := user.NewDeleteUserUseCase(userRepo)
+	oauthUC := user.NewOAuthUseCase(userRepo, tokenGen)
+	googleVerifier := &MockGoogleVerifier{}
 
 	userHandler := http.NewUserHandler(
 		createUserUC,
@@ -59,7 +63,8 @@ func setupTestDependencies(t *testing.T) (*TestUserDependencies, *TestPaymentDep
 		updateUserUC,
 		deleteUserUC,
 		verifyEmailUC,
-		tokenGen,
+		oauthUC,
+		googleVerifier,
 	)
 
 	createPaymentUC := payment.NewCreatePaymentUseCase(paymentRepo)
@@ -91,4 +96,12 @@ func setupTestDependencies(t *testing.T) (*TestUserDependencies, *TestPaymentDep
 			paymentRepo: paymentRepo,
 			userRepo:    userRepo,
 		}
+}
+
+func (m *MockGoogleVerifier) Verify(idToken string) (*auth.GoogleUser, error) {
+	return &auth.GoogleUser{
+		Sub:   "test-google-id",
+		Email: "test@example.com",
+		Name:  "Test User",
+	}, nil
 }

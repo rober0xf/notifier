@@ -19,11 +19,11 @@ func TestGetUserByEmail(t *testing.T) {
 			ID:       1,
 			Email:    email,
 			Username: "pied",
-			Password: "password123!-#",
-			Active:   true,
+			PasswordHash: "password123!-#",
+			IsActive: true,
 		}
-		mockRepo.users[email] = expectedUser
-		mockRepo.users["1"] = expectedUser
+		mockRepo.emails[email] = expectedUser
+		mockRepo.users[1] = expectedUser
 
 		user, err := uc.Execute(context.Background(), email)
 

@@ -6,4 +6,6 @@ const (
 	BearerPrefix         = "Bearer "
 	SessionCookieName    = "session_token"
 	AuthHeaderName       = "Authorization"
+	RoleAdmin            = "admin"
+	RolUser              = "user"
 )

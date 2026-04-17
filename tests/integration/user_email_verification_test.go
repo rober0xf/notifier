@@ -23,17 +23,25 @@ func TestVerification_Success_Integration(t *testing.T) {
 	tokenHash := hex.EncodeToString(hash[:])
 
 	user := &entity.User{
-		Username:              "rober0xf",
-		Email:                 "rober0xf@gmail.com",
-		Password:              "hashedpassword",
-		Active:                false,
-		EmailVerificationHash: tokenHash,
-		TokenExpiresAt:        time.Now().Add(24 * time.Hour),
+		Username:     "rober0xf",
+		Email:        "rober0xf@gmail.com",
+		PasswordHash: "hashedpassword",
+		IsActive:     false,
 	}
-	err := deps.userRepo.CreateUser(context.Background(), user)
+	_, err := deps.userRepo.CreateUser(context.Background(), user)
 	require.NoError(t, err)
 
-	req := httptest.NewRequest("GET", "/v1/users/email_verification/"+user.Email+"/"+token, nil)
+	_, err = deps.userRepo.CreateUserToken(
+		context.Background(),
+		&entity.UserToken{
+			UserID:    user.ID,
+			TokenHash: tokenHash,
+			Purpose:   entity.TokenPurposeEmailVerification,
+			ExpiresAt: time.Now().Add(24 * time.Hour),
+		})
+	require.NoError(t, err)
+
+	req := httptest.NewRequest("GET", "/v1/users/email_verification/"+token, nil)
 	w := httptest.NewRecorder()
 	deps.router.ServeHTTP(w, req)
 	require.Equal(t, http.StatusOK, w.Code)
@@ -45,21 +53,21 @@ func TestVerification_Success_Integration(t *testing.T) {
 
 	updatedUser, err := deps.userRepo.GetUserByEmail(context.Background(), "rober0xf@gmail.com")
 	require.NoError(t, err)
-	assert.True(t, updatedUser.Active)
+	assert.True(t, updatedUser.IsActive)
 }
 
 func TestVerification_NotFound_Integration(t *testing.T) {
 	deps, _ := setupTestDependencies(t)
 
-	req := httptest.NewRequest("GET", "/v1/users/email_verification/test@gmail.com/abcd", nil)
+	req := httptest.NewRequest("GET", "/v1/users/email_verification/abcd", nil)
 	w := httptest.NewRecorder()
 	deps.router.ServeHTTP(w, req)
-	require.Equal(t, http.StatusNotFound, w.Code)
+	require.Equal(t, http.StatusUnauthorized, w.Code)
 
 	var response map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	require.NoError(t, err)
-	assert.Equal(t, "user not found", response["error"])
+	assert.Equal(t, "invalid or expired token", response["error"])
 }
 
 func TestVerification_Expired_Integration(t *testing.T) {
@@ -70,17 +78,26 @@ func TestVerification_Expired_Integration(t *testing.T) {
 	tokenHash := hex.EncodeToString(hash[:])
 
 	user := &entity.User{
-		Username:              "rober0xf",
-		Email:                 "rober0xf@gmail.com",
-		Password:              "hashedpassword",
-		Active:                false,
-		EmailVerificationHash: tokenHash,
-		TokenExpiresAt:        time.Now().Add(-1 * time.Hour),
+		Username:     "rober0xf",
+		Email:        "rober0xf@gmail.com",
+		PasswordHash: "hashedpassword",
+		IsActive:     false,
 	}
-	err := deps.userRepo.CreateUser(context.Background(), user)
+	_, err := deps.userRepo.CreateUser(context.Background(), user)
 	require.NoError(t, err)
 
-	req := httptest.NewRequest("GET", "/v1/users/email_verification/"+user.Email+"/"+token, nil)
+	// in the past
+	_, err = deps.userRepo.CreateUserToken(
+		context.Background(),
+		&entity.UserToken{
+			UserID:    user.ID,
+			TokenHash: tokenHash,
+			Purpose:   entity.TokenPurposeEmailVerification,
+			ExpiresAt: time.Now().Add(-1 * time.Hour),
+		})
+	require.NoError(t, err)
+
+	req := httptest.NewRequest("GET", "/v1/users/email_verification/"+token, nil)
 	w := httptest.NewRecorder()
 	deps.router.ServeHTTP(w, req)
 	require.Equal(t, http.StatusBadRequest, w.Code)
@@ -99,20 +116,29 @@ func TestVerification_AlreadyVerified_Integration(t *testing.T) {
 	tokenHash := hex.EncodeToString(hash[:])
 
 	user := &entity.User{
-		Username:              "rober0xf",
-		Email:                 "rober0xf@gmail.com",
-		Password:              "hashedpassword",
-		Active:                false,
-		EmailVerificationHash: tokenHash,
-		TokenExpiresAt:        time.Now().Add(24 * time.Hour),
+		Username:     "rober0xf",
+		Email:        "rober0xf@gmail.com",
+		PasswordHash: "hashedpassword",
+		IsActive:     false,
 	}
-	err := deps.userRepo.CreateUser(context.Background(), user)
+	_, err := deps.userRepo.CreateUser(context.Background(), user)
 	require.NoError(t, err)
 
-	err = deps.userRepo.UpdateUserActive(context.Background(), user.ID, true)
+	_, err = deps.userRepo.CreateUserToken(
+		context.Background(),
+		&entity.UserToken{
+			UserID:    user.ID,
+			TokenHash: tokenHash,
+			Purpose:   entity.TokenPurposeEmailVerification,
+			ExpiresAt: time.Now().Add(24 * time.Hour),
+		})
 	require.NoError(t, err)
 
-	req := httptest.NewRequest("GET", "/v1/users/email_verification/"+user.Email+"/"+token, nil)
+	// activate before trying to verify again
+	_, err = deps.userRepo.UpdateUserIsActiveReturning(context.Background(), user.ID, true)
+	require.NoError(t, err)
+
+	req := httptest.NewRequest("GET", "/v1/users/email_verification/"+token, nil)
 	w := httptest.NewRecorder()
 	deps.router.ServeHTTP(w, req)
 	require.Equal(t, http.StatusConflict, w.Code)

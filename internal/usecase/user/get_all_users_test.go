@@ -3,7 +3,6 @@ package user_test
 import (
 	"context"
 	"errors"
-	"strconv"
 	"testing"
 
 	"github.com/rober0xf/notifier/internal/domain/entity"
@@ -15,14 +14,14 @@ func TestGetAllUsers(t *testing.T) {
 		uc, mockRepo := setupGetAllUsersTest(t)
 
 		users := []*entity.User{
-			{ID: 1, Email: "user1@test.com", Username: "user1", Active: true},
-			{ID: 2, Email: "user2@test.com", Username: "user2", Active: true},
-			{ID: 3, Email: "user3@test.com", Username: "user3", Active: false},
+			{ID: 1, Email: "user1@test.com", Username: "user1", IsActive: true},
+			{ID: 2, Email: "user2@test.com", Username: "user2", IsActive: true},
+			{ID: 3, Email: "user3@test.com", Username: "user3", IsActive: false},
 		}
 
 		for _, u := range users {
-			mockRepo.users[u.Email] = u
-			mockRepo.users[strconv.Itoa(u.ID)] = u
+			mockRepo.emails[u.Email] = u
+			mockRepo.users[u.ID] = u
 		}
 
 		result, err := uc.Execute(context.Background())
@@ -54,13 +53,13 @@ func TestGetAllUsers(t *testing.T) {
 	t.Run("returns users with different status", func(t *testing.T) {
 		uc, mockRepo := setupGetAllUsersTest(t)
 
-		activeUser := &entity.User{ID: 1, Email: "active@test.com", Username: "active", Active: true}
-		inactiveUser := &entity.User{ID: 2, Email: "inactive@test.com", Username: "inactive", Active: false}
+		activeUser := &entity.User{ID: 1, Email: "active@test.com", Username: "active", IsActive: true}
+		inactiveUser := &entity.User{ID: 2, Email: "inactive@test.com", Username: "inactive", IsActive: false}
 
-		mockRepo.users["active@test.com"] = activeUser
-		mockRepo.users["1"] = activeUser
-		mockRepo.users["inactive@test.com"] = inactiveUser
-		mockRepo.users["2"] = inactiveUser
+		mockRepo.emails["active@test.com"] = activeUser
+		mockRepo.users[1] = activeUser
+		mockRepo.emails["inactive@test.com"] = inactiveUser
+		mockRepo.users[2] = inactiveUser
 
 		users, err := uc.Execute(context.Background())
 
@@ -69,7 +68,7 @@ func TestGetAllUsers(t *testing.T) {
 
 		var hasActive, hasInactive bool
 		for _, u := range users {
-			if u.Active {
+			if u.IsActive {
 				hasActive = true
 			} else {
 				hasInactive = true

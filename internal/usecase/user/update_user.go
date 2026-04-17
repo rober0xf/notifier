@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/rober0xf/notifier/internal/domain/entity"
 	domainErr "github.com/rober0xf/notifier/internal/domain/errors"
@@ -29,17 +30,13 @@ type UpdateUserInput struct {
 }
 
 func (uc *UpdateUserUseCase) Execute(ctx context.Context, input UpdateUserInput) (*entity.User, error) {
-	if input.ID <= 0 {
-		return nil, domainErr.ErrInvalidUserData
-	}
-
 	existingUser, err := uc.userRepo.GetUserByID(ctx, input.ID)
 	if err != nil {
 		if errors.Is(err, repoErr.ErrNotFound) {
 			return nil, domainErr.ErrUserNotFound
 		}
 
-		return nil, err
+		return nil, fmt.Errorf("UpdateUserUC.Execute failed to get user by id: %w", err)
 	}
 
 	profileChanged := false
@@ -55,7 +52,7 @@ func (uc *UpdateUserUseCase) Execute(ctx context.Context, input UpdateUserInput)
 	if input.Email != nil &&
 		*input.Email != "" &&
 		*input.Email != existingUser.Email {
-		if err := ValidateEmailFormat(*input.Email); err != nil {
+		if err := ValidateEmail(*input.Email, nil); err != nil {
 			return nil, domainErr.ErrInvalidEmailFormat
 		}
 
@@ -63,26 +60,39 @@ func (uc *UpdateUserUseCase) Execute(ctx context.Context, input UpdateUserInput)
 		profileChanged = true
 	}
 
-	if input.Password != nil &&
-		*input.Password != "" {
-		hashedPassword, err := auth.HashPassword(*input.Password)
-		if err != nil {
-			return nil, domainErr.ErrPasswordHashing
+	if input.Password != nil && *input.Password != "" {
+		if auth.VerifyPassword(existingUser.Username, *input.Password) {
+			return nil, domainErr.ErrInvalidPassword
 		}
 
-		existingUser.Password = hashedPassword
+		hashedPassword, err := auth.HashPassword(*input.Password)
+		if err != nil {
+			return nil, fmt.Errorf("UpdateUserUC.Execute failed to hash password: %w", err)
+		}
+
+		existingUser.PasswordHash = hashedPassword
 		passwordChanged = true
 	}
 
 	if profileChanged {
 		if err := uc.userRepo.UpdateUserProfile(ctx, existingUser.ID, existingUser.Username, existingUser.Email); err != nil {
-			return nil, err
+			switch {
+			case errors.Is(err, repoErr.ErrNotFound):
+				return nil, domainErr.ErrUserNotFound
+			default:
+				return nil, fmt.Errorf("UpdateUserUC.Execute failed to update user profile: %w", err)
+			}
 		}
 	}
 
 	if passwordChanged {
-		if err := uc.userRepo.UpdateUserPassword(ctx, existingUser.ID, existingUser.Password); err != nil {
-			return nil, err
+		if err := uc.userRepo.UpdateUserPassword(ctx, existingUser.ID, existingUser.PasswordHash); err != nil {
+			switch {
+			case errors.Is(err, repoErr.ErrNotFound):
+				return nil, domainErr.ErrUserNotFound
+			default:
+				return nil, fmt.Errorf("UpdateUserUC.Execute failed to update user password: %w", err)
+			}
 		}
 	}
 

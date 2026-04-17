@@ -2,33 +2,28 @@ package postgres
 
 import (
 	"fmt"
-	"time"
+	"math/rand"
+	"strings"
 
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/rober0xf/notifier/internal/domain/entity"
 	database "github.com/rober0xf/notifier/internal/infraestructure/persistance/postgres/sqlc_generated"
 )
 
+func generateUsername(email string) string {
+	base, _, _ := strings.Cut(email, "@")
+	n := rand.Intn(1000)
+	return fmt.Sprintf("%s_%d", base, n)
+}
+
 func databaseToDomainUser(dbUser *database.User) *entity.User {
-	var hash string
-	if dbUser.EmailVerificationHash.Valid {
-		hash = dbUser.EmailVerificationHash.String
-	}
-
-	var expiresAt time.Time
-	if dbUser.TokenExpiresAt.Valid {
-		expiresAt = dbUser.TokenExpiresAt.Time
-	}
-
 	return &entity.User{
-		ID:                    int(dbUser.ID),
-		Username:              dbUser.Username,
-		Email:                 dbUser.Email,
-		Password:              dbUser.Password,
-		Active:                dbUser.Active,
-		EmailVerificationHash: hash,
-		CreatedAt:             dbUser.CreatedAt.Time,
-		TokenExpiresAt:        expiresAt,
+		ID:        int(dbUser.ID),
+		Username:  dbUser.Username,
+		Email:     dbUser.Email,
+		PasswordHash:  dbUser.PasswordHash.String,
+		IsActive:  dbUser.IsActive,
+		CreatedAt: dbUser.CreatedAt.Time,
 	}
 }
 

@@ -21,14 +21,14 @@ func TestUpdateUserProfile(t *testing.T) {
 		hashedPassword, _ := auth.HashPassword("password123#!%")
 
 		originalUser := &entity.User{
-			ID:       1,
-			Username: "original username",
-			Email:    originalEmail,
-			Password: hashedPassword,
-			Active:   true,
+			ID:           1,
+			Username:     "original username",
+			Email:        originalEmail,
+			PasswordHash: hashedPassword,
+			IsActive:     true,
 		}
-		mockRepo.users[originalEmail] = originalUser
-		mockRepo.users["1"] = originalUser
+		mockRepo.emails[originalEmail] = originalUser
+		mockRepo.users[1] = originalUser
 
 		// updated data
 		input := user.UpdateUserInput{
@@ -40,7 +40,7 @@ func TestUpdateUserProfile(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, "username changed", updatedUser.Username)
 		assert.Equal(t, "changed@gmail.com", updatedUser.Email)
-		assert.Equal(t, hashedPassword, updatedUser.Password)
+		assert.Equal(t, hashedPassword, updatedUser.PasswordHash)
 
 		getUserByEmail := user.NewGetUserByEmailUseCase(mockRepo)
 		_, err = getUserByEmail.Execute(context.Background(), originalEmail)
@@ -52,14 +52,14 @@ func TestUpdateUserProfile(t *testing.T) {
 
 		email := "richard@gmail.com"
 		usr := &entity.User{
-			ID:       1,
-			Username: "old username",
-			Email:    email,
-			Password: "hashedpassword",
-			Active:   true,
+			ID:           1,
+			Username:     "old username",
+			Email:        email,
+			PasswordHash: "hashedpassword",
+			IsActive:     true,
 		}
-		mockRepo.users[email] = usr
-		mockRepo.users["1"] = usr
+		mockRepo.emails[email] = usr
+		mockRepo.users[1] = usr
 
 		input := user.UpdateUserInput{
 			ID:       1,
@@ -96,14 +96,14 @@ func TestUpdateUserPassword(t *testing.T) {
 		email := "richard@gmail.com"
 
 		usr := &entity.User{
-			ID:       1,
-			Username: "richard",
-			Email:    email,
-			Password: oldHashedPassword,
-			Active:   true,
+			ID:           1,
+			Username:     "richard",
+			Email:        email,
+			PasswordHash: oldHashedPassword,
+			IsActive:     true,
 		}
-		mockRepo.users[email] = usr
-		mockRepo.users["1"] = usr
+		mockRepo.emails[email] = usr
+		mockRepo.users[1] = usr
 
 		newPassword, _ := auth.HashPassword("newPassword123#!-")
 		input := user.UpdateUserInput{
@@ -114,10 +114,10 @@ func TestUpdateUserPassword(t *testing.T) {
 		updatedUser, err := uc.Execute(context.Background(), input)
 
 		assert.NoError(t, err)
-		assert.NotEqual(t, oldHashedPassword, updatedUser.Password)
-		assert.NotEqual(t, newPassword, updatedUser.Password)
+		assert.NotEqual(t, oldHashedPassword, updatedUser.PasswordHash)
+		assert.NotEqual(t, newPassword, updatedUser.PasswordHash)
 
-		isValid := auth.VerifyPassword(newPassword, updatedUser.Password)
+		isValid := auth.VerifyPassword(newPassword, updatedUser.PasswordHash)
 		assert.True(t, isValid)
 	})
 }

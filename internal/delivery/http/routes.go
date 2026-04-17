@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/rober0xf/notifier/pkg/auth"
 )
 
 func SetupRoutes(userHandler *UserHandler, paymentHandler *PaymentHandler, authMiddleware gin.HandlerFunc) *gin.Engine {
@@ -20,11 +21,14 @@ func SetupRoutes(userHandler *UserHandler, paymentHandler *PaymentHandler, authM
 	}))
 
 	v1 := r.Group("/v1")
-
-	setupPublicUsersRoutes(v1, userHandler)
-
+	admin := v1.Group("/admin")
 	protected := v1.Group("/auth")
+
 	protected.Use(authMiddleware)
+	admin.Use(authMiddleware, auth.AdminOnly())
+
+	setupAdminOnlyRoutes(admin, userHandler, paymentHandler)
+	setupPublicUsersRoutes(v1, userHandler)
 	setupProtectedUsersRoutes(protected, userHandler)
 	setupPaymentsRoutes(protected, paymentHandler)
 
@@ -40,29 +44,33 @@ func SetupRoutes(userHandler *UserHandler, paymentHandler *PaymentHandler, authM
 func setupPublicUsersRoutes(v1 *gin.RouterGroup, userHandler *UserHandler) {
 	users := v1.Group("/users")
 
-	users.GET("", userHandler.GetAll)
-	users.GET("/email_verification/:email/:hash", userHandler.GetVerificationEmail)
+	users.GET("/email_verification/:token", userHandler.VerifyEmail)
 	users.POST("/register", userHandler.Create)
 	users.POST("/login", userHandler.Login)
+	users.POST("/login/google", userHandler.GoogleLogin)
 }
 
-func setupProtectedUsersRoutes(protected *gin.RouterGroup, userHandler *UserHandler) {
-	users := protected.Group("/users")
+func setupProtectedUsersRoutes(protected *gin.RouterGroup, userHandler *UserHandler) {}
 
-	users.GET("/email", userHandler.GetByEmailEmpty)
+func setupAdminOnlyRoutes(admin *gin.RouterGroup, userHandler *UserHandler, paymentHandler *PaymentHandler) {
+	users := admin.Group("/users")
+	payments := admin.Group("/payments")
+
+	users.GET("", userHandler.GetAll)
 	users.GET("/email/:email", userHandler.GetByEmail)
 	users.GET("/:id", userHandler.GetByID)
 	users.PUT("/:id", userHandler.Update)
 	users.DELETE("/:id", userHandler.Delete)
+
+	payments.GET("", paymentHandler.GetAllPayments)
+	payments.GET("/user/:id", paymentHandler.GetAllPaymentsFromUser)
+	payments.GET("/:id", paymentHandler.GetPaymentByID)
+	payments.PUT("/:id", paymentHandler.UpdatePayment)
+	payments.DELETE("/:id", paymentHandler.DeletePayment)
 }
 
 func setupPaymentsRoutes(protected *gin.RouterGroup, paymentHandler *PaymentHandler) {
 	payments := protected.Group("/payments")
 
-	payments.GET("/", paymentHandler.GetAllPayments)
 	payments.POST("", paymentHandler.CreatePayment)
-	payments.GET("/user/:id", paymentHandler.GetAllPaymentsFromUser)
-	payments.GET("/:id", paymentHandler.GetPaymentByID)
-	payments.PUT("/:id", paymentHandler.UpdatePayment)
-	payments.DELETE("/:id", paymentHandler.DeletePayment)
 }

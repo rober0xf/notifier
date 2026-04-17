@@ -80,7 +80,7 @@ func (h *PaymentHandler) GetAllPaymentsFromUser(c *gin.Context) {
 func (h *PaymentHandler) GetAllPayments(c *gin.Context) {
 	payments, err := h.getAllPaymentsUC.Execute(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": domainErr.ErrInternalServerError.Error()})
 		return
 	}
 

@@ -127,7 +127,7 @@ func SendPaymentAlert(title string, target_date time.Time) error {
 
 	for email, val := range list_payments {
 		log.Printf("trying to send email to: %s", email)
-		if err := ms.Send([]string{email}, title, bodyMessage+val); err != nil {
+		if err := ms.Send(ctx, []string{email}, title, bodyMessage+val); err != nil {
 			log.Printf("error sending email to %s: %v", email, err)
 			emails_failed++
 		} else {

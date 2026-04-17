@@ -1,5 +1,7 @@
 package entity
 
+import "slices"
+
 type TransactionType string
 
 const (
@@ -8,10 +10,12 @@ const (
 	TransactionTypeSubscription TransactionType = "subscription"
 )
 
+var AllTransactionTypes = []TransactionType{
+	TransactionTypeExpense,
+	TransactionTypeIncome,
+	TransactionTypeSubscription,
+}
+
 func (t TransactionType) IsValid() bool {
-	switch t {
-	case TransactionTypeExpense, TransactionTypeIncome, TransactionTypeSubscription:
-		return true
-	}
-	return false
+	return slices.Contains(AllTransactionTypes, t)
 }

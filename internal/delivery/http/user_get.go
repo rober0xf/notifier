@@ -2,6 +2,7 @@ package http
 
 import (
 	"errors"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -16,7 +17,7 @@ func (h *UserHandler) GetByID(c *gin.Context) {
 
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user data"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
 
@@ -28,9 +29,12 @@ func (h *UserHandler) GetByID(c *gin.Context) {
 	user, err := h.getUserByIDUC.Execute(c.Request.Context(), id)
 	if err != nil {
 		switch {
+		case errors.Is(err, domainErr.ErrInvalidUserData):
+			c.JSON(http.StatusNotFound, gin.H{"error": "invalid user data"})
 		case errors.Is(err, domainErr.ErrUserNotFound):
 			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
 		default:
+			slog.ErrorContext(c.Request.Context(), "failed to get user by id", "error", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		}
 
@@ -40,15 +44,17 @@ func (h *UserHandler) GetByID(c *gin.Context) {
 	c.JSON(http.StatusOK, toUserResponse(user))
 }
 
-func (h *UserHandler) GetByEmailEmpty(c *gin.Context) {
-	c.JSON(http.StatusBadRequest, gin.H{"error": "email parameter required"})
-}
-
 func (h *UserHandler) GetByEmail(c *gin.Context) {
 	email := c.Param("email")
 
+	if email == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "email is required"})
+		return
+	}
+
 	user, err := h.getUserByEmailUC.Execute(c.Request.Context(), email)
 	if err != nil {
+		slog.ErrorContext(c.Request.Context(), "failed to get user by email", "error", err)
 		switch {
 		case errors.Is(err, domainErr.ErrInvalidEmailFormat):
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid email format"})
@@ -67,6 +73,7 @@ func (h *UserHandler) GetByEmail(c *gin.Context) {
 func (h *UserHandler) GetAll(c *gin.Context) {
 	users, err := h.getAllUsersUC.Execute(c.Request.Context())
 	if err != nil {
+		slog.ErrorContext(c.Request.Context(), "failed to get all users", "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
@@ -84,6 +91,6 @@ func toUserResponse(user *entity.User) dto.UserResponse {
 		ID:       user.ID,
 		Username: user.Username,
 		Email:    user.Email,
-		Active:   user.Active,
+		Active:   user.IsActive,
 	}
 }

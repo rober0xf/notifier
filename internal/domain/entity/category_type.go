@@ -1,5 +1,7 @@
 package entity
 
+import "slices"
+
 type CategoryType string
 
 const (
@@ -11,10 +13,15 @@ const (
 	CategoryTypeSports        CategoryType = "sports"
 )
 
+var AllCategoryTypes = []CategoryType{
+	CategoryTypeElectronics,
+	CategoryTypeEntertainment,
+	CategoryTypeEducation,
+	CategoryTypeClothing,
+	CategoryTypeWork,
+	CategoryTypeSports,
+}
+
 func (c CategoryType) IsValid() bool {
-	switch c {
-	case CategoryTypeElectronics, CategoryTypeEntertainment, CategoryTypeEducation, CategoryTypeClothing, CategoryTypeWork, CategoryTypeSports:
-		return true
-	}
-	return false
+	return slices.Contains(AllCategoryTypes, c)
 }

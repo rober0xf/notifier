@@ -2,11 +2,10 @@ package user
 
 import (
 	"context"
-	"errors"
+	"fmt"
 
 	"github.com/rober0xf/notifier/internal/domain/entity"
 	"github.com/rober0xf/notifier/internal/domain/repository"
-	repoErr "github.com/rober0xf/notifier/internal/infraestructure/errors"
 )
 
 type GetAllUsersUseCase struct {
@@ -22,11 +21,7 @@ func NewGetAllUsersUseCase(userRepo repository.UserRepository) *GetAllUsersUseCa
 func (uc *GetAllUsersUseCase) Execute(ctx context.Context) ([]entity.User, error) {
 	users, err := uc.userRepo.GetAllUsers(ctx)
 	if err != nil {
-		if errors.Is(err, repoErr.ErrNotFound) {
-			return []entity.User{}, nil // return empty list
-		}
-
-		return nil, err
+		return nil, fmt.Errorf("GetAllUsersUC.Execute failed to get all users: %w", err)
 	}
 
 	return users, nil

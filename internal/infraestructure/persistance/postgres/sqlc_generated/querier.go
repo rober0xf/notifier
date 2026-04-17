@@ -6,23 +6,33 @@ package database
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Querier interface {
+	CreateOAuthUser(ctx context.Context, arg CreateOAuthUserParams) (User, error)
 	CreatePayment(ctx context.Context, arg CreatePaymentParams) (Payment, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
+	CreateUserToken(ctx context.Context, arg CreateUserTokenParams) (UserToken, error)
+	DeleteByUserAndPurpose(ctx context.Context, arg DeleteByUserAndPurposeParams) error
+	DeleteOldTokens(ctx context.Context) (int64, error)
 	DeletePayment(ctx context.Context, id int32) (int64, error)
 	DeleteUser(ctx context.Context, id int32) (int64, error)
 	GetAllPayments(ctx context.Context) ([]Payment, error)
 	GetAllPaymentsFromUser(ctx context.Context, userID int32) ([]Payment, error)
-	GetAllUsers(ctx context.Context) ([]User, error)
+	GetAllUsers(ctx context.Context, arg GetAllUsersParams) ([]User, error)
 	GetPaymentByID(ctx context.Context, id int32) (Payment, error)
+	GetTokenByHash(ctx context.Context, arg GetTokenByHashParams) (UserToken, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
+	GetUserByGoogleID(ctx context.Context, googleID pgtype.Text) (User, error)
 	GetUserByID(ctx context.Context, id int32) (User, error)
 	UpdatePayment(ctx context.Context, arg UpdatePaymentParams) (int64, error)
-	UpdateUserActive(ctx context.Context, arg UpdateUserActiveParams) (int64, error)
+	UpdateUserGoogleID(ctx context.Context, arg UpdateUserGoogleIDParams) (int64, error)
+	UpdateUserIsActiveReturning(ctx context.Context, arg UpdateUserIsActiveReturningParams) (User, error)
 	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) (int64, error)
 	UpdateUserProfile(ctx context.Context, arg UpdateUserProfileParams) (int64, error)
+	VerifyAndConsumeToken(ctx context.Context, arg VerifyAndConsumeTokenParams) (UserToken, error)
 }
 
 var _ Querier = (*Queries)(nil)

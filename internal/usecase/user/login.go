@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/rober0xf/notifier/internal/domain/entity"
 	"github.com/rober0xf/notifier/internal/domain/repository"
@@ -23,20 +24,29 @@ func NewLoginUseCase(
 	}
 }
 
-func (uc *LoginUseCase) Execute(ctx context.Context, email, password string) (string, *entity.User, error) {
+type LoginOutput struct {
+	Token string
+	User  *entity.User
+}
+
+func (uc *LoginUseCase) Execute(ctx context.Context, email, password string) (*LoginOutput, error) {
 	user, err := uc.userRepo.GetUserByEmail(ctx, email)
 	if err != nil {
-		return "", nil, auth.ErrInvalidCredentials
+		return nil, auth.ErrInvalidCredentials
 	}
 
-	if !auth.VerifyPassword(password, user.Password) {
-		return "", nil, auth.ErrInvalidCredentials
+	if !auth.VerifyPassword(user.PasswordHash, password) {
+		return nil, auth.ErrInvalidCredentials
 	}
 
-	token, err := uc.tokenGen.Generate(user.ID, user.Email)
+	if !user.IsActive {
+		return nil, auth.ErrEmailNotVerified
+	}
+
+	token, err := uc.tokenGen.Generate(user.ID, user.Email, user.Role)
 	if err != nil {
-		return "", nil, err
+		return nil, fmt.Errorf("LoginUC.Execute failed to generate token: %w", err)
 	}
 
-	return token, user, nil
+	return &LoginOutput{Token: token, User: user}, nil
 }

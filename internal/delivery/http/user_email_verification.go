@@ -2,32 +2,23 @@ package http
 
 import (
 	"errors"
+	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	domainErr "github.com/rober0xf/notifier/internal/domain/errors"
 	authErr "github.com/rober0xf/notifier/pkg/auth"
 )
 
-func (h *UserHandler) GetVerificationEmail(c *gin.Context) {
-	email := c.Param("email")
-	token := c.Param("hash")
+func (h *UserHandler) VerifyEmail(c *gin.Context) {
+	token := c.Param("token")
 
-	if email == "" || token == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid verification link"})
-		return
-	}
-
-	user, err := h.verifyEmailUC.Execute(c.Request.Context(), email, token)
+	user, err := h.verifyEmailUC.Execute(c.Request.Context(), token)
 	if err != nil {
 		switch {
-		case errors.Is(err, domainErr.ErrUserNotFound):
-			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
 		case errors.Is(err, authErr.ErrInvalidToken):
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid or expired verification link"})
-		case errors.Is(err, domainErr.ErrAlreadyVerified):
-			c.JSON(http.StatusConflict, gin.H{"error": "email already verified"})
+			c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "invalid or expired verification link"})
 		default:
+			slog.ErrorContext(c.Request.Context(), "failed to verify user", "error", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		}
 

@@ -39,6 +39,10 @@ func (uc *GetAllPaymentsFromUserUseCase) Execute(ctx context.Context, userID int
 		return nil, err
 	}
 
+	if !foundUser.IsActive {
+		return nil, domainErr.ErrUserNotVerified
+	}
+
 	payments, err := uc.paymentRepo.GetAllPaymentsFromUser(ctx, foundUser.ID)
 	if err != nil {
 		if errors.Is(err, repoErr.ErrNotFound) {

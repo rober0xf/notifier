@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"log"
 	"net/url"
+	"time"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
+	"github.com/rober0xf/notifier/internal/domain/repository"
 
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -62,27 +64,24 @@ func InitPostgres() (*pgxpool.Pool, error) {
 	return pool, nil
 }
 
-// func ConnectSQLite() (*gorm.DB, error) {
-// 	database_path, err := filepath.Abs("./database.db")
-// 	if err != nil {
-// 		return nil, fmt.Errorf("could not read database path: %v", err)
-// 	}
-//
-// 	db, err := gorm.Open(sqlite.Open(database_path), &gorm.Config{})
-// 	if err != nil {
-// 		return nil, fmt.Errorf("failed to connecto to the database: %v", err)
-// 	}
-// 	fmt.Println("connected to sqlite")
-//
-// 	err = db.AutoMigrate(
-// 		&domain.User{},
-// 		&domain.Payment{},
-// 	)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("failed to migrate models: %v", err)
-// 	}
-//
-// 	fmt.Println("schema migrated")
-//
-// 	return db, nil
-// }
+func StartTokenCleanJob(ctx context.Context, userRepo repository.UserRepository) {
+	ticker := time.NewTicker(24 * time.Hour)
+	go func() {
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				deleted, err := userRepo.DeleteOldTokens(ctx)
+				if err != nil {
+					log.Printf("token cleanup failed: %v", err)
+					continue
+				}
+				log.Printf("cleaned up %d expired tokens", deleted)
+
+			case <-ctx.Done():
+				log.Println("cleaned up finished")
+				return
+			}
+		}
+	}()
+}

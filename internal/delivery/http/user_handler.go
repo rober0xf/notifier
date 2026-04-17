@@ -14,7 +14,8 @@ type UserHandler struct {
 	updateUserUC     *user.UpdateUserUseCase
 	deleteUserUC     *user.DeleteUserUseCase
 	verifyEmailUC    *user.VerifyEmailUseCase
-	tokenGen         auth.TokenGenerator
+	oauthUC          *user.GoogleOAuthUseCase
+	googleVerifier   auth.GoogleVerifier
 }
 
 func NewUserHandler(
@@ -26,7 +27,8 @@ func NewUserHandler(
 	updateUserUC *user.UpdateUserUseCase,
 	deleteUserUC *user.DeleteUserUseCase,
 	verifyEmailUC *user.VerifyEmailUseCase,
-	tokenGen auth.TokenGenerator,
+	oauthUC *user.GoogleOAuthUseCase,
+	googleVerifier auth.GoogleVerifier,
 ) *UserHandler {
 	return &UserHandler{
 		createUserUC:     createUserUC,
@@ -37,6 +39,7 @@ func NewUserHandler(
 		updateUserUC:     updateUserUC,
 		deleteUserUC:     deleteUserUC,
 		verifyEmailUC:    verifyEmailUC,
-		tokenGen:         tokenGen,
+		oauthUC:          oauthUC,
+		googleVerifier:   googleVerifier,
 	}
 }

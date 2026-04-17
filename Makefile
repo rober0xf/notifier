@@ -1,4 +1,6 @@
 .PHONY: help up down build logs restart clean test lint
+include .env
+export
 
 help:
 	@echo "Available commands:"
@@ -33,3 +35,15 @@ test:
 
 lint:
 	cd notifier-backend && golangci-lint run ./...
+
+migrate-up:
+	migrate -path ./migrations -database "$(DATABASE_URL)" up
+
+migrate-down:
+	migrate -path ./migrations -database "$(DATABASE_URL)" down
+
+migrate-create:
+	migrate create -ext sql -dir migrations -seq $(name)
+
+migrate-force:
+	migrate -path ./migrations -database "$(DATABASE_URL)" force 3

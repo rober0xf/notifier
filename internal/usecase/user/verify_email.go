@@ -5,10 +5,9 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
-	"time"
+	"fmt"
 
 	"github.com/rober0xf/notifier/internal/domain/entity"
-	domainErr "github.com/rober0xf/notifier/internal/domain/errors"
 	"github.com/rober0xf/notifier/internal/domain/repository"
 	repoErr "github.com/rober0xf/notifier/internal/infraestructure/errors"
 	"github.com/rober0xf/notifier/pkg/auth"
@@ -24,38 +23,24 @@ func NewVerifyEmailUseCase(userRepo repository.UserRepository) *VerifyEmailUseCa
 	}
 }
 
-func (uc *VerifyEmailUseCase) Execute(ctx context.Context, email string, token string) (*entity.User, error) {
-	user, err := uc.userRepo.GetUserByEmail(ctx, email)
+func (uc *VerifyEmailUseCase) Execute(ctx context.Context, plainToken string) (*entity.User, error) {
+	hash := sha256.Sum256([]byte(plainToken))
+	tokenHash := hex.EncodeToString(hash[:])
+
+	// verify and mark token as used
+	token, err := uc.userRepo.VerifyAndConsumeToken(ctx, tokenHash, entity.TokenPurposeEmailVerification)
 	if err != nil {
 		if errors.Is(err, repoErr.ErrNotFound) {
-			return nil, domainErr.ErrUserNotFound
+			return nil, auth.ErrInvalidToken
 		}
 
-		return nil, err
+		return nil, fmt.Errorf("VerifyEmailUC.Execute failed to verify and consume token: %w", err)
 	}
 
-	if time.Now().After(user.TokenExpiresAt) {
-		return nil, auth.ErrInvalidToken
+	user, err := uc.userRepo.UpdateUserIsActiveReturning(ctx, token.UserID, true)
+	if err != nil {
+		return nil, fmt.Errorf("VerifyEmailUC.Execute failed to update is_active: %w", err)
 	}
-
-	if user.Active {
-		return nil, domainErr.ErrAlreadyVerified
-	}
-
-	// hash the given token
-	tokenHash := sha256.Sum256([]byte(token))
-	tokenHashString := hex.EncodeToString(tokenHash[:])
-
-	// compare with the stored hash
-	if tokenHashString != user.EmailVerificationHash {
-		return nil, auth.ErrInvalidToken
-	}
-
-	// ensure we activate
-	if err := uc.userRepo.UpdateUserActive(ctx, user.ID, true); err != nil {
-		return nil, domainErr.ErrActivating
-	}
-	user.Active = true
 
 	return user, nil
 }

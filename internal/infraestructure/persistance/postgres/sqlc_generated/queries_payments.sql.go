@@ -15,7 +15,7 @@ const createPayment = `-- name: CreatePayment :one
 INSERT INTO payments (
     user_id, name, amount, type, category, date, due_date, paid, paid_at, recurrent, frequency, receipt_url
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, false, $8, false, $9, $10
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
 )
 RETURNING id, user_id, name, amount, type, category, date, due_date, paid, paid_at, recurrent, frequency, receipt_url
 `
@@ -28,7 +28,9 @@ type CreatePaymentParams struct {
 	Category   CategoryType      `json:"category"`
 	Date       string            `json:"date"`
 	DueDate    pgtype.Text       `json:"due_date"`
+	Paid       bool              `json:"paid"`
 	PaidAt     pgtype.Text       `json:"paid_at"`
+	Recurrent  bool              `json:"recurrent"`
 	Frequency  NullFrequencyType `json:"frequency"`
 	ReceiptUrl pgtype.Text       `json:"receipt_url"`
 }
@@ -42,7 +44,9 @@ func (q *Queries) CreatePayment(ctx context.Context, arg CreatePaymentParams) (P
 		arg.Category,
 		arg.Date,
 		arg.DueDate,
+		arg.Paid,
 		arg.PaidAt,
+		arg.Recurrent,
 		arg.Frequency,
 		arg.ReceiptUrl,
 	)

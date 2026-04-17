@@ -13,7 +13,7 @@ WHERE p.user_id = $1;
 INSERT INTO payments (
     user_id, name, amount, type, category, date, due_date, paid, paid_at, recurrent, frequency, receipt_url
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, false, $8, false, $9, $10
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
 )
 RETURNING *;
 
