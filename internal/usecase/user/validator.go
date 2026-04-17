@@ -1,11 +1,9 @@
 package user
 
 import (
-	"net/mail"
-	"strings"
-
 	emailverifier "github.com/AfterShip/email-verifier"
-	"github.com/rober0xf/notifier/internal/domain/errors"
+
+	domainErr "github.com/rober0xf/notifier/internal/domain/errors"
 	passwordvalidator "github.com/wagslane/go-password-validator"
 )
 
@@ -21,26 +19,38 @@ func (e *EmailValidationError) Error() string {
 }
 
 func ValidateEmail(email string, disposableDomains []string) error {
+	if disposableDomains == nil {
+		disposableDomains = []string{}
+	}
+
+	if email == "" {
+		return domainErr.ErrInvalidEmailFormat
+	}
+
 	verifier := emailverifier.NewVerifier().EnableDomainSuggest()
 	verifier = verifier.AddDisposableDomains(disposableDomains)
 
 	// verify the email
 	ret, err := verifier.Verify(email)
 	if err != nil {
-		return errors.ErrValidatingEmail
+		return domainErr.ErrInvalidEmailFormat
 	}
+
 	if !ret.Syntax.Valid {
-		return errors.ErrInvalidEmailFormat
+		return domainErr.ErrInvalidEmailFormat
 	}
+
 	// check if can receive emails
 	if !ret.HasMxRecords {
-		return errors.ErrInvalidDomain
+		return domainErr.ErrInvalidDomain
 	}
+
 	if ret.Disposable {
-		return errors.ErrDisposableEmail
+		return domainErr.ErrDisposableEmail
 	}
+
 	if ret.Reachable == "no" {
-		return errors.ErrEmailNotReachable
+		return domainErr.ErrEmailNotReachable
 	}
 
 	// suggestions for typos
@@ -54,27 +64,10 @@ func ValidateEmail(email string, disposableDomains []string) error {
 	return nil
 }
 
-func ValidateEmailFormat(email string) error {
-	if email == "" {
-		return errors.ErrInvalidEmailFormat
-	}
-
-	if !strings.Contains(email, "@") || !strings.Contains(email, ".") {
-		return errors.ErrInvalidEmailFormat
-	}
-
-	_, err := mail.ParseAddress(email)
-	if err != nil {
-		return errors.ErrInvalidEmailFormat
-	}
-
-	return nil
-}
-
 func ValidatePassword(password string) error {
 	err := passwordvalidator.Validate(password, minEntropyBits)
 	if err != nil {
-		return errors.ErrInvalidPassword
+		return domainErr.ErrInvalidPassword
 	}
 
 	return nil

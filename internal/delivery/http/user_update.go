@@ -49,8 +49,8 @@ func (h *UserHandler) Update(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "id must be positive"})
 		case errors.Is(err, domainErr.ErrInvalidEmailFormat):
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid email format"})
-		case errors.Is(err, domainErr.ErrPasswordHashing):
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "error hashing"})
+		case errors.Is(err, domainErr.ErrInvalidPassword):
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid password"})
 		default:
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		}

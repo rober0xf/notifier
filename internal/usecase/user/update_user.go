@@ -55,7 +55,7 @@ func (uc *UpdateUserUseCase) Execute(ctx context.Context, input UpdateUserInput)
 	if input.Email != nil &&
 		*input.Email != "" &&
 		*input.Email != existingUser.Email {
-		if err := ValidateEmailFormat(*input.Email); err != nil {
+		if err := ValidateEmail(*input.Email, nil); err != nil {
 			return nil, domainErr.ErrInvalidEmailFormat
 		}
 
@@ -63,26 +63,39 @@ func (uc *UpdateUserUseCase) Execute(ctx context.Context, input UpdateUserInput)
 		profileChanged = true
 	}
 
-	if input.Password != nil &&
-		*input.Password != "" {
-		hashedPassword, err := auth.HashPassword(*input.Password)
-		if err != nil {
-			return nil, domainErr.ErrPasswordHashing
+	if input.Password != nil && *input.Password != "" {
+		if auth.VerifyPassword(existingUser.Username, *input.Password) {
+			return nil, domainErr.ErrInvalidPassword
 		}
 
-		existingUser.Password = hashedPassword
+		hashedPassword, err := auth.HashPassword(*input.Password)
+		if err != nil {
+			return nil, domainErr.ErrInternalServerError
+		}
+
+		existingUser.PasswordHash = hashedPassword
 		passwordChanged = true
 	}
 
 	if profileChanged {
 		if err := uc.userRepo.UpdateUserProfile(ctx, existingUser.ID, existingUser.Username, existingUser.Email); err != nil {
-			return nil, err
+			switch {
+			case errors.Is(err, repoErr.ErrNotFound):
+				return nil, domainErr.ErrUserNotFound
+			default:
+				return nil, domainErr.ErrInternalServerError
+			}
 		}
 	}
 
 	if passwordChanged {
-		if err := uc.userRepo.UpdateUserPassword(ctx, existingUser.ID, existingUser.Password); err != nil {
-			return nil, err
+		if err := uc.userRepo.UpdateUserPassword(ctx, existingUser.ID, existingUser.PasswordHash); err != nil {
+			switch {
+			case errors.Is(err, repoErr.ErrNotFound):
+				return nil, domainErr.ErrUserNotFound
+			default:
+				return nil, domainErr.ErrInternalServerError
+			}
 		}
 	}
 

@@ -23,20 +23,19 @@ func NewLoginUseCase(
 	}
 }
 
-func (uc *LoginUseCase) Execute(ctx context.Context, email, password string) (string, *entity.User, error) {
+func (uc *LoginUseCase) Execute(ctx context.Context, email, password string) (*entity.User, error) {
 	user, err := uc.userRepo.GetUserByEmail(ctx, email)
 	if err != nil {
-		return "", nil, auth.ErrInvalidCredentials
+		return nil, auth.ErrInvalidCredentials
 	}
 
-	if !auth.VerifyPassword(password, user.Password) {
-		return "", nil, auth.ErrInvalidCredentials
+	if !auth.VerifyPassword(user.PasswordHash, password) {
+		return nil, auth.ErrInvalidCredentials
 	}
 
-	token, err := uc.tokenGen.Generate(user.ID, user.Email)
-	if err != nil {
-		return "", nil, err
+	if !user.IsActive {
+		return nil, auth.ErrEmailNotVerified
 	}
 
-	return token, user, nil
+	return user, nil
 }
