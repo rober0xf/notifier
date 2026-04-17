@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -33,25 +34,77 @@ func NewUserRepository(db *pgxpool.Pool) repository.UserRepository {
 	}
 }
 
-func (r *UserRepository) CreateUser(ctx context.Context, user *entity.User) error {
+func (r *UserRepository) CreateUser(ctx context.Context, user *entity.User) (*entity.User, error) {
 	createdUser, err := r.queries.CreateUser(ctx, database.CreateUserParams{
-		Username:              user.Username,
-		Email:                 user.Email,
-		Password:              user.Password,
-		EmailVerificationHash: pgtype.Text{String: user.EmailVerificationHash, Valid: true},
-		TokenExpiresAt:        pgtype.Timestamptz{Time: user.TokenExpiresAt, Valid: true},
+		Username:     user.Username,
+		Email:        user.Email,
+		PasswordHash: pgtype.Text{String: user.PasswordHash, Valid: user.PasswordHash != ""},
 	})
 
 	if err != nil {
-		if strings.Contains(err.Error(), "duplicate key") ||
-			strings.Contains(err.Error(), "unique constraint") {
-			return repoErr.ErrAlreadyExists
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			switch pgErr.ConstraintName {
+			case "users_email_key":
+				return nil, repoErr.ErrEmailAlreadyExists
+			case "users_username_key":
+				return nil, repoErr.ErrUsernameAlreadyExists
+			}
+			return nil, repoErr.ErrAlreadyExists
 		}
-		return repoErr.ErrRepository
+
+		return nil, fmt.Errorf("create user query failed: %w", err)
 	}
 
-	user.ID = int(createdUser.ID)
-	return nil
+	return &entity.User{
+		ID:           int(createdUser.ID),
+		Username:     createdUser.Username,
+		Email:        createdUser.Email,
+		PasswordHash: createdUser.PasswordHash.String,
+		IsActive:     createdUser.IsActive,
+	}, nil
+
+}
+
+func (r *UserRepository) CreateOAuthUser(ctx context.Context, email, name, googleID string) (*entity.User, error) {
+	username := generateUsername(email)
+
+	createdUser, err := r.queries.CreateOAuthUser(ctx, database.CreateOAuthUserParams{
+		Username: username,
+		Email:    email,
+		Name:     pgtype.Text{String: name, Valid: name != ""},
+		GoogleID: pgtype.Text{String: googleID, Valid: true},
+	})
+
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return nil, repoErr.ErrAlreadyExists
+		}
+
+		return nil, fmt.Errorf("create google user query failed: %w", err)
+	}
+
+	user := &entity.User{
+		ID:       int(createdUser.ID),
+		Username: createdUser.Username,
+		Email:    createdUser.Email,
+		IsActive: createdUser.IsActive,
+	}
+
+	if createdUser.CreatedAt.Valid {
+		user.CreatedAt = createdUser.CreatedAt.Time
+	}
+
+	if createdUser.Name.Valid {
+		user.Name = createdUser.Name.String
+	}
+
+	if createdUser.GoogleID.Valid {
+		user.GoogleID = createdUser.GoogleID.String
+	}
+
+	return user, nil
 }
 
 func (r *UserRepository) GetUserByEmail(ctx context.Context, email string) (*entity.User, error) {
@@ -61,16 +114,20 @@ func (r *UserRepository) GetUserByEmail(ctx context.Context, email string) (*ent
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, repoErr.ErrNotFound
 		}
-		return nil, repoErr.ErrRepository
+
+		return nil, fmt.Errorf("get user by email query failed: %w", err)
 	}
 
 	return databaseToDomainUser(&user), nil
 }
 
 func (r *UserRepository) GetAllUsers(ctx context.Context) ([]entity.User, error) {
-	dbUsers, err := r.queries.GetAllUsers(ctx)
+	dbUsers, err := r.queries.GetAllUsers(ctx, database.GetAllUsersParams{
+		Limit:  50,
+		Offset: 0,
+	})
 	if err != nil {
-		return nil, repoErr.ErrRepository
+		return nil, fmt.Errorf("get all users query failed: %w", err)
 	}
 
 	users := make([]entity.User, 0, len(dbUsers))
@@ -106,7 +163,8 @@ func (r *UserRepository) GetUserByGoogleID(ctx context.Context, googleID string)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, repoErr.ErrNotFound
 		}
-		return nil, repoErr.ErrRepository
+
+		return nil, fmt.Errorf("get user by google id query failed: %w", err)
 	}
 
 	return databaseToDomainUser(&user), nil
@@ -120,7 +178,7 @@ func (r *UserRepository) UpdateUserProfile(ctx context.Context, id int, username
 	})
 
 	if err != nil {
-		return repoErr.ErrRepository
+		return fmt.Errorf("update user profile query failed: %w", err)
 	}
 
 	if rows == 0 {
@@ -132,12 +190,12 @@ func (r *UserRepository) UpdateUserProfile(ctx context.Context, id int, username
 
 func (r *UserRepository) UpdateUserPassword(ctx context.Context, id int, password string) error {
 	rows, err := r.queries.UpdateUserPassword(ctx, database.UpdateUserPasswordParams{
-		ID:       int32(id),
-		Password: password,
+		ID:           int32(id),
+		PasswordHash: pgtype.Text{String: password, Valid: true},
 	})
 
 	if err != nil {
-		return repoErr.ErrRepository
+		return fmt.Errorf("update user password query failed: %w", err)
 	}
 
 	if rows == 0 {
@@ -147,18 +205,44 @@ func (r *UserRepository) UpdateUserPassword(ctx context.Context, id int, passwor
 	return nil
 }
 
-func (r *UserRepository) UpdateUserActive(ctx context.Context, id int, active bool) error {
-	rows, err := r.queries.UpdateUserActive(ctx, database.UpdateUserActiveParams{
-		ID:     int32(id),
-		Active: active,
+func (r *UserRepository) UpdateUserIsActiveReturning(ctx context.Context, id int, isActive bool) (*entity.User, error) {
+	if id <= 0 {
+		return nil, repoErr.ErrInvalidData
+	}
+
+	rows, err := r.queries.UpdateUserIsActiveReturning(ctx, database.UpdateUserIsActiveReturningParams{
+		ID:       int32(id),
+		IsActive: isActive,
 	})
 
 	if err != nil {
-		return repoErr.ErrRepository
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, repoErr.ErrNotFound
+		}
+
+		return nil, fmt.Errorf("update user is active query failed: %w", err)
+	}
+
+	return databaseToDomainUser(&rows), nil
+}
+
+func (r *UserRepository) UpdateUserGoogleID(ctx context.Context, userID int, googleID string) error {
+	rows, err := r.queries.UpdateUserGoogleID(ctx, database.UpdateUserGoogleIDParams{
+		ID:       int32(userID),
+		GoogleID: pgtype.Text{String: googleID, Valid: true},
+	})
+
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return repoErr.ErrGoogleExists
+		}
+
+		return fmt.Errorf("update user google id active query failed: %w", err)
 	}
 
 	if rows == 0 {
-		return repoErr.ErrNotFound
+		return repoErr.ErrGoogleExists
 	}
 
 	return nil
@@ -168,7 +252,7 @@ func (r *UserRepository) DeleteUser(ctx context.Context, id int) error {
 	rows, err := r.queries.DeleteUser(ctx, int32(id))
 
 	if err != nil {
-		return repoErr.ErrRepository
+		return fmt.Errorf("delete user query failed: %w", err)
 	}
 
 	if rows == 0 {
@@ -187,8 +271,7 @@ func (r *UserRepository) CreateUserToken(ctx context.Context, token *entity.User
 	})
 
 	if err != nil {
-		log.Printf("DB error in CreateUserToken: %v", err)
-		return nil, repoErr.ErrRepository
+		return nil, fmt.Errorf("create user token query failed: %w", err)
 	}
 
 	return &entity.UserToken{
@@ -211,6 +294,7 @@ func (r *UserRepository) VerifyAndConsumeToken(ctx context.Context, tokenHash st
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, repoErr.ErrNotFound
 		}
+
 		return nil, fmt.Errorf("verify token query failed: %w", err)
 	}
 
@@ -235,7 +319,8 @@ func (r *UserRepository) GetTokenByHash(ctx context.Context, tokenHash string, p
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, repoErr.ErrNotFound
 		}
-		return nil, repoErr.ErrRepository
+
+		return nil, fmt.Errorf("get token by hash query failed: %w", err)
 	}
 
 	return &entity.UserToken{
@@ -260,7 +345,7 @@ func (r *UserRepository) DeleteOldTokens(ctx context.Context) (int64, error) {
 	rows, err := r.queries.DeleteOldTokens(ctx)
 
 	if err != nil {
-		return 0, repoErr.ErrRepository
+		return 0, fmt.Errorf("delete old tokens query failed: %w", err)
 	}
 
 	return rows, nil

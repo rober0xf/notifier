@@ -43,6 +43,8 @@ func (r *PaymentRepository) CreatePayment(ctx context.Context, payment *entity.P
 		Category:   mapCategoryTypeToDB(payment.Category),
 		Date:       payment.Date,
 		DueDate:    toNullableText(payment.DueDate),
+		Recurrent:  payment.Recurrent,
+		Paid:       payment.Paid,
 		PaidAt:     toNullableText(payment.PaidAt),
 		ReceiptUrl: toNullableText(payment.ReceiptURL),
 	}
@@ -55,15 +57,15 @@ func (r *PaymentRepository) CreatePayment(ctx context.Context, payment *entity.P
 	}
 
 	createdPayment, err := r.queries.CreatePayment(ctx, params)
-
 	if err != nil {
-		var pgErr *pgconn.PgError // for unique
+		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
 			if pgErr.Code == "23505" {
 				return repoErr.ErrAlreadyExists
 			}
 		}
-		return fmt.Errorf("error creating payment: %w", err)
+
+		return fmt.Errorf("creating payment query failed: %w", err)
 	}
 
 	payment.ID = createdPayment.ID
@@ -73,7 +75,7 @@ func (r *PaymentRepository) CreatePayment(ctx context.Context, payment *entity.P
 func (r *PaymentRepository) GetAllPayments(ctx context.Context) ([]entity.Payment, error) {
 	dbPayments, err := r.queries.GetAllPayments(ctx)
 	if err != nil {
-		return nil, repoErr.ErrRepository
+		return nil, fmt.Errorf("get all payments query failed: %w", err)
 	}
 
 	payments := make([]entity.Payment, 0, len(dbPayments))
@@ -91,7 +93,8 @@ func (r *PaymentRepository) GetPaymentByID(ctx context.Context, id int) (*entity
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, repoErr.ErrNotFound
 		}
-		return nil, fmt.Errorf("error getting payment by id: %w", err)
+
+		return nil, fmt.Errorf("get payment by id query failed: %w", err)
 	}
 
 	return databaseToDomainPayment(&payment), nil
@@ -105,7 +108,8 @@ func (r *PaymentRepository) GetAllPaymentsFromUser(ctx context.Context, userID i
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, repoErr.ErrNotFound
 		}
-		return nil, fmt.Errorf("error fetching user: %w", err)
+
+		return nil, fmt.Errorf("get all payments from user query failed : %w", err)
 	}
 
 	// if the user doesnt have any payments it returns []
@@ -132,7 +136,7 @@ func (r *PaymentRepository) UpdatePayment(ctx context.Context, payment *entity.P
 	rowsAffected, err := r.queries.UpdatePayment(ctx, params)
 
 	if err != nil {
-		return fmt.Errorf("error updating payment: %w", err)
+		return fmt.Errorf("update payment query failed: %w", err)
 	}
 
 	if rowsAffected == 0 {
@@ -146,7 +150,7 @@ func (r *PaymentRepository) DeletePayment(ctx context.Context, id int) error {
 	rows, err := r.queries.DeletePayment(ctx, int32(id))
 
 	if err != nil {
-		return fmt.Errorf("error deleting payment: %w", err)
+		return fmt.Errorf("delete payment query failed: %w", err)
 	}
 
 	if rows == 0 {
