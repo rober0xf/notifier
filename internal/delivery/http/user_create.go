@@ -2,7 +2,7 @@ package http
 
 import (
 	"errors"
-	"log"
+	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -22,7 +22,6 @@ func (h *UserHandler) Create(c *gin.Context) {
 	// here we use the service logic
 	user, err := h.createUserUC.Execute(c.Request.Context(), payload.Username, payload.Email, payload.Password)
 	if err != nil {
-		log.Printf("error is happening here: %v", err.Error())
 		handleCreateUserError(c, err)
 		return
 	}
@@ -40,14 +39,13 @@ func (h *UserHandler) Create(c *gin.Context) {
 
 func handleCreateUserError(c *gin.Context, err error) {
 	var validationErr *user.EmailValidationError
+
 	if errors.As(err, &validationErr) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": validationErr.Message, "suggestion": validationErr.Suggestion})
 		return
 	}
 
 	switch {
-	case errors.Is(err, domainErr.ErrUserAlreadyExists):
-		c.JSON(http.StatusConflict, gin.H{"error": "user already exists"})
 	case errors.Is(err, domainErr.ErrEmailAlreadyExists):
 		c.JSON(http.StatusConflict, gin.H{"error": "email already exists"})
 	case errors.Is(err, domainErr.ErrUsernameAlreadyExists):
@@ -63,6 +61,7 @@ func handleCreateUserError(c *gin.Context, err error) {
 	case errors.Is(err, domainErr.ErrInvalidPassword):
 		c.JSON(http.StatusBadRequest, gin.H{"error": "password must be stronger"})
 	default:
+		slog.ErrorContext(c.Request.Context(), "failed to register user", "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 	}
 }

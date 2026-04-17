@@ -51,7 +51,7 @@ func setupTestDependencies(t *testing.T) (*TestUserDependencies, *TestPaymentDep
 	updateUserUC := user.NewUpdateUserUseCase(userRepo)
 	verifyEmailUC := user.NewVerifyEmailUseCase(userRepo)
 	deleteUserUC := user.NewDeleteUserUseCase(userRepo)
-	oauthUC := user.NewOAuthUseCase(userRepo)
+	oauthUC := user.NewOAuthUseCase(userRepo, tokenGen)
 	googleVerifier := &MockGoogleVerifier{}
 
 	userHandler := http.NewUserHandler(
@@ -63,7 +63,6 @@ func setupTestDependencies(t *testing.T) (*TestUserDependencies, *TestPaymentDep
 		updateUserUC,
 		deleteUserUC,
 		verifyEmailUC,
-		tokenGen,
 		oauthUC,
 		googleVerifier,
 	)

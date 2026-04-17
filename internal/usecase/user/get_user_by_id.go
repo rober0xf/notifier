@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/rober0xf/notifier/internal/domain/entity"
 	domainErr "github.com/rober0xf/notifier/internal/domain/errors"
@@ -30,7 +31,8 @@ func (uc *GetUserByIDUseCase) Execute(ctx context.Context, id int) (*entity.User
 		if errors.Is(err, repoErr.ErrNotFound) {
 			return nil, domainErr.ErrUserNotFound
 		}
-		return nil, err
+
+		return nil, fmt.Errorf("GetUserByIDUC.Execute failed to get user by id: %w", err)
 	}
 
 	return user, nil

@@ -5,7 +5,8 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
-	"log"
+	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/rober0xf/notifier/internal/domain/entity"
@@ -48,7 +49,7 @@ func (uc *CreateUserUseCase) Execute(ctx context.Context, username string, email
 
 	hashedPassword, err := auth.HashPassword(password)
 	if err != nil {
-		return nil, domainErr.ErrInternalServerError
+		return nil, fmt.Errorf("CreateUserUC.Execute failed to hash password: %w", err)
 	}
 
 	input := &entity.User{
@@ -65,7 +66,7 @@ func (uc *CreateUserUseCase) Execute(ctx context.Context, username string, email
 		case errors.Is(err, repoErr.ErrUsernameAlreadyExists):
 			return nil, domainErr.ErrUsernameAlreadyExists
 		default:
-			return nil, domainErr.ErrInternalServerError
+			return nil, fmt.Errorf("CreateUserUC.Execute failed to create user: %w", err)
 		}
 	}
 
@@ -75,7 +76,10 @@ func (uc *CreateUserUseCase) Execute(ctx context.Context, username string, email
 		defer cancel()
 
 		if err := uc.sendVerificationEmail(ctx, user); err != nil {
-			log.Printf("failed to send verification email: user_id=%d err=%v", user.ID, err)
+			slog.ErrorContext(ctx, "failed to send verification email",
+				"user_id", user.ID,
+				"error", err,
+			)
 		}
 	}(createdUser)
 
@@ -85,7 +89,7 @@ func (uc *CreateUserUseCase) Execute(ctx context.Context, username string, email
 func (uc *CreateUserUseCase) sendVerificationEmail(ctx context.Context, user *entity.User) error {
 	tokenData, err := token.GenerateVerificationToken(12)
 	if err != nil {
-		return err
+		return fmt.Errorf("CreateUserUC.sendVerificationEmail failed to generate verification token: %w", err)
 	}
 
 	hash := sha256.Sum256([]byte(tokenData.Token))
@@ -98,14 +102,17 @@ func (uc *CreateUserUseCase) sendVerificationEmail(ctx context.Context, user *en
 		ExpiresAt: time.Now().UTC().Add(24 * time.Hour),
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("CreateUserUC.sendVerificationEmail failed to create user token: %w", err)
 	}
 
-	body := mail.VerificationEmailHTML(user.Email, tokenData.Token, uc.baseURL)
+	body := mail.VerificationEmailHTML(tokenData.Token, uc.baseURL)
 
 	if err := uc.sendEmailWithRetry(ctx, []string{user.Email}, "verify account", body); err != nil {
-		log.Printf("email failed permanently user_id=%d err=%v", user.ID, err)
-		return err
+		slog.ErrorContext(ctx, "failed to send verification email permanently",
+			"user_id", user.ID,
+			"error", err,
+		)
+		return fmt.Errorf("CreateUserUC.sendVerificationEmail failed to send email with retry: %w", err)
 	}
 
 	return nil
@@ -114,7 +121,7 @@ func (uc *CreateUserUseCase) sendVerificationEmail(ctx context.Context, user *en
 func (uc *CreateUserUseCase) sendEmailWithRetry(ctx context.Context, to []string, subject, body string) error {
 	var err error
 
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		attemptCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 
 		err = uc.emailSender.Send(attemptCtx, to, subject, body)
@@ -131,5 +138,5 @@ func (uc *CreateUserUseCase) sendEmailWithRetry(ctx context.Context, to []string
 		}
 	}
 
-	return err
+	return fmt.Errorf("CreateUserUC.sendEmailWithRetry failed to send email after retries")
 }

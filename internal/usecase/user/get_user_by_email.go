@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/rober0xf/notifier/internal/domain/entity"
 	domainErr "github.com/rober0xf/notifier/internal/domain/errors"
@@ -31,7 +32,7 @@ func (uc *GetUserByEmailUseCase) Execute(ctx context.Context, email string) (*en
 			return nil, domainErr.ErrUserNotFound
 		}
 
-		return nil, err
+		return nil, fmt.Errorf("GetUserByEmailUC.Execute failed to get user by email: %w", err)
 	}
 
 	return user, nil

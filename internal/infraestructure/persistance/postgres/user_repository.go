@@ -63,7 +63,6 @@ func (r *UserRepository) CreateUser(ctx context.Context, user *entity.User) (*en
 		PasswordHash: createdUser.PasswordHash.String,
 		IsActive:     createdUser.IsActive,
 	}, nil
-
 }
 
 func (r *UserRepository) CreateOAuthUser(ctx context.Context, email, name, googleID string) (*entity.User, error) {
@@ -154,10 +153,6 @@ func (r *UserRepository) GetUserByID(ctx context.Context, id int) (*entity.User,
 }
 
 func (r *UserRepository) GetUserByGoogleID(ctx context.Context, googleID string) (*entity.User, error) {
-	if googleID == "" {
-		return nil, repoErr.ErrInvalidData
-	}
-
 	user, err := r.queries.GetUserByGoogleID(ctx, pgtype.Text{String: googleID, Valid: true})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -176,7 +171,6 @@ func (r *UserRepository) UpdateUserProfile(ctx context.Context, id int, username
 		Username: username,
 		Email:    email,
 	})
-
 	if err != nil {
 		return fmt.Errorf("update user profile query failed: %w", err)
 	}
@@ -193,7 +187,6 @@ func (r *UserRepository) UpdateUserPassword(ctx context.Context, id int, passwor
 		ID:           int32(id),
 		PasswordHash: pgtype.Text{String: password, Valid: true},
 	})
-
 	if err != nil {
 		return fmt.Errorf("update user password query failed: %w", err)
 	}
@@ -206,15 +199,10 @@ func (r *UserRepository) UpdateUserPassword(ctx context.Context, id int, passwor
 }
 
 func (r *UserRepository) UpdateUserIsActiveReturning(ctx context.Context, id int, isActive bool) (*entity.User, error) {
-	if id <= 0 {
-		return nil, repoErr.ErrInvalidData
-	}
-
 	rows, err := r.queries.UpdateUserIsActiveReturning(ctx, database.UpdateUserIsActiveReturningParams{
 		ID:       int32(id),
 		IsActive: isActive,
 	})
-
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, repoErr.ErrNotFound
@@ -250,7 +238,6 @@ func (r *UserRepository) UpdateUserGoogleID(ctx context.Context, userID int, goo
 
 func (r *UserRepository) DeleteUser(ctx context.Context, id int) error {
 	rows, err := r.queries.DeleteUser(ctx, int32(id))
-
 	if err != nil {
 		return fmt.Errorf("delete user query failed: %w", err)
 	}
@@ -309,6 +296,7 @@ func (r *UserRepository) VerifyAndConsumeToken(ctx context.Context, tokenHash st
 	}, nil
 }
 
+// TODO: for password reset
 func (r *UserRepository) GetTokenByHash(ctx context.Context, tokenHash string, purpose entity.TokenPurpose) (*entity.UserToken, error) {
 	row, err := r.queries.GetTokenByHash(ctx, database.GetTokenByHashParams{
 		TokenHash: tokenHash,
@@ -334,6 +322,7 @@ func (r *UserRepository) GetTokenByHash(ctx context.Context, tokenHash string, p
 	}, nil
 }
 
+// TODO: for resend verification token
 func (r *UserRepository) DeleteByUserAndPurpose(ctx context.Context, userID int, purpose entity.TokenPurpose) error {
 	return r.queries.DeleteByUserAndPurpose(ctx, database.DeleteByUserAndPurposeParams{
 		UserID:  int32(userID),

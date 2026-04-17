@@ -2,6 +2,7 @@ package http
 
 import (
 	"errors"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -17,6 +18,11 @@ func (h *UserHandler) Update(c *gin.Context) {
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+
+	if id <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id must be positive"})
 		return
 	}
 
@@ -45,13 +51,12 @@ func (h *UserHandler) Update(c *gin.Context) {
 		switch {
 		case errors.Is(err, domainErr.ErrUserNotFound):
 			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
-		case errors.Is(err, domainErr.ErrInvalidUserData):
-			c.JSON(http.StatusBadRequest, gin.H{"error": "id must be positive"})
 		case errors.Is(err, domainErr.ErrInvalidEmailFormat):
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid email format"})
 		case errors.Is(err, domainErr.ErrInvalidPassword):
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid password"})
 		default:
+			slog.ErrorContext(c.Request.Context(), "failed to update user", "error", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		}
 

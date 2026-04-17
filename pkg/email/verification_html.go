@@ -4,8 +4,8 @@ import (
 	"fmt"
 )
 
-func VerificationEmailHTML(email string, token string, baseURL string) string {
-	verificationURL := fmt.Sprintf("%s/v1/users/email_verification/%s/%s", baseURL, email, token)
+func VerificationEmailHTML(token string, baseURL string) string {
+	verificationURL := fmt.Sprintf("%s/v1/users/email_verification/%s", baseURL, token)
 
 	return fmt.Sprintf(`
 		<html>

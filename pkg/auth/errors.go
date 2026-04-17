@@ -22,6 +22,7 @@ var (
 	ErrInvalidUserID  = errors.New("invalid user_id type")
 
 	// google oauth
-	ErrInvalidEmailToken = errors.New("invalid email in token")
-	ErrEmailNotVerified  = errors.New("email not verified by google")
+	ErrInvalidEmailToken          = errors.New("invalid email in token")
+	ErrEmailNotVerified           = errors.New("email not verified by google")
+	ErrGoogleAccountAlreadyLinked = errors.New("google account already linked")
 )

@@ -2,6 +2,7 @@ package http
 
 import (
 	"errors"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -16,7 +17,7 @@ func (h *UserHandler) GetByID(c *gin.Context) {
 
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user data"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
 
@@ -33,6 +34,7 @@ func (h *UserHandler) GetByID(c *gin.Context) {
 		case errors.Is(err, domainErr.ErrUserNotFound):
 			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
 		default:
+			slog.ErrorContext(c.Request.Context(), "failed to get user by id", "error", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		}
 
@@ -52,6 +54,7 @@ func (h *UserHandler) GetByEmail(c *gin.Context) {
 
 	user, err := h.getUserByEmailUC.Execute(c.Request.Context(), email)
 	if err != nil {
+		slog.ErrorContext(c.Request.Context(), "failed to get user by email", "error", err)
 		switch {
 		case errors.Is(err, domainErr.ErrInvalidEmailFormat):
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid email format"})
@@ -70,7 +73,8 @@ func (h *UserHandler) GetByEmail(c *gin.Context) {
 func (h *UserHandler) GetAll(c *gin.Context) {
 	users, err := h.getAllUsersUC.Execute(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": domainErr.ErrInternalServerError.Error()})
+		slog.ErrorContext(c.Request.Context(), "failed to get all users", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
 

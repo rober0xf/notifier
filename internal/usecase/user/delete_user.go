@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	domainErr "github.com/rober0xf/notifier/internal/domain/errors"
 	"github.com/rober0xf/notifier/internal/domain/repository"
@@ -29,7 +30,8 @@ func (uc *DeleteUserUseCase) Execute(ctx context.Context, id int) error {
 		if errors.Is(err, repoErr.ErrNotFound) {
 			return domainErr.ErrUserNotFound
 		}
-		return err
+
+		return fmt.Errorf("DeleteUserUC.Execute failed to delete user: %w", err)
 	}
 
 	return nil

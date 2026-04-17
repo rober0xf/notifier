@@ -146,7 +146,7 @@ func (m *MockUserRepository) UpdateUserIsActiveReturning(ctx context.Context, id
 	return user, nil
 }
 
-func (m *MockUserRepository) VerifyToken(ctx context.Context, tokenHash string, purpose entity.TokenPurpose) (*entity.UserToken, error) {
+func (m *MockUserRepository) VerifyAndConsumeToken(ctx context.Context, tokenHash string, purpose entity.TokenPurpose) (*entity.UserToken, error) {
 	if m.err != nil {
 		return nil, m.err
 	}

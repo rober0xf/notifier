@@ -2,7 +2,6 @@ package user
 
 import (
 	emailverifier "github.com/AfterShip/email-verifier"
-
 	domainErr "github.com/rober0xf/notifier/internal/domain/errors"
 	passwordvalidator "github.com/wagslane/go-password-validator"
 )

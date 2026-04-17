@@ -44,7 +44,7 @@ func SetupRoutes(userHandler *UserHandler, paymentHandler *PaymentHandler, authM
 func setupPublicUsersRoutes(v1 *gin.RouterGroup, userHandler *UserHandler) {
 	users := v1.Group("/users")
 
-	users.GET("/email_verification/:token", userHandler.GetVerificationEmail)
+	users.GET("/email_verification/:token", userHandler.VerifyEmail)
 	users.POST("/register", userHandler.Create)
 	users.POST("/login", userHandler.Login)
 	users.POST("/login/google", userHandler.GoogleLogin)

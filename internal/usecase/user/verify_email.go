@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"fmt"
 
 	"github.com/rober0xf/notifier/internal/domain/entity"
 	"github.com/rober0xf/notifier/internal/domain/repository"
@@ -33,8 +34,13 @@ func (uc *VerifyEmailUseCase) Execute(ctx context.Context, plainToken string) (*
 			return nil, auth.ErrInvalidToken
 		}
 
-		return nil, err
+		return nil, fmt.Errorf("VerifyEmailUC.Execute failed to verify and consume token: %w", err)
 	}
 
-	return uc.userRepo.UpdateUserIsActiveReturning(ctx, token.UserID, true)
+	user, err := uc.userRepo.UpdateUserIsActiveReturning(ctx, token.UserID, true)
+	if err != nil {
+		return nil, fmt.Errorf("VerifyEmailUC.Execute failed to update is_active: %w", err)
+	}
+
+	return user, nil
 }

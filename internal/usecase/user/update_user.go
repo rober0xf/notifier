@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/rober0xf/notifier/internal/domain/entity"
 	domainErr "github.com/rober0xf/notifier/internal/domain/errors"
@@ -29,17 +30,13 @@ type UpdateUserInput struct {
 }
 
 func (uc *UpdateUserUseCase) Execute(ctx context.Context, input UpdateUserInput) (*entity.User, error) {
-	if input.ID <= 0 {
-		return nil, domainErr.ErrInvalidUserData
-	}
-
 	existingUser, err := uc.userRepo.GetUserByID(ctx, input.ID)
 	if err != nil {
 		if errors.Is(err, repoErr.ErrNotFound) {
 			return nil, domainErr.ErrUserNotFound
 		}
 
-		return nil, err
+		return nil, fmt.Errorf("UpdateUserUC.Execute failed to get user by id: %w", err)
 	}
 
 	profileChanged := false
@@ -70,7 +67,7 @@ func (uc *UpdateUserUseCase) Execute(ctx context.Context, input UpdateUserInput)
 
 		hashedPassword, err := auth.HashPassword(*input.Password)
 		if err != nil {
-			return nil, domainErr.ErrInternalServerError
+			return nil, fmt.Errorf("UpdateUserUC.Execute failed to hash password: %w", err)
 		}
 
 		existingUser.PasswordHash = hashedPassword
@@ -83,7 +80,7 @@ func (uc *UpdateUserUseCase) Execute(ctx context.Context, input UpdateUserInput)
 			case errors.Is(err, repoErr.ErrNotFound):
 				return nil, domainErr.ErrUserNotFound
 			default:
-				return nil, domainErr.ErrInternalServerError
+				return nil, fmt.Errorf("UpdateUserUC.Execute failed to update user profile: %w", err)
 			}
 		}
 	}
@@ -94,7 +91,7 @@ func (uc *UpdateUserUseCase) Execute(ctx context.Context, input UpdateUserInput)
 			case errors.Is(err, repoErr.ErrNotFound):
 				return nil, domainErr.ErrUserNotFound
 			default:
-				return nil, domainErr.ErrInternalServerError
+				return nil, fmt.Errorf("UpdateUserUC.Execute failed to update user password: %w", err)
 			}
 		}
 	}

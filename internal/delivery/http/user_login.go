@@ -2,6 +2,7 @@ package http
 
 import (
 	"errors"
+	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -19,7 +20,7 @@ func (h *UserHandler) Login(c *gin.Context) {
 		return
 	}
 
-	user, err := h.loginUC.Execute(c.Request.Context(), payload.Email, payload.Password)
+	out, err := h.loginUC.Execute(c.Request.Context(), payload.Email, payload.Password)
 	if err != nil {
 		switch {
 		case errors.Is(err, authErr.ErrInvalidCredentials):
@@ -27,19 +28,14 @@ func (h *UserHandler) Login(c *gin.Context) {
 		case errors.Is(err, authErr.ErrEmailNotVerified):
 			c.JSON(http.StatusForbidden, gin.H{"error": "email not verified"})
 		default:
+			slog.ErrorContext(c.Request.Context(), "failed to login user", "error", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		}
 
 		return
 	}
 
-	token, err := h.tokenGen.Generate(user.ID, user.Email, user.Role)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": auth.ErrGeneratingToken})
-		return
-	}
-
-	auth.SetAuthCookie(c, token, auth.CookieConfig{
+	auth.SetAuthCookie(c, out.Token, auth.CookieConfig{
 		Name:            auth.SessionCookieName,
 		ExpirationHours: 160,
 		Secure:          false,
@@ -47,7 +43,7 @@ func (h *UserHandler) Login(c *gin.Context) {
 	})
 
 	c.JSON(http.StatusOK, dto.LoginResponse{
-		ID:    user.ID,
-		Email: user.Email,
+		ID:    out.User.ID,
+		Email: out.User.Email,
 	})
 }
