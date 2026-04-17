@@ -160,3 +160,91 @@ func (r *UserRepository) DeleteUser(ctx context.Context, id int) error {
 
 	return nil
 }
+
+func (r *UserRepository) CreateUserToken(ctx context.Context, token *entity.UserToken) (*entity.UserToken, error) {
+	row, err := r.queries.CreateUserToken(ctx, database.CreateUserTokenParams{
+		UserID:    int32(token.UserID),
+		TokenHash: token.TokenHash,
+		Purpose:   database.TokenPurpose(token.Purpose),
+		ExpiresAt: pgtype.Timestamptz{Time: token.ExpiresAt, Valid: true},
+	})
+
+	if err != nil {
+		log.Printf("DB error in CreateUserToken: %v", err)
+		return nil, repoErr.ErrRepository
+	}
+
+	return &entity.UserToken{
+		ID:        int(row.ID),
+		UserID:    int(row.UserID),
+		TokenHash: row.TokenHash,
+		Purpose:   token.Purpose,
+		Used:      row.Used,
+		ExpiresAt: row.ExpiresAt.Time,
+		CreatedAt: row.CreatedAt.Time,
+	}, nil
+}
+
+func (r *UserRepository) VerifyAndConsumeToken(ctx context.Context, tokenHash string, purpose entity.TokenPurpose) (*entity.UserToken, error) {
+	row, err := r.queries.VerifyAndConsumeToken(ctx, database.VerifyAndConsumeTokenParams{
+		TokenHash: tokenHash,
+		Purpose:   database.TokenPurpose(purpose),
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, repoErr.ErrNotFound
+		}
+		return nil, fmt.Errorf("verify token query failed: %w", err)
+	}
+
+	return &entity.UserToken{
+		ID:        int(row.ID),
+		UserID:    int(row.UserID),
+		TokenHash: row.TokenHash,
+		Purpose:   entity.TokenPurpose(row.Purpose),
+		Used:      row.Used,
+		ExpiresAt: row.ExpiresAt.Time,
+		CreatedAt: row.CreatedAt.Time,
+	}, nil
+}
+
+func (r *UserRepository) GetTokenByHash(ctx context.Context, tokenHash string, purpose entity.TokenPurpose) (*entity.UserToken, error) {
+	row, err := r.queries.GetTokenByHash(ctx, database.GetTokenByHashParams{
+		TokenHash: tokenHash,
+		Purpose:   database.TokenPurpose(purpose),
+	})
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, repoErr.ErrNotFound
+		}
+		return nil, repoErr.ErrRepository
+	}
+
+	return &entity.UserToken{
+		ID:        int(row.ID),
+		UserID:    int(row.UserID),
+		TokenHash: row.TokenHash,
+		Purpose:   entity.TokenPurpose(row.Purpose),
+		Used:      row.Used,
+		ExpiresAt: row.ExpiresAt.Time,
+		CreatedAt: row.CreatedAt.Time,
+	}, nil
+}
+
+func (r *UserRepository) DeleteByUserAndPurpose(ctx context.Context, userID int, purpose entity.TokenPurpose) error {
+	return r.queries.DeleteByUserAndPurpose(ctx, database.DeleteByUserAndPurposeParams{
+		UserID:  int32(userID),
+		Purpose: database.TokenPurpose(purpose),
+	})
+}
+
+func (r *UserRepository) DeleteOldTokens(ctx context.Context) (int64, error) {
+	rows, err := r.queries.DeleteOldTokens(ctx)
+
+	if err != nil {
+		return 0, repoErr.ErrRepository
+	}
+
+	return rows, nil
+}

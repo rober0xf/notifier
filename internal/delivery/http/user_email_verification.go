@@ -10,23 +10,17 @@ import (
 )
 
 func (h *UserHandler) GetVerificationEmail(c *gin.Context) {
-	email := c.Param("email")
-	token := c.Param("hash")
+	token := c.Param("token")
 
-	if email == "" || token == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid verification link"})
-		return
-	}
-
-	user, err := h.verifyEmailUC.Execute(c.Request.Context(), email, token)
+	user, err := h.verifyEmailUC.Execute(c.Request.Context(), token)
 	if err != nil {
 		switch {
-		case errors.Is(err, domainErr.ErrUserNotFound):
-			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
 		case errors.Is(err, authErr.ErrInvalidToken):
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid or expired verification link"})
-		case errors.Is(err, domainErr.ErrAlreadyVerified):
-			c.JSON(http.StatusConflict, gin.H{"error": "email already verified"})
+		case errors.Is(err, domainErr.ErrInvalidUserData):
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user data"})
+		case errors.Is(err, domainErr.ErrUserNotFound):
+			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
 		default:
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		}
