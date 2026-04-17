@@ -4,27 +4,77 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	routes "github.com/rober0xf/notifier/internal/delivery/http"
 	"github.com/rober0xf/notifier/internal/domain/repository"
+	"github.com/rober0xf/notifier/internal/infraestructure/persistance/postgres"
 	"github.com/rober0xf/notifier/internal/usecase/payment"
 	"github.com/rober0xf/notifier/internal/usecase/user"
 	"github.com/rober0xf/notifier/pkg/auth"
+	"github.com/rober0xf/notifier/pkg/database"
 	"github.com/rober0xf/notifier/pkg/email"
 )
 
-func Serve(router *gin.Engine) error {
+type APIServer struct {
+	addr   string
+	router http.Handler
+}
+
+func NewAPIServer(addr string) (*APIServer, error) {
+	_ = database.GetConfig()
+
+	db, err := database.InitPostgres()
+	if err != nil {
+		return nil, fmt.Errorf("could not connect to database: %v", err)
+	}
+
+	// init repos
+	userRepo := postgres.NewUserRepository(db)
+	paymentRepo := postgres.NewPaymentRepository(db)
+
+	// infra
+	jwtKey := database.JwtKey
+	tokenGen := auth.NewJWTGenerator(jwtKey, 24)
+
+	emailSender := email.NewSMTPSender(
+		os.Getenv("SMTP_HOST"),
+		os.Getenv("SMTP_PORT"),
+		os.Getenv("SMTP_USERNAME"),
+		os.Getenv("SMTP_PASSWORD"),
+	)
+	disposableEmails := email.MustDisposableEmail()
+	baseURL := os.Getenv("BASE_URL")
+
+	googleClientID := os.Getenv("GOOGLE_CLIENT_ID")
+	if googleClientID == "" {
+		return nil, fmt.Errorf("GOOGLE_CLIENT_ID is not set")
+	}
+
+	// handlers
+	userHandler := BuildUserRoutes(userRepo, tokenGen, emailSender, disposableEmails, baseURL, googleClientID)
+	paymentHandler := BuildPaymentRoutes(paymentRepo, userRepo)
+
+	authMiddleware := auth.AuthMiddleware(tokenGen, "access_token")
+
+	router := routes.SetupRoutes(userHandler, paymentHandler, authMiddleware)
+
+	return &APIServer{
+		addr:   addr,
+		router: router,
+	}, nil
+}
+
+func (s *APIServer) Run() error {
 	server := &http.Server{
-		Addr:         fmt.Sprintf(":%d", 3000),
-		Handler:      router,
+		Addr:         s.addr,
+		Handler:      s.router,
 		IdleTimeout:  time.Minute,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 30 * time.Second,
 	}
-
-	log.Printf("starting server on port: %d", 3000)
+	log.Printf("server running on %s", s.addr)
 
 	return server.ListenAndServe()
 }
@@ -35,6 +85,7 @@ func BuildUserRoutes(
 	emailSender email.EmailSender,
 	disposableEmailChecker []string,
 	baseURL string,
+	googleClientID string,
 ) *routes.UserHandler {
 
 	createUserUC := user.NewCreateUserUseCase(userRepo, emailSender, disposableEmailChecker, baseURL)
@@ -45,6 +96,8 @@ func BuildUserRoutes(
 	updateUserUC := user.NewUpdateUserUseCase(userRepo)
 	deleteUserUC := user.NewDeleteUserUseCase(userRepo)
 	verifyEmailUC := user.NewVerifyEmailUseCase(userRepo)
+	oauthUC := user.NewOAuthUseCase(userRepo)
+	googleVerifier := auth.NewGoogleVerifier(googleClientID)
 
 	return routes.NewUserHandler(
 		createUserUC,
@@ -56,6 +109,8 @@ func BuildUserRoutes(
 		deleteUserUC,
 		verifyEmailUC,
 		tokenGen,
+		oauthUC,
+		googleVerifier,
 	)
 }
 

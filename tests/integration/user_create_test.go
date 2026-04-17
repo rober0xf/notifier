@@ -37,7 +37,7 @@ func TestCreateUser_Success_Integration(t *testing.T) {
 	user, err := deps.userRepo.GetUserByEmail(context.Background(), "rober0xf@gmail.com")
 	require.NoError(t, err)
 	require.Equal(t, "rober0xf", user.Username)
-	assert.False(t, user.Active)
+	assert.False(t, user.IsActive)
 }
 
 func TestCreateUser_AlreadyExists_Integration(t *testing.T) {

@@ -2,34 +2,36 @@ package user_test
 
 import (
 	"context"
-	"strconv"
+	"time"
 
 	"github.com/rober0xf/notifier/internal/domain/entity"
 	repoErr "github.com/rober0xf/notifier/internal/infraestructure/errors"
 )
 
 type MockUserRepository struct {
-	users map[string]*entity.User // key: id or email
-	err   error
+	users  map[int]*entity.User    // key: id
+	emails map[string]*entity.User // key: email
+	tokens map[string]*entity.UserToken
+	err    error
 }
 
-func (m *MockUserRepository) CreateUser(ctx context.Context, user *entity.User) error {
+func (m *MockUserRepository) CreateUser(ctx context.Context, user *entity.User) (*entity.User, error) {
 	if m.err != nil {
-		return m.err
+		return nil, m.err
 	}
 
-	if _, exists := m.users[user.Email]; exists {
-		return repoErr.ErrAlreadyExists // return the repo error
+	if _, exists := m.emails[user.Email]; exists {
+		return nil, repoErr.ErrAlreadyExists // return the repo error
 	}
 
 	if user.ID == 0 {
-		user.ID = len(m.users)/2 + 1
+		user.ID = len(m.users) + 1
 	}
 
-	m.users[user.Email] = user
-	m.users[strconv.Itoa(user.ID)] = user
+	m.emails[user.Email] = user
+	m.users[user.ID] = user
 
-	return nil
+	return user, nil
 }
 
 func (m *MockUserRepository) GetUserByID(ctx context.Context, id int) (*entity.User, error) {
@@ -37,7 +39,7 @@ func (m *MockUserRepository) GetUserByID(ctx context.Context, id int) (*entity.U
 		return nil, m.err
 	}
 
-	user, exists := m.users[strconv.Itoa(id)]
+	user, exists := m.users[id]
 	if !exists {
 		return nil, repoErr.ErrNotFound // we return the repo error, not the service error
 	}
@@ -51,7 +53,7 @@ func (m *MockUserRepository) GetUserByEmail(ctx context.Context, email string) (
 		return nil, m.err
 	}
 
-	user, exists := m.users[email]
+	user, exists := m.emails[email]
 	if !exists {
 		return nil, repoErr.ErrNotFound
 	}
@@ -65,16 +67,9 @@ func (m *MockUserRepository) GetAllUsers(ctx context.Context) ([]entity.User, er
 		return nil, m.err
 	}
 
-	seen := make(map[int]bool)
-	users := make([]entity.User, 0)
-
-	for key, user := range m.users {
-		if _, err := strconv.Atoi(key); err == nil {
-			if !seen[user.ID] {
-				users = append(users, *user)
-				seen[user.ID] = true
-			}
-		}
+	users := make([]entity.User, 0, len(m.users))
+	for _, user := range m.users {
+		users = append(users, *user)
 	}
 
 	return users, nil
@@ -85,13 +80,13 @@ func (m *MockUserRepository) DeleteUser(ctx context.Context, id int) error {
 		return m.err
 	}
 
-	user, exists := m.users[strconv.Itoa(id)]
-	if !exists {
+	user, ok := m.users[id]
+	if !ok {
 		return repoErr.ErrNotFound
 	}
 
-	delete(m.users, user.Email)
-	delete(m.users, strconv.Itoa(id))
+	delete(m.emails, user.Email)
+	delete(m.users, id)
 
 	return nil
 }
@@ -101,25 +96,22 @@ func (m *MockUserRepository) UpdateUserProfile(ctx context.Context, id int, user
 		return m.err
 	}
 
-	existingUser, err := m.GetUserByID(ctx, id)
-	if err != nil {
+	user, ok := m.users[id]
+	if !ok {
 		return repoErr.ErrNotFound
 	}
-	oldMail := existingUser.Email
 
-	if oldMail != email {
-		otherUser, err := m.GetUserByEmail(ctx, email)
-		if err == nil && otherUser.ID != id {
+	if user.Email != email {
+		existing, ok := m.emails[email]
+		if ok && existing.ID != id {
 			return repoErr.ErrAlreadyExists
 		}
-		delete(m.users, oldMail)
+		delete(m.emails, user.Email) // clean old email
+		m.emails[email] = user       // set the new
 	}
 
-	existingUser.Username = username
-	existingUser.Email = email
-
-	m.users[email] = existingUser
-	m.users[strconv.Itoa(id)] = existingUser
+	user.Email = email
+	user.Username = username
 
 	return nil
 }
@@ -129,32 +121,116 @@ func (m *MockUserRepository) UpdateUserPassword(ctx context.Context, id int, has
 		return m.err
 	}
 
-	user, err := m.GetUserByID(ctx, id)
-	if err != nil {
+	user, ok := m.users[id]
+	if !ok {
 		return repoErr.ErrNotFound
 	}
-	user.Password = hashedPassword
 
-	m.users[user.Email] = user
-	m.users[strconv.Itoa(id)] = user
+	user.PasswordHash = hashedPassword
 
 	return nil
 }
 
-func (m *MockUserRepository) UpdateUserActive(ctx context.Context, id int, active bool) error {
+func (m *MockUserRepository) UpdateUserIsActiveReturning(ctx context.Context, id int, active bool) (*entity.User, error) {
 	if m.err != nil {
-		return m.err
+		return nil, m.err
 	}
 
-	existingUser, err := m.GetUserByID(ctx, id)
-	if err != nil {
-		return repoErr.ErrNotFound
+	user, ok := m.users[id]
+	if !ok {
+		return nil, repoErr.ErrNotFound
 	}
 
-	existingUser.Active = active
+	user.IsActive = active
 
-	m.users[strconv.Itoa(id)] = existingUser
-	m.users[existingUser.Email] = existingUser
+	return user, nil
+}
 
+func (m *MockUserRepository) VerifyToken(ctx context.Context, tokenHash string, purpose entity.TokenPurpose) (*entity.UserToken, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+
+	token, ok := m.tokens[tokenHash]
+	if !ok {
+		return nil, repoErr.ErrNotFound
+	}
+
+	if token.Purpose != purpose {
+		return nil, repoErr.ErrNotFound
+	}
+
+	if token.Used || time.Now().After(token.ExpiresAt) {
+		return nil, repoErr.ErrNotFound
+	}
+	token.Used = true
+
+	return token, nil
+}
+
+func (m *MockUserRepository) CreateUserToken(ctx context.Context, token *entity.UserToken) (*entity.UserToken, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+
+	if m.tokens == nil {
+		m.tokens = make(map[string]*entity.UserToken)
+	}
+
+	m.tokens[token.TokenHash] = &entity.UserToken{
+		ID:        token.ID,
+		UserID:    token.UserID,
+		TokenHash: token.TokenHash,
+		Purpose:   token.Purpose,
+		Used:      token.Used,
+		ExpiresAt: token.ExpiresAt,
+		CreatedAt: token.CreatedAt,
+	}
+
+	return m.tokens[token.TokenHash], nil
+}
+
+func (*MockUserRepository) CreateOAuthUser(ctx context.Context, email, name, googleID string) (*entity.User, error) {
+	return nil, nil
+}
+
+func (*MockUserRepository) GetUserByGoogleID(ctx context.Context, googleID string) (*entity.User, error) {
+	return nil, nil
+}
+
+func (*MockUserRepository) UpdateUserGoogleID(ctx context.Context, userID int, googleID string) error {
 	return nil
+}
+
+func (m *MockUserRepository) DeleteOldTokens(ctx context.Context) (int64, error) {
+	if m.err != nil {
+		return 0, m.err
+	}
+
+	var deleted int64
+	for k, t := range m.tokens {
+		if t.Used || time.Now().After(t.ExpiresAt) {
+			delete(m.tokens, k)
+			deleted++
+		}
+	}
+
+	return deleted, nil
+}
+
+func (m *MockUserRepository) GetTokenByHash(ctx context.Context, tokenHash string, purpose entity.TokenPurpose) (*entity.UserToken, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+
+	token, ok := m.tokens[tokenHash]
+	if !ok {
+		return nil, repoErr.ErrNotFound
+	}
+
+	if token.Used || time.Now().After(token.ExpiresAt) {
+		return nil, repoErr.ErrNotFound
+	}
+
+	return token, nil
 }

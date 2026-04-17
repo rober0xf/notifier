@@ -21,8 +21,8 @@ func TestDeleteUser(t *testing.T) {
 			Username: "richard",
 			Email:    email,
 		}
-		mockRepo.users[email] = user
-		mockRepo.users["1"] = user
+		mockRepo.emails[email] = user
+		mockRepo.users[1] = user
 
 		err := uc.Execute(context.Background(), 1)
 
@@ -47,17 +47,10 @@ func TestDeleteUser(t *testing.T) {
 	})
 
 	t.Run("returns error for zero id", func(t *testing.T) {
-		uc, mockRepo := setupDeleteUserTest(t)
-
-		email := "richard@gmail.com"
-		mockRepo.users[email] = &entity.User{
-			ID:       0,
-			Username: "richard",
-			Email:    email,
-		}
+		uc, _ := setupDeleteUserTest(t)
 
 		err := uc.Execute(context.Background(), 0)
-		assert.Error(t, err)
+
 		assert.ErrorIs(t, err, domainErr.ErrInvalidUserData)
 	})
 
@@ -65,7 +58,7 @@ func TestDeleteUser(t *testing.T) {
 		uc, mockRepo := setupDeleteUserTest(t)
 
 		email := "richard@gmail.com"
-		mockRepo.users[email] = &entity.User{
+		mockRepo.emails[email] = &entity.User{
 			ID:       -1,
 			Username: "richard",
 			Email:    email,
