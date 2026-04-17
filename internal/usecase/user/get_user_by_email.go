@@ -21,8 +21,8 @@ func NewGetUserByEmailUseCase(userRepo repository.UserRepository) *GetUserByEmai
 }
 
 func (uc *GetUserByEmailUseCase) Execute(ctx context.Context, email string) (*entity.User, error) {
-	if err := ValidateEmailFormat(email); err != nil {
-		return nil, err
+	if err := ValidateEmail(email, nil); err != nil {
+		return nil, domainErr.ErrInvalidEmailFormat
 	}
 
 	user, err := uc.userRepo.GetUserByEmail(ctx, email)

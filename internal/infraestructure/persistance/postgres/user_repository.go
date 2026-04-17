@@ -89,6 +89,23 @@ func (r *UserRepository) GetUserByID(ctx context.Context, id int) (*entity.User,
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, repoErr.ErrNotFound
 		}
+
+		return nil, fmt.Errorf("get user by id query failed: %w", err)
+	}
+
+	return databaseToDomainUser(&user), nil
+}
+
+func (r *UserRepository) GetUserByGoogleID(ctx context.Context, googleID string) (*entity.User, error) {
+	if googleID == "" {
+		return nil, repoErr.ErrInvalidData
+	}
+
+	user, err := r.queries.GetUserByGoogleID(ctx, pgtype.Text{String: googleID, Valid: true})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, repoErr.ErrNotFound
+		}
 		return nil, repoErr.ErrRepository
 	}
 

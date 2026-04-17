@@ -28,6 +28,8 @@ func (h *UserHandler) GetByID(c *gin.Context) {
 	user, err := h.getUserByIDUC.Execute(c.Request.Context(), id)
 	if err != nil {
 		switch {
+		case errors.Is(err, domainErr.ErrInvalidUserData):
+			c.JSON(http.StatusNotFound, gin.H{"error": "invalid user data"})
 		case errors.Is(err, domainErr.ErrUserNotFound):
 			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
 		default:
@@ -40,12 +42,13 @@ func (h *UserHandler) GetByID(c *gin.Context) {
 	c.JSON(http.StatusOK, toUserResponse(user))
 }
 
-func (h *UserHandler) GetByEmailEmpty(c *gin.Context) {
-	c.JSON(http.StatusBadRequest, gin.H{"error": "email parameter required"})
-}
-
 func (h *UserHandler) GetByEmail(c *gin.Context) {
 	email := c.Param("email")
+
+	if email == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "email is required"})
+		return
+	}
 
 	user, err := h.getUserByEmailUC.Execute(c.Request.Context(), email)
 	if err != nil {
@@ -84,6 +87,6 @@ func toUserResponse(user *entity.User) dto.UserResponse {
 		ID:       user.ID,
 		Username: user.Username,
 		Email:    user.Email,
-		Active:   user.Active,
+		Active:   user.IsActive,
 	}
 }
