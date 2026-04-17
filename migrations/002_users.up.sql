@@ -1,7 +1,3 @@
-CREATE TYPE token_purpose AS ENUM('email_verification', 'password_reset');
-
-CREATE TYPE user_role AS ENUM('user', 'admin');
-
 CREATE TABLE users (
   id serial PRIMARY KEY,
   username text NOT NULL UNIQUE,

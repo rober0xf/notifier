@@ -11,48 +11,80 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const createUser = `-- name: CreateUser :one
-INSERT INTO users (
-    username, email, password, active, email_verification_hash, token_expires_at
-) VALUES (
-    $1, $2, $3, false, $4, $5
-)
-RETURNING id, username, email, password, active, email_verification_hash, created_at, token_expires_at
+const createOAuthUser = `-- name: CreateOAuthUser :one
+INSERT INTO
+  users (username, email, name, google_id, is_active)
+VALUES
+  ($1, $2, $3, $4, TRUE)
+RETURNING
+  id, username, email, password_hash, name, role, google_id, is_active, created_at
 `
 
-type CreateUserParams struct {
-	Username              string             `json:"username"`
-	Email                 string             `json:"email"`
-	Password              string             `json:"password"`
-	EmailVerificationHash pgtype.Text        `json:"email_verification_hash"`
-	TokenExpiresAt        pgtype.Timestamptz `json:"token_expires_at"`
+type CreateOAuthUserParams struct {
+	Username string      `json:"username"`
+	Email    string      `json:"email"`
+	Name     pgtype.Text `json:"name"`
+	GoogleID pgtype.Text `json:"google_id"`
 }
 
-func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
-	row := q.db.QueryRow(ctx, createUser,
+func (q *Queries) CreateOAuthUser(ctx context.Context, arg CreateOAuthUserParams) (User, error) {
+	row := q.db.QueryRow(ctx, createOAuthUser,
 		arg.Username,
 		arg.Email,
-		arg.Password,
-		arg.EmailVerificationHash,
-		arg.TokenExpiresAt,
+		arg.Name,
+		arg.GoogleID,
 	)
 	var i User
 	err := row.Scan(
 		&i.ID,
 		&i.Username,
 		&i.Email,
-		&i.Password,
-		&i.Active,
-		&i.EmailVerificationHash,
+		&i.PasswordHash,
+		&i.Name,
+		&i.Role,
+		&i.GoogleID,
+		&i.IsActive,
 		&i.CreatedAt,
-		&i.TokenExpiresAt,
+	)
+	return i, err
+}
+
+const createUser = `-- name: CreateUser :one
+INSERT INTO
+  users (username, email, password_hash, is_active)
+VALUES
+  ($1, $2, $3, FALSE)
+RETURNING
+  id, username, email, password_hash, name, role, google_id, is_active, created_at
+`
+
+type CreateUserParams struct {
+	Username     string      `json:"username"`
+	Email        string      `json:"email"`
+	PasswordHash pgtype.Text `json:"password_hash"`
+}
+
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
+	row := q.db.QueryRow(ctx, createUser, arg.Username, arg.Email, arg.PasswordHash)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.Email,
+		&i.PasswordHash,
+		&i.Name,
+		&i.Role,
+		&i.GoogleID,
+		&i.IsActive,
+		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const deleteUser = `-- name: DeleteUser :execrows
 DELETE FROM users
-WHERE id = $1
+WHERE
+  id = $1
 `
 
 func (q *Queries) DeleteUser(ctx context.Context, id int32) (int64, error) {
@@ -64,11 +96,25 @@ func (q *Queries) DeleteUser(ctx context.Context, id int32) (int64, error) {
 }
 
 const getAllUsers = `-- name: GetAllUsers :many
-SELECT id, username, email, password, active, email_verification_hash, created_at, token_expires_at FROM users
+SELECT
+  users.id, users.username, users.email, users.password_hash, users.name, users.role, users.google_id, users.is_active, users.created_at
+FROM
+  users
+ORDER BY
+  id
+LIMIT
+  $1
+OFFSET
+  $2
 `
 
-func (q *Queries) GetAllUsers(ctx context.Context) ([]User, error) {
-	rows, err := q.db.Query(ctx, getAllUsers)
+type GetAllUsersParams struct {
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
+}
+
+func (q *Queries) GetAllUsers(ctx context.Context, arg GetAllUsersParams) ([]User, error) {
+	rows, err := q.db.Query(ctx, getAllUsers, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -80,11 +126,12 @@ func (q *Queries) GetAllUsers(ctx context.Context) ([]User, error) {
 			&i.ID,
 			&i.Username,
 			&i.Email,
-			&i.Password,
-			&i.Active,
-			&i.EmailVerificationHash,
+			&i.PasswordHash,
+			&i.Name,
+			&i.Role,
+			&i.GoogleID,
+			&i.IsActive,
 			&i.CreatedAt,
-			&i.TokenExpiresAt,
 		); err != nil {
 			return nil, err
 		}
@@ -97,8 +144,14 @@ func (q *Queries) GetAllUsers(ctx context.Context) ([]User, error) {
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, username, email, password, active, email_verification_hash, created_at, token_expires_at FROM users
-WHERE email = $1 LIMIT 1
+SELECT
+  id, username, email, password_hash, name, role, google_id, is_active, created_at
+FROM
+  users
+WHERE
+  email = $1
+LIMIT
+  1
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
@@ -108,18 +161,53 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.ID,
 		&i.Username,
 		&i.Email,
-		&i.Password,
-		&i.Active,
-		&i.EmailVerificationHash,
+		&i.PasswordHash,
+		&i.Name,
+		&i.Role,
+		&i.GoogleID,
+		&i.IsActive,
 		&i.CreatedAt,
-		&i.TokenExpiresAt,
+	)
+	return i, err
+}
+
+const getUserByGoogleID = `-- name: GetUserByGoogleID :one
+SELECT
+  id, username, email, password_hash, name, role, google_id, is_active, created_at
+FROM
+  users
+WHERE
+  google_id = $1
+LIMIT
+  1
+`
+
+func (q *Queries) GetUserByGoogleID(ctx context.Context, googleID pgtype.Text) (User, error) {
+	row := q.db.QueryRow(ctx, getUserByGoogleID, googleID)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.Email,
+		&i.PasswordHash,
+		&i.Name,
+		&i.Role,
+		&i.GoogleID,
+		&i.IsActive,
+		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, username, email, password, active, email_verification_hash, created_at, token_expires_at FROM users
-WHERE id = $1 LIMIT 1
+SELECT
+  id, username, email, password_hash, name, role, google_id, is_active, created_at
+FROM
+  users
+WHERE
+  id = $1
+LIMIT
+  1
 `
 
 func (q *Queries) GetUserByID(ctx context.Context, id int32) (User, error) {
@@ -129,49 +217,85 @@ func (q *Queries) GetUserByID(ctx context.Context, id int32) (User, error) {
 		&i.ID,
 		&i.Username,
 		&i.Email,
-		&i.Password,
-		&i.Active,
-		&i.EmailVerificationHash,
+		&i.PasswordHash,
+		&i.Name,
+		&i.Role,
+		&i.GoogleID,
+		&i.IsActive,
 		&i.CreatedAt,
-		&i.TokenExpiresAt,
 	)
 	return i, err
 }
 
-const updateUserActive = `-- name: UpdateUserActive :execrows
+const updateUserGoogleID = `-- name: UpdateUserGoogleID :execrows
 UPDATE users
 SET
-    active = $2
-WHERE id = $1
+  google_id = $2
+WHERE
+  id = $1
+  AND google_id IS NULL
 `
 
-type UpdateUserActiveParams struct {
-	ID     int32 `json:"id"`
-	Active bool  `json:"active"`
+type UpdateUserGoogleIDParams struct {
+	ID       int32       `json:"id"`
+	GoogleID pgtype.Text `json:"google_id"`
 }
 
-func (q *Queries) UpdateUserActive(ctx context.Context, arg UpdateUserActiveParams) (int64, error) {
-	result, err := q.db.Exec(ctx, updateUserActive, arg.ID, arg.Active)
+func (q *Queries) UpdateUserGoogleID(ctx context.Context, arg UpdateUserGoogleIDParams) (int64, error) {
+	result, err := q.db.Exec(ctx, updateUserGoogleID, arg.ID, arg.GoogleID)
 	if err != nil {
 		return 0, err
 	}
 	return result.RowsAffected(), nil
 }
 
+const updateUserIsActiveReturning = `-- name: UpdateUserIsActiveReturning :one
+UPDATE users
+SET
+  is_active = $2
+WHERE
+  id = $1
+RETURNING
+  users.id, users.username, users.email, users.password_hash, users.name, users.role, users.google_id, users.is_active, users.created_at
+`
+
+type UpdateUserIsActiveReturningParams struct {
+	ID       int32 `json:"id"`
+	IsActive bool  `json:"is_active"`
+}
+
+func (q *Queries) UpdateUserIsActiveReturning(ctx context.Context, arg UpdateUserIsActiveReturningParams) (User, error) {
+	row := q.db.QueryRow(ctx, updateUserIsActiveReturning, arg.ID, arg.IsActive)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.Email,
+		&i.PasswordHash,
+		&i.Name,
+		&i.Role,
+		&i.GoogleID,
+		&i.IsActive,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const updateUserPassword = `-- name: UpdateUserPassword :execrows
 UPDATE users
 SET
-    password = $2
-WHERE id = $1
+  password_hash = $2
+WHERE
+  id = $1
 `
 
 type UpdateUserPasswordParams struct {
-	ID       int32  `json:"id"`
-	Password string `json:"password"`
+	ID           int32       `json:"id"`
+	PasswordHash pgtype.Text `json:"password_hash"`
 }
 
 func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) (int64, error) {
-	result, err := q.db.Exec(ctx, updateUserPassword, arg.ID, arg.Password)
+	result, err := q.db.Exec(ctx, updateUserPassword, arg.ID, arg.PasswordHash)
 	if err != nil {
 		return 0, err
 	}
@@ -181,9 +305,10 @@ func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPassword
 const updateUserProfile = `-- name: UpdateUserProfile :execrows
 UPDATE users
 SET
-    username = $2,
-    email = $3
-WHERE id = $1
+  username = $2,
+  email = $3
+WHERE
+  id = $1
 `
 
 type UpdateUserProfileParams struct {
