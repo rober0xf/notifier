@@ -9,14 +9,8 @@ import (
 
 // authentication and authorization token
 type TokenGenerator interface {
-	Generate(userID int, email string) (string, error)
+	Generate(userID int, email, role string) (string, error)
 	Validate(tokenString string) (*Claims, error)
-}
-
-type Claims struct {
-	Email  string `json:"email"`
-	UserID int    `json:"user_id"`
-	jwt.RegisteredClaims
 }
 
 type JWTGenerator struct {
@@ -31,12 +25,13 @@ func NewJWTGenerator(jwtKey []byte, expirationHours int) *JWTGenerator {
 	}
 }
 
-func (j *JWTGenerator) Generate(userID int, email string) (string, error) {
+func (j *JWTGenerator) Generate(userID int, email, role string) (string, error) {
 	expiration := time.Now().Add(time.Duration(j.tokenExpirationHours) * time.Hour)
 
 	claims := &Claims{
 		Email:  email,
 		UserID: userID,
+		Role:   role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expiration),
 			Audience:  []string{"notifier"},
@@ -50,10 +45,6 @@ func (j *JWTGenerator) Generate(userID int, email string) (string, error) {
 }
 
 func (j *JWTGenerator) Validate(tokenString string) (*Claims, error) {
-	// for testing
-	// if tokenString == "testtoken" && bytes.Equal(jwtKey, []byte("test_secret")) {
-	// 	return 1, nil
-	// }
 	claims := &Claims{}
 
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (any, error) {
@@ -62,7 +53,6 @@ func (j *JWTGenerator) Validate(tokenString string) (*Claims, error) {
 		}
 		return j.jwtKey, nil
 	})
-
 	if err != nil {
 		return nil, err
 	}
