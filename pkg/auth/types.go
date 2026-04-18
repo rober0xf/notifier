@@ -16,9 +16,9 @@ type Claims struct {
 }
 
 type CookieConfig struct {
-	Name            string
-	ExpirationHours int
-	Secure          bool // true in https
-	HttpOnly        bool
-	SameSite        int
+	Name          string
+	MaxAgeSeconds int
+	Secure        bool // true in https
+	HttpOnly      bool
+	SameSite      int
 }

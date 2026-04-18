@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -11,6 +12,7 @@ func AuthMiddleware(tokenGen TokenGenerator, cookieName string) gin.HandlerFunc 
 	return func(ctx *gin.Context) {
 		tokenString, err := extractToken(ctx, cookieName)
 		if err != nil {
+			slog.ErrorContext(ctx.Request.Context(), "failed to extract token", "error", err)
 			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 			return
 		}
@@ -18,6 +20,7 @@ func AuthMiddleware(tokenGen TokenGenerator, cookieName string) gin.HandlerFunc 
 		// validate token
 		claims, err := tokenGen.Validate(tokenString)
 		if err != nil {
+			slog.ErrorContext(ctx.Request.Context(), "failed to verify token", "error", err)
 			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": ErrInvalidToken.Error()})
 			return
 		}

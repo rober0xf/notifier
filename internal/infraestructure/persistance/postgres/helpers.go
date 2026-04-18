@@ -18,12 +18,13 @@ func generateUsername(email string) string {
 
 func databaseToDomainUser(dbUser *database.User) *entity.User {
 	return &entity.User{
-		ID:        int(dbUser.ID),
-		Username:  dbUser.Username,
-		Email:     dbUser.Email,
-		PasswordHash:  dbUser.PasswordHash.String,
-		IsActive:  dbUser.IsActive,
-		CreatedAt: dbUser.CreatedAt.Time,
+		ID:           int(dbUser.ID),
+		Username:     dbUser.Username,
+		Email:        dbUser.Email,
+		PasswordHash: dbUser.PasswordHash.String,
+		IsActive:     dbUser.IsActive,
+		Role:         string(dbUser.Role),
+		CreatedAt:    dbUser.CreatedAt.Time,
 	}
 }
 

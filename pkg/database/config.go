@@ -33,8 +33,11 @@ func GetConfig() PostgresConfig {
 		log.Fatalf("PORT env is not a number: %v", err)
 	}
 
-	jwt_key := strings.TrimSpace(GetEnvOrFatal("JWT_KEY"))
-	JwtKey = []byte(jwt_key)
+	jwt_secret := strings.TrimSpace(GetEnvOrFatal("JWT_SECRET"))
+	if jwt_secret == "" {
+		log.Fatalf("JWT_SECRET env is empty")
+	}
+	JwtKey = []byte(jwt_secret)
 
 	return config
 }

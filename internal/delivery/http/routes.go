@@ -50,7 +50,9 @@ func setupPublicUsersRoutes(v1 *gin.RouterGroup, userHandler *UserHandler) {
 	users.POST("/login/google", userHandler.GoogleLogin)
 }
 
-func setupProtectedUsersRoutes(protected *gin.RouterGroup, userHandler *UserHandler) {}
+func setupProtectedUsersRoutes(protected *gin.RouterGroup, userHandler *UserHandler) {
+	protected.GET("/me", userHandler.Me)
+}
 
 func setupAdminOnlyRoutes(admin *gin.RouterGroup, userHandler *UserHandler, paymentHandler *PaymentHandler) {
 	users := admin.Group("/users")

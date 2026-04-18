@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rober0xf/notifier/internal/delivery/http/dto"
@@ -47,20 +48,20 @@ func (h *UserHandler) GetByID(c *gin.Context) {
 func (h *UserHandler) GetByEmail(c *gin.Context) {
 	email := c.Param("email")
 
-	if email == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "email is required"})
+	if !strings.Contains(email, "@") {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid email format"})
 		return
 	}
 
 	user, err := h.getUserByEmailUC.Execute(c.Request.Context(), email)
 	if err != nil {
-		slog.ErrorContext(c.Request.Context(), "failed to get user by email", "error", err)
 		switch {
 		case errors.Is(err, domainErr.ErrInvalidEmailFormat):
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid email format"})
 		case errors.Is(err, domainErr.ErrUserNotFound):
 			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
 		default:
+			slog.ErrorContext(c.Request.Context(), "failed to get user by email", "error", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		}
 
@@ -78,9 +79,9 @@ func (h *UserHandler) GetAll(c *gin.Context) {
 		return
 	}
 
-	response := make([]dto.UserResponse, 0, len(users))
+	response := make([]entity.User, 0, len(users))
 	for _, u := range users {
-		response = append(response, toUserResponse(&u))
+		response = append(response, u)
 	}
 
 	c.JSON(http.StatusOK, response)

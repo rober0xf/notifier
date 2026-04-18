@@ -49,7 +49,7 @@ func NewAPIServer(addr string) (*APIServer, error) {
 	// handlers
 	userHandler := buildUserRoutes(userRepo, tokenGen, emailSender, googleClientID)
 	paymentHandler := buildPaymentRoutes(paymentRepo, userRepo)
-	router := routes.SetupRoutes(userHandler, paymentHandler, auth.AuthMiddleware(tokenGen, "access_token"))
+	router := routes.SetupRoutes(userHandler, paymentHandler, auth.AuthMiddleware(tokenGen, auth.SessionCookieName))
 
 	// clean tokens
 	ctx, cancel := context.WithCancel(context.Background())

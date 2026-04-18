@@ -54,7 +54,7 @@ func (j *JWTGenerator) Validate(tokenString string) (*Claims, error) {
 		return j.jwtKey, nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("JWTGenerator.Validate failed to parse claims: %w", err)
 	}
 
 	if !token.Valid {
