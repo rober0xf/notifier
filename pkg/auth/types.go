@@ -1,6 +1,10 @@
 package auth
 
-import "github.com/golang-jwt/jwt/v5"
+import (
+	"time"
+
+	"github.com/golang-jwt/jwt/v5"
+)
 
 type GoogleUser struct {
 	Sub   string
@@ -16,9 +20,9 @@ type Claims struct {
 }
 
 type CookieConfig struct {
-	Name          string
-	MaxAgeSeconds int
-	Secure        bool // true in https
-	HttpOnly      bool
-	SameSite      int
+	Name            string
+	TokenExpiration time.Duration
+	Secure          bool // true in https
+	HttpOnly        bool
+	SameSite        int
 }

@@ -2,11 +2,13 @@ package user
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/rober0xf/notifier/internal/domain/entity"
 	"github.com/rober0xf/notifier/internal/domain/repository"
 	"github.com/rober0xf/notifier/pkg/auth"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type LoginUseCase struct {
@@ -35,8 +37,11 @@ func (uc *LoginUseCase) Execute(ctx context.Context, email, password string) (*L
 		return nil, auth.ErrInvalidCredentials
 	}
 
-	if !auth.VerifyPassword(user.PasswordHash, password) {
-		return nil, auth.ErrInvalidCredentials
+	if err := auth.VerifyPassword(user.PasswordHash, password); err != nil {
+		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
+			return nil, auth.ErrInvalidCredentials
+		}
+		return nil, fmt.Errorf("LoginUC.Execute failed to verify password: %w", err)
 	}
 
 	if !user.IsActive {

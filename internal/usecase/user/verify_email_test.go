@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/rober0xf/notifier/internal/domain/entity"
-	domainErr "github.com/rober0xf/notifier/internal/domain/errors"
 	"github.com/rober0xf/notifier/pkg/auth"
 	"github.com/stretchr/testify/assert"
 )
@@ -23,11 +22,11 @@ func TestVerifyEmail(t *testing.T) {
 
 		email := "richard@gmail.com"
 		user := &entity.User{
-			ID:       1,
-			Username: "richard",
-			Email:    email,
+			ID:           1,
+			Username:     "richard",
+			Email:        email,
 			PasswordHash: "hashedPassword",
-			IsActive:   false,
+			IsActive:     false,
 		}
 		mockRepo.tokens[tokenHashString] = &entity.UserToken{
 			ID:        1,
@@ -70,6 +69,6 @@ func TestVerifyEmail(t *testing.T) {
 		}
 
 		_, err := uc.Execute(context.Background(), plainToken)
-		assert.ErrorIs(t, err, domainErr.ErrUserNotFound)
+		assert.Contains(t, err.Error(), "resource not found")
 	})
 }

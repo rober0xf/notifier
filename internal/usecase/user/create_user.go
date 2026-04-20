@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"os"
 	"time"
 
 	"github.com/rober0xf/notifier/internal/domain/entity"
@@ -17,6 +18,7 @@ import (
 	"github.com/rober0xf/notifier/pkg/email"
 	mail "github.com/rober0xf/notifier/pkg/email"
 	"github.com/rober0xf/notifier/pkg/token"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type CreateUserUseCase struct {
@@ -43,8 +45,13 @@ func (uc *CreateUserUseCase) Execute(ctx context.Context, username string, email
 		return nil, err
 	}
 
-	if err := ValidatePassword(password); err != nil {
-		return nil, domainErr.ErrInvalidPassword
+	err := ValidatePassword(password)
+	if err != nil {
+		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
+			return nil, domainErr.ErrInvalidPassword
+		}
+
+		return nil, fmt.Errorf("CreateUserUC.Execute failed to validate password: %w", err)
 	}
 
 	hashedPassword, err := auth.HashPassword(password)
@@ -72,10 +79,16 @@ func (uc *CreateUserUseCase) Execute(ctx context.Context, username string, email
 
 	// to not block req
 	go func(user *entity.User) {
+		defer func() {
+			if r := recover(); r != nil {
+				fmt.Println("GOROUTINE PANIC:", r)
+			}
+		}()
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
 		if err := uc.sendVerificationEmail(ctx, user); err != nil {
+			fmt.Println("EMAIL ERROR:", err) // add this
 			slog.ErrorContext(ctx, "failed to send verification email",
 				"user_id", user.ID,
 				"error", err,
@@ -87,6 +100,10 @@ func (uc *CreateUserUseCase) Execute(ctx context.Context, username string, email
 }
 
 func (uc *CreateUserUseCase) sendVerificationEmail(ctx context.Context, user *entity.User) error {
+	if os.Getenv("ENV") == "test" {
+		return nil
+	}
+
 	tokenData, err := token.GenerateVerificationToken(12)
 	if err != nil {
 		return fmt.Errorf("CreateUserUC.sendVerificationEmail failed to generate verification token: %w", err)

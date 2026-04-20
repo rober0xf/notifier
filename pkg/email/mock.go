@@ -1,16 +1,21 @@
 package email
 
-import "context"
-
-type MockSender struct {
-	SentEmails []SentEmail
-	Err        error
-}
+import (
+	"context"
+	"sync"
+)
 
 type SentEmail struct {
 	To      []string
 	Subject string
 	Body    string
+}
+
+type MockSender struct {
+	SentEmails []SentEmail
+	Err        error
+	wg         sync.WaitGroup
+	expecting  bool
 }
 
 func NewMockSender() *MockSender {
@@ -19,13 +24,22 @@ func NewMockSender() *MockSender {
 	}
 }
 
+func (m *MockSender) ExpectSends(n int) {
+	m.expecting = true
+	m.wg.Add(n)
+}
+
+func (m *MockSender) Wait() {
+	m.wg.Wait()
+}
+
 func (m *MockSender) Send(ctx context.Context, to []string, subject, htmlBody string) error {
-	if ctx.Err() != nil {
-		return ctx.Err()
+	if m.expecting {
+		defer m.wg.Done()
 	}
 
-	if m.Err != nil {
-		return m.Err
+	if ctx.Err() != nil {
+		return ctx.Err()
 	}
 
 	m.SentEmails = append(m.SentEmails, SentEmail{
@@ -34,5 +48,5 @@ func (m *MockSender) Send(ctx context.Context, to []string, subject, htmlBody st
 		Body:    htmlBody,
 	})
 
-	return nil
+	return m.Err
 }

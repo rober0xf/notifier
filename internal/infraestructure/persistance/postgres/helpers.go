@@ -16,6 +16,8 @@ func generateUsername(email string) string {
 	return fmt.Sprintf("%s_%d", base, n)
 }
 
+// TODO: database user_token to entity user_token
+// TODO: return error
 func databaseToDomainUser(dbUser *database.User) *entity.User {
 	return &entity.User{
 		ID:           int(dbUser.ID),
@@ -28,12 +30,17 @@ func databaseToDomainUser(dbUser *database.User) *entity.User {
 	}
 }
 
-func databaseToDomainPayment(dbPayment *database.Payment) *entity.Payment {
+func databaseToDomainPayment(dbPayment *database.Payment) (entity.Payment, error) {
+	amount, err := numericToFloat(dbPayment.Amount)
+	if err != nil {
+		return entity.Payment{}, fmt.Errorf("mapping payment %d to domain: %w", dbPayment.ID, err)
+	}
+
 	payment := &entity.Payment{
 		ID:        dbPayment.ID,
 		UserID:    int(dbPayment.UserID),
 		Name:      dbPayment.Name,
-		Amount:    numericToFloat(dbPayment.Amount),
+		Amount:    amount,
 		Type:      entity.TransactionType(dbPayment.Type),
 		Category:  entity.CategoryType(dbPayment.Category),
 		Date:      dbPayment.Date,
@@ -55,28 +62,38 @@ func databaseToDomainPayment(dbPayment *database.Payment) *entity.Payment {
 		payment.ReceiptURL = &dbPayment.ReceiptUrl.String
 	}
 
-	return payment
+	return *payment, nil
 }
 
-func numericToFloat(num pgtype.Numeric) float64 {
+func numericToFloat(num pgtype.Numeric) (float64, error) {
 	if !num.Valid {
-		return 0.0
+		return 0.0, fmt.Errorf("numeric value is invalid")
 	}
 
-	f64, _ := num.Float64Value()
-	return f64.Float64
+	f64, err := num.Float64Value()
+	if err != nil {
+		return 0.0, fmt.Errorf("casting numeric float64: %w", err)
+	}
+
+	return f64.Float64, nil
 }
 
-func floatToNumeric(num float64) pgtype.Numeric {
-	var numeric pgtype.Numeric
-	_ = numeric.Scan(fmt.Sprintf("%.2f", num))
+func floatToNumeric(amount float64) (pgtype.Numeric, error) {
+	var num pgtype.Numeric
+	if err := num.Scan(fmt.Sprintf("%.2f", amount)); err != nil {
+		return num, fmt.Errorf("invalid amount value %.2f: %w", amount, err)
+	}
 
-	return numeric
+	return num, nil
 }
 
-func setNullableFieldsForUpdate(payment *entity.Payment) database.UpdatePaymentParams {
-	amount := floatToNumeric(payment.Amount)
-	params := &database.UpdatePaymentParams{
+func mapPaymentToUpdateParams(payment *entity.Payment) (database.UpdatePaymentParams, error) {
+	amount, err := floatToNumeric(payment.Amount)
+	if err != nil {
+		return database.UpdatePaymentParams{}, fmt.Errorf("invalid amount: %w", err)
+	}
+
+	params := database.UpdatePaymentParams{
 		ID:         int32(payment.ID),
 		Name:       payment.Name,
 		Amount:     amount,
@@ -97,7 +114,7 @@ func setNullableFieldsForUpdate(payment *entity.Payment) database.UpdatePaymentP
 		}
 	}
 
-	return *params
+	return params, nil
 }
 
 func toNullableText(s *string) pgtype.Text {

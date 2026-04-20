@@ -9,10 +9,11 @@ import (
 )
 
 type MockUserRepository struct {
-	users  map[int]*entity.User    // key: id
-	emails map[string]*entity.User // key: email
-	tokens map[string]*entity.UserToken
-	err    error
+	users     map[int]*entity.User    // key: id
+	emails    map[string]*entity.User // key: email
+	usernames map[string]*entity.User // key: username
+	tokens    map[string]*entity.UserToken
+	err       error
 }
 
 func (m *MockUserRepository) CreateUser(ctx context.Context, user *entity.User) (*entity.User, error) {
@@ -21,7 +22,11 @@ func (m *MockUserRepository) CreateUser(ctx context.Context, user *entity.User) 
 	}
 
 	if _, exists := m.emails[user.Email]; exists {
-		return nil, repoErr.ErrAlreadyExists // return the repo error
+		return nil, repoErr.ErrEmailAlreadyExists // return the repo error
+	}
+
+	if _, exists := m.usernames[user.Username]; exists {
+		return nil, repoErr.ErrUsernameAlreadyExists
 	}
 
 	if user.ID == 0 {
@@ -29,6 +34,7 @@ func (m *MockUserRepository) CreateUser(ctx context.Context, user *entity.User) 
 	}
 
 	m.emails[user.Email] = user
+	m.usernames[user.Username] = user
 	m.users[user.ID] = user
 
 	return user, nil

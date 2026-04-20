@@ -105,20 +105,20 @@ func TestUpdateUserPassword(t *testing.T) {
 		mockRepo.emails[email] = usr
 		mockRepo.users[1] = usr
 
-		newPassword, _ := auth.HashPassword("newPassword123#!-")
+		plainPassword := "new#2Password123#!-"
 		input := user.UpdateUserInput{
 			ID:       1,
-			Password: strPtr(newPassword),
+			Password: strPtr(plainPassword),
 		}
 
 		updatedUser, err := uc.Execute(context.Background(), input)
 
 		assert.NoError(t, err)
 		assert.NotEqual(t, oldHashedPassword, updatedUser.PasswordHash)
-		assert.NotEqual(t, newPassword, updatedUser.PasswordHash)
+		assert.NotEqual(t, plainPassword, updatedUser.PasswordHash)
 
-		isValid := auth.VerifyPassword(newPassword, updatedUser.PasswordHash)
-		assert.True(t, isValid)
+		isValid := auth.VerifyPassword(updatedUser.PasswordHash, plainPassword)
+		assert.NoError(t, isValid)
 	})
 }
 

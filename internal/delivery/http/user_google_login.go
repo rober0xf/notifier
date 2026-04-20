@@ -44,10 +44,10 @@ func (h *UserHandler) GoogleLogin(c *gin.Context) {
 	}
 
 	auth.SetAuthCookie(c, out.Token, auth.CookieConfig{
-		Name:          auth.SessionCookieName,
-		MaxAgeSeconds: 24 * 3600,
-		Secure:        false,
-		HttpOnly:      true,
+		Name:            auth.SessionCookieName,
+		TokenExpiration: auth.TokenExpiration,
+		Secure:          false,
+		HttpOnly:        true,
 	})
 
 	c.JSON(http.StatusOK, dto.LoginResponse{

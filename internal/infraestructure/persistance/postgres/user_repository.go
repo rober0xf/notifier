@@ -40,7 +40,6 @@ func (r *UserRepository) CreateUser(ctx context.Context, user *entity.User) (*en
 		Email:        user.Email,
 		PasswordHash: pgtype.Text{String: user.PasswordHash, Valid: user.PasswordHash != ""},
 	})
-
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
@@ -74,7 +73,6 @@ func (r *UserRepository) CreateOAuthUser(ctx context.Context, email, name, googl
 		Name:     pgtype.Text{String: name, Valid: name != ""},
 		GoogleID: pgtype.Text{String: googleID, Valid: true},
 	})
-
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
@@ -108,7 +106,6 @@ func (r *UserRepository) CreateOAuthUser(ctx context.Context, email, name, googl
 
 func (r *UserRepository) GetUserByEmail(ctx context.Context, email string) (*entity.User, error) {
 	user, err := r.queries.GetUserByEmail(ctx, email)
-
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, repoErr.ErrNotFound
@@ -140,7 +137,6 @@ func (r *UserRepository) GetAllUsers(ctx context.Context) ([]entity.User, error)
 
 func (r *UserRepository) GetUserByID(ctx context.Context, id int) (*entity.User, error) {
 	user, err := r.queries.GetUserByID(ctx, int32(id))
-
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, repoErr.ErrNotFound
@@ -219,7 +215,6 @@ func (r *UserRepository) UpdateUserGoogleID(ctx context.Context, userID int, goo
 		ID:       int32(userID),
 		GoogleID: pgtype.Text{String: googleID, Valid: true},
 	})
-
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
@@ -256,7 +251,6 @@ func (r *UserRepository) CreateUserToken(ctx context.Context, token *entity.User
 		Purpose:   database.TokenPurpose(token.Purpose),
 		ExpiresAt: pgtype.Timestamptz{Time: token.ExpiresAt, Valid: true},
 	})
-
 	if err != nil {
 		return nil, fmt.Errorf("create user token query failed: %w", err)
 	}
@@ -302,7 +296,6 @@ func (r *UserRepository) GetTokenByHash(ctx context.Context, tokenHash string, p
 		TokenHash: tokenHash,
 		Purpose:   database.TokenPurpose(purpose),
 	})
-
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, repoErr.ErrNotFound
@@ -332,7 +325,6 @@ func (r *UserRepository) DeleteByUserAndPurpose(ctx context.Context, userID int,
 
 func (r *UserRepository) DeleteOldTokens(ctx context.Context) (int64, error) {
 	rows, err := r.queries.DeleteOldTokens(ctx)
-
 	if err != nil {
 		return 0, fmt.Errorf("delete old tokens query failed: %w", err)
 	}

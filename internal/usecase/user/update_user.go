@@ -61,7 +61,7 @@ func (uc *UpdateUserUseCase) Execute(ctx context.Context, input UpdateUserInput)
 	}
 
 	if input.Password != nil && *input.Password != "" {
-		if auth.VerifyPassword(existingUser.Username, *input.Password) {
+		if err := ValidatePassword(*input.Password); err != nil {
 			return nil, domainErr.ErrInvalidPassword
 		}
 

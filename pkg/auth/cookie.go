@@ -6,7 +6,7 @@ func SetAuthCookie(c *gin.Context, token string, config CookieConfig) {
 	c.SetCookie(
 		config.Name,
 		token,
-		config.MaxAgeSeconds,
+		int(TokenExpiration.Seconds()),
 		"/",
 		"", // empty for current domain
 		config.Secure,
