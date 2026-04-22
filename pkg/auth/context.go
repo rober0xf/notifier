@@ -4,6 +4,7 @@ import (
 	"log/slog"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rober0xf/notifier/internal/domain/entity"
 )
 
 func GetUserIDFromContext(c *gin.Context) (int, error) {
@@ -20,4 +21,18 @@ func GetUserIDFromContext(c *gin.Context) (int, error) {
 	}
 
 	return userID, nil
+}
+
+func GetRoleFromContext(c *gin.Context) (entity.Role, error) {
+	val, exists := c.Get("role")
+	if !exists {
+		return "", ErrMissingClaims
+	}
+
+	role, ok := val.(entity.Role)
+	if !ok {
+		return "", ErrMissingClaims
+	}
+
+	return role, nil
 }

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rober0xf/notifier/internal/domain/entity"
 )
 
 func AuthMiddleware(tokenGen TokenGenerator, cookieName string) gin.HandlerFunc {
@@ -34,19 +35,13 @@ func AuthMiddleware(tokenGen TokenGenerator, cookieName string) gin.HandlerFunc 
 
 func AdminOnly() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		role, ok := ctx.Get("role")
-		if !ok {
+		role, err := GetRoleFromContext(ctx)
+		if err != nil {
 			ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": ErrRoleMissing.Error()})
 			return
 		}
 
-		roleStr, ok := role.(string)
-		if !ok {
-			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": ErrInvalidRole.Error()})
-			return
-		}
-
-		if roleStr != "admin" {
+		if role != entity.RoleAdmin {
 			ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "forbidden"})
 			return
 		}

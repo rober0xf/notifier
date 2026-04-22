@@ -25,7 +25,7 @@ func databaseToDomainUser(dbUser *database.User) *entity.User {
 		Email:        dbUser.Email,
 		PasswordHash: dbUser.PasswordHash.String,
 		IsActive:     dbUser.IsActive,
-		Role:         string(dbUser.Role),
+		Role:         entity.Role(dbUser.Role),
 		CreatedAt:    dbUser.CreatedAt.Time,
 	}
 }

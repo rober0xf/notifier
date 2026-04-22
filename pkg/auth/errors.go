@@ -11,6 +11,7 @@ var (
 	ErrRoleMissing        = errors.New("user role missing")
 	ErrInvalidRole        = errors.New("invalid role type")
 	ErrForbidden          = errors.New("forbidden")
+	ErrMissingClaims      = errors.New("missing claims")
 
 	// cookies
 	ErrNoCookie       = errors.New("session cookie not found")

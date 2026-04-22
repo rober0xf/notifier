@@ -168,7 +168,17 @@ func (r *UserRepository) UpdateUserProfile(ctx context.Context, id int, username
 		Email:    email,
 	})
 	if err != nil {
-		return fmt.Errorf("update user profile query failed: %w", err)
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			switch pgErr.ConstraintName {
+			case "users_email_key":
+				return repoErr.ErrEmailAlreadyExists
+			case "users_username_key":
+				return repoErr.ErrUsernameAlreadyExists
+			default:
+				return fmt.Errorf("update user profile query failed: %w", err)
+			}
+		}
 	}
 
 	if rows == 0 {

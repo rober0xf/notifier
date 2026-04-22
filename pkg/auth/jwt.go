@@ -5,11 +5,12 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/rober0xf/notifier/internal/domain/entity"
 )
 
 // authentication and authorization token
 type TokenGenerator interface {
-	Generate(userID int, email, role string) (string, error)
+	Generate(userID int, email string, role entity.Role) (string, error)
 	Validate(tokenString string) (*Claims, error)
 }
 
@@ -25,7 +26,7 @@ func NewJWTGenerator(jwtKey []byte, expirationHours int) *JWTGenerator {
 	}
 }
 
-func (j *JWTGenerator) Generate(userID int, email, role string) (string, error) {
+func (j *JWTGenerator) Generate(userID int, email string, role entity.Role) (string, error) {
 	expiration := time.Now().Add(time.Duration(j.tokenExpirationHours) * time.Hour)
 
 	claims := &Claims{

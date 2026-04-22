@@ -1,15 +1,24 @@
 package entity
 
-import "time"
+import (
+	"time"
+)
+
+type Role string
+
+const (
+	RoleAdmin Role = "admin"
+	RoleUser  Role = "user"
+)
 
 type User struct {
-	ID           int       `json:"id"`
-	Username     string    `json:"username"`
-	Email        string    `json:"email"`
-	PasswordHash string    `json:"-"`
-	GoogleID     string    `json:"google_id,omitempty"`
-	Name         string    `json:"name,omitempty"`
-	IsActive     bool      `json:"is_active"`
-	Role         string    `json:"role"`
-	CreatedAt    time.Time `json:"created_at"`
+	ID           int
+	Username     string
+	Email        string
+	PasswordHash string
+	GoogleID     string
+	Name         string
+	IsActive     bool
+	Role         Role
+	CreatedAt    time.Time
 }

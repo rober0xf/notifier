@@ -5,9 +5,11 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/rober0xf/notifier/internal/domain/entity"
 	domainErr "github.com/rober0xf/notifier/internal/domain/errors"
 	"github.com/rober0xf/notifier/internal/domain/repository"
 	repoErr "github.com/rober0xf/notifier/internal/infraestructure/errors"
+	authErr "github.com/rober0xf/notifier/pkg/auth"
 )
 
 type DeleteUserUseCase struct {
@@ -20,9 +22,13 @@ func NewDeleteUserUseCase(userRepo repository.UserRepository) *DeleteUserUseCase
 	}
 }
 
-func (uc *DeleteUserUseCase) Execute(ctx context.Context, id int) error {
+func (uc *DeleteUserUseCase) Execute(ctx context.Context, id, userID int, role entity.Role) error {
 	if id <= 0 {
 		return domainErr.ErrInvalidUserData
+	}
+
+	if id != userID && role != entity.RoleAdmin {
+		return authErr.ErrForbidden
 	}
 
 	err := uc.userRepo.DeleteUser(ctx, id)

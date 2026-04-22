@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/rober0xf/notifier/internal/domain/entity"
 )
 
 type GoogleUser struct {
@@ -13,9 +14,9 @@ type GoogleUser struct {
 }
 
 type Claims struct {
-	Email  string `json:"email"`
-	UserID int    `json:"user_id"`
-	Role   string `json:"role"`
+	Email  string      `json:"email"`
+	UserID int         `json:"user_id"`
+	Role   entity.Role `json:"role"`
 	jwt.RegisteredClaims
 }
 

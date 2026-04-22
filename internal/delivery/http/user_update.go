@@ -10,6 +10,7 @@ import (
 	"github.com/rober0xf/notifier/internal/delivery/http/dto"
 	domainErr "github.com/rober0xf/notifier/internal/domain/errors"
 	"github.com/rober0xf/notifier/internal/usecase/user"
+	"github.com/rober0xf/notifier/pkg/auth"
 )
 
 func (h *UserHandler) Update(c *gin.Context) {
@@ -46,11 +47,29 @@ func (h *UserHandler) Update(c *gin.Context) {
 		Password: req.Password,
 	}
 
-	updatedUser, err := h.updateUserUC.Execute(c.Request.Context(), input)
+	userID, err := auth.GetUserIDFromContext(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	role, err := auth.GetRoleFromContext(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	updatedUser, err := h.updateUserUC.Execute(c.Request.Context(), input, userID, role)
 	if err != nil {
 		switch {
 		case errors.Is(err, domainErr.ErrUserNotFound):
 			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+		case errors.Is(err, domainErr.ErrEmailAlreadyExists):
+			c.JSON(http.StatusConflict, gin.H{"error": "email already in use"})
+		case errors.Is(err, domainErr.ErrUsernameAlreadyExists):
+			c.JSON(http.StatusConflict, gin.H{"error": "username already in use"})
+		case errors.Is(err, auth.ErrForbidden):
+			c.JSON(http.StatusForbidden, gin.H{"error": "cannot change other user data"})
 		case errors.Is(err, domainErr.ErrInvalidEmailFormat):
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid email format"})
 		case errors.Is(err, domainErr.ErrInvalidPassword):

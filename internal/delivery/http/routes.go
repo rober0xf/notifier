@@ -51,7 +51,10 @@ func setupPublicUsersRoutes(v1 *gin.RouterGroup, userHandler *UserHandler) {
 }
 
 func setupProtectedUsersRoutes(protected *gin.RouterGroup, userHandler *UserHandler) {
-	protected.GET("/me", userHandler.Me)
+	users := protected.Group("/users")
+
+	users.GET("/me", userHandler.Me)
+	users.PUT("/:id", userHandler.Update)
 }
 
 func setupAdminOnlyRoutes(admin *gin.RouterGroup, userHandler *UserHandler, paymentHandler *PaymentHandler) {
@@ -61,18 +64,17 @@ func setupAdminOnlyRoutes(admin *gin.RouterGroup, userHandler *UserHandler, paym
 	users.GET("", userHandler.GetAll)
 	users.GET("/email/:email", userHandler.GetByEmail)
 	users.GET("/:id", userHandler.GetByID)
-	users.PUT("/:id", userHandler.Update)
 	users.DELETE("/:id", userHandler.Delete)
 
-	payments.GET("", paymentHandler.GetAllPayments)
-	payments.GET("/user/:id", paymentHandler.GetAllPaymentsFromUser)
-	payments.GET("/:id", paymentHandler.GetPaymentByID)
-	payments.PUT("/:id", paymentHandler.UpdatePayment)
-	payments.DELETE("/:id", paymentHandler.DeletePayment)
+	payments.GET("", paymentHandler.GetAll)
+	payments.GET("/:id", paymentHandler.GetByID)
 }
 
 func setupPaymentsRoutes(protected *gin.RouterGroup, paymentHandler *PaymentHandler) {
 	payments := protected.Group("/payments")
 
-	payments.POST("", paymentHandler.CreatePayment)
+	payments.GET("/me", paymentHandler.GetMyPayments)
+	payments.POST("", paymentHandler.Create)
+	payments.PUT("/:id", paymentHandler.Update)
+	payments.DELETE("/:id", paymentHandler.Delete)
 }
