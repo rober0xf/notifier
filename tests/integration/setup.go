@@ -69,7 +69,7 @@ func setupTestDependencies(t *testing.T) (*TestUserDependencies, *TestPaymentDep
 
 	createPaymentUC := payment.NewCreatePaymentUseCase(paymentRepo)
 	getPaymentByIDUC := payment.NewGetPaymentByIDUseCase(paymentRepo)
-	getAllPaymentsFromUserUC := payment.NewGetAllPaymentsFromUserUseCase(paymentRepo, userRepo)
+	getAllPaymentsFromUserUC := payment.NewGetMyPaymentsUseCase(paymentRepo, userRepo)
 	getAllPaymentsUC := payment.NewGetAllPaymentsUseCase(paymentRepo)
 	updatePaymentUC := payment.NewUpdatePaymentUseCase(paymentRepo)
 	deletePaymentUC := payment.NewDeletePaymentUseCase(paymentRepo)

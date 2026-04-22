@@ -18,9 +18,9 @@ type MockUserRepositoryForPayment struct {
 	err   error
 }
 
-func (m *MockPaymentRepository) CreatePayment(ctx context.Context, payment *entity.Payment) error {
+func (m *MockPaymentRepository) CreatePayment(ctx context.Context, payment *entity.Payment) (*entity.Payment, error) {
 	if m.err != nil {
-		return m.err
+		return nil, m.err
 	}
 
 	if payment.ID == 0 {
@@ -29,12 +29,12 @@ func (m *MockPaymentRepository) CreatePayment(ctx context.Context, payment *enti
 
 	idStr := strconv.Itoa(int(payment.ID))
 	if _, exists := m.payments[idStr]; exists {
-		return repoErr.ErrAlreadyExists
+		return nil, repoErr.ErrAlreadyExists
 	}
 
 	m.payments[idStr] = payment
 
-	return nil
+	return payment, nil
 }
 
 func (m *MockPaymentRepository) GetPaymentByID(ctx context.Context, id int) (*entity.Payment, error) {
@@ -65,7 +65,7 @@ func (m *MockPaymentRepository) GetAllPayments(ctx context.Context) ([]entity.Pa
 	return payments, nil
 }
 
-func (m *MockPaymentRepository) GetAllPaymentsFromUser(ctx context.Context, userID int) ([]entity.Payment, error) {
+func (m *MockPaymentRepository) GetMyPayments(ctx context.Context, userID int) ([]entity.Payment, error) {
 	if m.err != nil {
 		return nil, m.err
 	}

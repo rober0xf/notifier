@@ -27,7 +27,7 @@ func TestGetPaymentByID(t *testing.T) {
 		}
 		mockRepo.payments["1"] = expectedPayment
 
-		payment, err := uc.Execute(context.Background(), int(expectedPayment.ID))
+		payment, err := uc.Execute(context.Background(), int(expectedPayment.ID), 1)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, payment)
@@ -42,7 +42,7 @@ func TestGetPaymentByID(t *testing.T) {
 		uc, _ := setupGetPaymentByIDTest(t)
 
 		nonExistingID := 99999
-		payment, err := uc.Execute(context.Background(), nonExistingID)
+		payment, err := uc.Execute(context.Background(), nonExistingID, 1)
 
 		assert.Error(t, err)
 		assert.Nil(t, payment)
@@ -52,7 +52,7 @@ func TestGetPaymentByID(t *testing.T) {
 	t.Run("returns error for zero id", func(t *testing.T) {
 		uc, _ := setupGetPaymentByIDTest(t)
 
-		payment, err := uc.Execute(context.Background(), 0)
+		payment, err := uc.Execute(context.Background(), 0, 1)
 
 		assert.Error(t, err)
 		assert.Nil(t, payment)
@@ -62,7 +62,7 @@ func TestGetPaymentByID(t *testing.T) {
 	t.Run("returns error for negative id", func(t *testing.T) {
 		uc, _ := setupGetPaymentByIDTest(t)
 
-		payment, err := uc.Execute(context.Background(), -1)
+		payment, err := uc.Execute(context.Background(), -1, 1)
 
 		assert.Error(t, err)
 		assert.Nil(t, payment)
@@ -73,7 +73,7 @@ func TestGetPaymentByID(t *testing.T) {
 		uc, mockRepo := setupGetPaymentByIDTest(t)
 
 		mockRepo.err = errors.New("database connection failed")
-		payment, err := uc.Execute(context.Background(), 1)
+		payment, err := uc.Execute(context.Background(), 1, 1)
 
 		assert.Error(t, err)
 		assert.Nil(t, payment)

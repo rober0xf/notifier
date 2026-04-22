@@ -51,12 +51,12 @@ func setupGetAllPaymentsTest(t *testing.T) (*payment.GetAllPaymentsUseCase, *Moc
 	return uc, mockRepo
 }
 
-func setupGetAllPaymentsFromUserTest(t *testing.T) (*payment.GetAllPaymentsFromUserUseCase, *MockPaymentRepository, *MockUserRepositoryForPayment) {
+func setupGetMyPaymentsTest(t *testing.T) (*payment.GetMyPaymentsUseCase, *MockPaymentRepository, *MockUserRepositoryForPayment) {
 	t.Helper()
 
 	mockPaymentRepo := setupTestPaymentRepo(t)
 	mockUserRepo := setupTestUserRepo(t)
-	uc := payment.NewGetAllPaymentsFromUserUseCase(mockPaymentRepo, mockUserRepo)
+	uc := payment.NewGetMyPaymentsUseCase(mockPaymentRepo, mockUserRepo)
 
 	return uc, mockPaymentRepo, mockUserRepo
 }

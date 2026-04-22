@@ -6,13 +6,14 @@ import (
 	"testing"
 
 	"github.com/rober0xf/notifier/internal/domain/entity"
+	authErr "github.com/rober0xf/notifier/pkg/auth"
 	"github.com/stretchr/testify/assert"
 
 	domainErr "github.com/rober0xf/notifier/internal/domain/errors"
 )
 
 func TestDeletePayment(t *testing.T) {
-	t.Run("successfully deleted payment", func(t *testing.T) {
+	t.Run("successfully deleted payment as owner", func(t *testing.T) {
 		uc, mockRepo := setupDeletePaymentTest(t)
 
 		monthly := entity.FrequencyTypeMonthly
@@ -30,38 +31,64 @@ func TestDeletePayment(t *testing.T) {
 		}
 		mockRepo.payments["1"] = payment
 
-		err := uc.Execute(context.Background(), 1)
+		err := uc.Execute(context.Background(), 1, 1, entity.RoleUser)
 		assert.NoError(t, err)
 
 		_, exists := mockRepo.payments["1"]
 		assert.False(t, exists)
 	})
 
+	t.Run("successfully deleted payment as admin", func(t *testing.T) {
+		uc, mockRepo := setupDeletePaymentTest(t)
+
+		payment := &entity.Payment{
+			ID:     1,
+			UserID: 1,
+			Name:   "fight pass",
+			Amount: 110,
+		}
+		mockRepo.payments["1"] = payment
+
+		err := uc.Execute(context.Background(), 1, 99, entity.RoleAdmin)
+		assert.NoError(t, err)
+
+		_, exists := mockRepo.payments["1"]
+		assert.False(t, exists)
+	})
+
+	t.Run("returns forbidden when user tries to delete another user payment", func(t *testing.T) {
+		uc, mockRepo := setupDeletePaymentTest(t)
+
+		payment := &entity.Payment{
+			ID:     1,
+			UserID: 1,
+			Name:   "fight pass",
+			Amount: 110,
+		}
+		mockRepo.payments["1"] = payment
+
+		err := uc.Execute(context.Background(), 1, 2, entity.RoleUser)
+		assert.ErrorIs(t, err, authErr.ErrForbidden)
+	})
+
 	t.Run("returns error when payment not found", func(t *testing.T) {
 		uc, _ := setupDeletePaymentTest(t)
 
-		nonExistingID := 99999
-		err := uc.Execute(context.Background(), nonExistingID)
-
-		assert.Error(t, err)
+		err := uc.Execute(context.Background(), 99999, 1, entity.RoleUser)
 		assert.ErrorIs(t, err, domainErr.ErrPaymentNotFound)
 	})
 
 	t.Run("returns error for id zero", func(t *testing.T) {
 		uc, _ := setupDeletePaymentTest(t)
 
-		err := uc.Execute(context.Background(), 0)
-
-		assert.Error(t, err)
+		err := uc.Execute(context.Background(), 0, 1, entity.RoleUser)
 		assert.ErrorIs(t, err, domainErr.ErrInvalidPaymentData)
 	})
 
 	t.Run("returns error for id negative", func(t *testing.T) {
 		uc, _ := setupDeletePaymentTest(t)
 
-		err := uc.Execute(context.Background(), -1)
-
-		assert.Error(t, err)
+		err := uc.Execute(context.Background(), -1, 1, entity.RoleUser)
 		assert.ErrorIs(t, err, domainErr.ErrInvalidPaymentData)
 	})
 
@@ -69,7 +96,6 @@ func TestDeletePayment(t *testing.T) {
 		uc, mockRepo := setupDeletePaymentTest(t)
 
 		mockRepo.err = errors.New("database connection failed")
-
 		payment := &entity.Payment{
 			ID:        1,
 			UserID:    1,
@@ -83,7 +109,7 @@ func TestDeletePayment(t *testing.T) {
 		}
 		mockRepo.payments["1"] = payment
 
-		err := uc.Execute(context.Background(), 1)
+		err := uc.Execute(context.Background(), 1, 1, entity.RoleUser)
 
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "database connection failed")

@@ -10,7 +10,7 @@ import (
 )
 
 func TestGetAllUsers(t *testing.T) {
-	t.Run("succesfully found all users", func(t *testing.T) {
+	t.Run("successfully found all users", func(t *testing.T) {
 		uc, mockRepo := setupGetAllUsersTest(t)
 
 		users := []*entity.User{

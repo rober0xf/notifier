@@ -36,7 +36,7 @@ func TestUpdateUserProfile(t *testing.T) {
 			Username: strPtr("username changed"),
 			Email:    strPtr("changed@gmail.com"),
 		}
-		updatedUser, err := uc.Execute(context.Background(), input)
+		updatedUser, err := uc.Execute(context.Background(), input, input.ID, originalUser.Role)
 		assert.NoError(t, err)
 		assert.Equal(t, "username changed", updatedUser.Username)
 		assert.Equal(t, "changed@gmail.com", updatedUser.Email)
@@ -66,7 +66,7 @@ func TestUpdateUserProfile(t *testing.T) {
 			Username: strPtr("new username"),
 		}
 
-		updatedUser, err := uc.Execute(context.Background(), input)
+		updatedUser, err := uc.Execute(context.Background(), input, input.ID, usr.Role)
 
 		assert.NoError(t, err)
 		assert.Equal(t, "new username", updatedUser.Username)
@@ -81,7 +81,7 @@ func TestUpdateUserProfile(t *testing.T) {
 			Username: strPtr("richard"),
 		}
 
-		_, err := uc.Execute(context.Background(), input)
+		_, err := uc.Execute(context.Background(), input, input.ID, entity.RoleUser)
 
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, domainErr.ErrUserNotFound)
@@ -111,7 +111,7 @@ func TestUpdateUserPassword(t *testing.T) {
 			Password: strPtr(plainPassword),
 		}
 
-		updatedUser, err := uc.Execute(context.Background(), input)
+		updatedUser, err := uc.Execute(context.Background(), input, input.ID, usr.Role)
 
 		assert.NoError(t, err)
 		assert.NotEqual(t, oldHashedPassword, updatedUser.PasswordHash)

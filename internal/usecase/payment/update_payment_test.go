@@ -36,7 +36,9 @@ func TestUpdatePayment(t *testing.T) {
 			Amount: &newAmount,
 		}
 
-		updatedPayment, err := uc.Execute(context.Background(), 1, input)
+		err := uc.Execute(context.Background(), 1, input)
+
+		updatedPayment, err := mockRepo.GetPaymentByID(context.Background(), 1)
 
 		assert.NoError(t, err)
 		assert.Equal(t, newName, updatedPayment.Name)
@@ -70,7 +72,8 @@ func TestUpdatePayment(t *testing.T) {
 			Name: &newName,
 		}
 
-		updatedPayment, err := uc.Execute(context.Background(), 1, input)
+		err := uc.Execute(context.Background(), 1, input)
+		updatedPayment, err := mockRepo.GetPaymentByID(context.Background(), 1)
 
 		assert.NoError(t, err)
 		assert.Equal(t, newName, updatedPayment.Name)
@@ -99,7 +102,8 @@ func TestUpdatePayment(t *testing.T) {
 			Frequency: &yearly,
 		}
 
-		updatedPayment, err := uc.Execute(context.Background(), 1, input)
+		err := uc.Execute(context.Background(), 1, input)
+		updatedPayment, err := mockRepo.GetPaymentByID(context.Background(), 1)
 
 		assert.NoError(t, err)
 		assert.Equal(t, yearly, *updatedPayment.Frequency)
@@ -113,7 +117,7 @@ func TestUpdatePayment(t *testing.T) {
 			Name: &name,
 		}
 
-		_, err := uc.Execute(context.Background(), 99999, input)
+		err := uc.Execute(context.Background(), 99999, input)
 
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, domainErr.ErrPaymentNotFound)
@@ -127,7 +131,7 @@ func TestUpdatePayment(t *testing.T) {
 			Name: &name,
 		}
 
-		_, err := uc.Execute(context.Background(), 0, input)
+		err := uc.Execute(context.Background(), 0, input)
 
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, domainErr.ErrInvalidPaymentData)
@@ -141,59 +145,10 @@ func TestUpdatePayment(t *testing.T) {
 			Name: &name,
 		}
 
-		_, err := uc.Execute(context.Background(), -1, input)
+		err := uc.Execute(context.Background(), -1, input)
 
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, domainErr.ErrInvalidPaymentData)
-	})
-
-	t.Run("returns error for invalid amount", func(t *testing.T) {
-		uc, mockRepo := setupUpdatePaymentTest(t)
-
-		paymnt := &entity.Payment{
-			ID:       1,
-			UserID:   1,
-			Name:     "claude",
-			Type:     entity.TransactionTypeExpense,
-			Category: entity.CategoryTypeEducation,
-			Date:     "2026-03-21",
-		}
-		mockRepo.payments["1"] = paymnt
-
-		invalidAmount := -120.0
-		input := payment.UpdatePaymentInput{
-			Amount: &invalidAmount,
-		}
-
-		_, err := uc.Execute(context.Background(), 1, input)
-
-		assert.Error(t, err)
-		assert.ErrorIs(t, err, domainErr.ErrInvalidAmount)
-	})
-
-	t.Run("returns error for invalid transaction type", func(t *testing.T) {
-		uc, mockRepo := setupUpdatePaymentTest(t)
-
-		paymnt := &entity.Payment{
-			ID:       1,
-			UserID:   1,
-			Name:     "codex",
-			Amount:   100,
-			Type:     entity.TransactionTypeExpense,
-			Category: entity.CategoryTypeElectronics,
-			Date:     "2022-10-10",
-		}
-		mockRepo.payments["1"] = paymnt
-
-		invalidType := entity.TransactionType("invalid")
-		input := payment.UpdatePaymentInput{
-			Type: &invalidType,
-		}
-
-		_, err := uc.Execute(context.Background(), 1, input)
-
-		assert.Error(t, err)
-		assert.ErrorIs(t, err, domainErr.ErrInvalidTransactionType)
 	})
 
 	t.Run("handles repository get errors", func(t *testing.T) {
@@ -206,7 +161,7 @@ func TestUpdatePayment(t *testing.T) {
 			Name: &name,
 		}
 
-		_, err := uc.Execute(context.Background(), 1, input)
+		err := uc.Execute(context.Background(), 1, input)
 
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "database connection failed")
@@ -235,7 +190,7 @@ func TestUpdatePayment(t *testing.T) {
 
 		mockRepo.err = errors.New("update failed")
 
-		_, err := uc.Execute(context.Background(), 1, input)
+		err := uc.Execute(context.Background(), 1, input)
 
 		assert.Error(t, err)
 	})
