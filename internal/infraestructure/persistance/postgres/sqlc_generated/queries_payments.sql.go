@@ -12,12 +12,25 @@ import (
 )
 
 const createPayment = `-- name: CreatePayment :one
-INSERT INTO payments (
-    user_id, name, amount, type, category, date, due_date, paid, paid_at, recurrent, frequency, receipt_url
-) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
-)
-RETURNING id, user_id, name, amount, type, category, date, due_date, paid, paid_at, recurrent, frequency, receipt_url
+INSERT INTO
+  payments (
+    user_id,
+    name,
+    amount,
+    type,
+    category,
+    date,
+    due_date,
+    paid,
+    paid_at,
+    recurrent,
+    frequency,
+    receipt_url
+  )
+VALUES
+  ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+RETURNING
+  id, user_id, name, amount, type, category, date, due_date, paid, paid_at, recurrent, frequency, receipt_url
 `
 
 type CreatePaymentParams struct {
@@ -71,7 +84,8 @@ func (q *Queries) CreatePayment(ctx context.Context, arg CreatePaymentParams) (P
 
 const deletePayment = `-- name: DeletePayment :execrows
 DELETE FROM payments
-WHERE id = $1
+WHERE
+  id = $1
 `
 
 func (q *Queries) DeletePayment(ctx context.Context, id int32) (int64, error) {
@@ -83,11 +97,25 @@ func (q *Queries) DeletePayment(ctx context.Context, id int32) (int64, error) {
 }
 
 const getAllPayments = `-- name: GetAllPayments :many
-SELECT id, user_id, name, amount, type, category, date, due_date, paid, paid_at, recurrent, frequency, receipt_url FROM payments
+SELECT
+  id, user_id, name, amount, type, category, date, due_date, paid, paid_at, recurrent, frequency, receipt_url
+FROM
+  payments
+ORDER BY
+  id
+LIMIT
+  $1
+OFFSET
+  $2
 `
 
-func (q *Queries) GetAllPayments(ctx context.Context) ([]Payment, error) {
-	rows, err := q.db.Query(ctx, getAllPayments)
+type GetAllPaymentsParams struct {
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
+}
+
+func (q *Queries) GetAllPayments(ctx context.Context, arg GetAllPaymentsParams) ([]Payment, error) {
+	rows, err := q.db.Query(ctx, getAllPayments, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -120,13 +148,17 @@ func (q *Queries) GetAllPayments(ctx context.Context) ([]Payment, error) {
 	return items, nil
 }
 
-const getAllPaymentsFromUser = `-- name: GetAllPaymentsFromUser :many
-SELECT p.id, p.user_id, p.name, p.amount, p.type, p.category, p.date, p.due_date, p.paid, p.paid_at, p.recurrent, p.frequency, p.receipt_url FROM payments p
-WHERE p.user_id = $1
+const getMyPayments = `-- name: GetMyPayments :many
+SELECT
+  p.id, p.user_id, p.name, p.amount, p.type, p.category, p.date, p.due_date, p.paid, p.paid_at, p.recurrent, p.frequency, p.receipt_url
+FROM
+  payments p
+WHERE
+  p.user_id = $1
 `
 
-func (q *Queries) GetAllPaymentsFromUser(ctx context.Context, userID int32) ([]Payment, error) {
-	rows, err := q.db.Query(ctx, getAllPaymentsFromUser, userID)
+func (q *Queries) GetMyPayments(ctx context.Context, userID int32) ([]Payment, error) {
+	rows, err := q.db.Query(ctx, getMyPayments, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -160,8 +192,14 @@ func (q *Queries) GetAllPaymentsFromUser(ctx context.Context, userID int32) ([]P
 }
 
 const getPaymentByID = `-- name: GetPaymentByID :one
-SELECT id, user_id, name, amount, type, category, date, due_date, paid, paid_at, recurrent, frequency, receipt_url FROM payments
-WHERE id = $1 LIMIT 1
+SELECT
+  id, user_id, name, amount, type, category, date, due_date, paid, paid_at, recurrent, frequency, receipt_url
+FROM
+  payments
+WHERE
+  id = $1
+LIMIT
+  1
 `
 
 func (q *Queries) GetPaymentByID(ctx context.Context, id int32) (Payment, error) {
@@ -188,18 +226,19 @@ func (q *Queries) GetPaymentByID(ctx context.Context, id int32) (Payment, error)
 const updatePayment = `-- name: UpdatePayment :execrows
 UPDATE payments
 SET
-	name = $2,
-    amount = $3,
-    type = $4,
-    category = $5,
-    date = $6,
-    due_date = $7,
-    paid = $8,
-    paid_at = $9,
-    recurrent = $10,
-    frequency = $11,
-    receipt_url = $12
-WHERE id = $1
+  name = $2,
+  amount = $3,
+  type = $4,
+  category = $5,
+  date = $6,
+  due_date = $7,
+  paid = $8,
+  paid_at = $9,
+  recurrent = $10,
+  frequency = $11,
+  receipt_url = $12
+WHERE
+  id = $1
 `
 
 type UpdatePaymentParams struct {

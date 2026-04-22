@@ -3,11 +3,13 @@ package payment
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/rober0xf/notifier/internal/domain/entity"
 	domainErr "github.com/rober0xf/notifier/internal/domain/errors"
 	"github.com/rober0xf/notifier/internal/domain/repository"
 	repoErr "github.com/rober0xf/notifier/internal/infraestructure/errors"
+	authErr "github.com/rober0xf/notifier/pkg/auth"
 )
 
 type GetPaymentByIDUseCase struct {
@@ -20,7 +22,7 @@ func NewGetPaymentByIDUseCase(paymentRepo repository.PaymentRepository) *GetPaym
 	}
 }
 
-func (uc *GetPaymentByIDUseCase) Execute(ctx context.Context, id int) (*entity.Payment, error) {
+func (uc *GetPaymentByIDUseCase) Execute(ctx context.Context, id, userID int) (*entity.Payment, error) {
 	if id <= 0 {
 		return nil, domainErr.ErrInvalidPaymentData
 	}
@@ -30,7 +32,12 @@ func (uc *GetPaymentByIDUseCase) Execute(ctx context.Context, id int) (*entity.P
 		if errors.Is(err, repoErr.ErrNotFound) {
 			return nil, domainErr.ErrPaymentNotFound
 		}
-		return nil, err
+
+		return nil, fmt.Errorf("GetPaymentByIDUC.Execute failed to get payment by id: %w", err)
+	}
+
+	if payment.UserID != userID {
+		return nil, authErr.ErrForbidden
 	}
 
 	return payment, nil

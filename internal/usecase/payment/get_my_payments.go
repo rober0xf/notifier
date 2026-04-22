@@ -3,6 +3,7 @@ package payment
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/rober0xf/notifier/internal/domain/entity"
 	domainErr "github.com/rober0xf/notifier/internal/domain/errors"
@@ -14,19 +15,19 @@ type UserIDGetter interface {
 	GetUserByID(ctx context.Context, userID int) (*entity.User, error)
 }
 
-type GetAllPaymentsFromUserUseCase struct {
+type GetMyPaymentsUseCase struct {
 	paymentRepo repository.PaymentRepository
 	userRepo    UserIDGetter
 }
 
-func NewGetAllPaymentsFromUserUseCase(paymentRepo repository.PaymentRepository, userRepo UserIDGetter) *GetAllPaymentsFromUserUseCase {
-	return &GetAllPaymentsFromUserUseCase{
+func NewGetMyPaymentsUseCase(paymentRepo repository.PaymentRepository, userRepo UserIDGetter) *GetMyPaymentsUseCase {
+	return &GetMyPaymentsUseCase{
 		paymentRepo: paymentRepo,
 		userRepo:    userRepo,
 	}
 }
 
-func (uc *GetAllPaymentsFromUserUseCase) Execute(ctx context.Context, userID int) ([]entity.Payment, error) {
+func (uc *GetMyPaymentsUseCase) Execute(ctx context.Context, userID int) ([]entity.Payment, error) {
 	if userID <= 0 {
 		return nil, domainErr.ErrInvalidUserData
 	}
@@ -36,19 +37,17 @@ func (uc *GetAllPaymentsFromUserUseCase) Execute(ctx context.Context, userID int
 		if errors.Is(err, repoErr.ErrNotFound) {
 			return nil, domainErr.ErrUserNotFound
 		}
-		return nil, err
+
+		return nil, fmt.Errorf("GetMyPaymentsUC.Execute failed to get user %d: %w", userID, err)
 	}
 
 	if !foundUser.IsActive {
 		return nil, domainErr.ErrUserNotVerified
 	}
 
-	payments, err := uc.paymentRepo.GetAllPaymentsFromUser(ctx, foundUser.ID)
+	payments, err := uc.paymentRepo.GetMyPayments(ctx, foundUser.ID)
 	if err != nil {
-		if errors.Is(err, repoErr.ErrNotFound) {
-			return []entity.Payment{}, nil // empty list
-		}
-		return nil, err
+		return nil, fmt.Errorf("GetMyPaymentsUC.Execute user %d: %w", userID, err)
 	}
 
 	return payments, nil

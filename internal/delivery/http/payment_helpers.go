@@ -9,7 +9,7 @@ import (
 	"github.com/rober0xf/notifier/internal/domain/entity"
 )
 
-func toPaymentResponse(payment *entity.Payment) dto.PaymentResponse {
+func toPaymentResponse(payment entity.Payment) dto.PaymentResponse {
 	return dto.PaymentResponse{
 		ID:         payment.ID,
 		Name:       payment.Name,

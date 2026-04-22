@@ -2,7 +2,9 @@ package http
 
 import (
 	"errors"
+	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rober0xf/notifier/internal/delivery/http/dto"
@@ -11,27 +13,21 @@ import (
 	"github.com/rober0xf/notifier/pkg/auth"
 )
 
-func (h *PaymentHandler) CreatePayment(c *gin.Context) {
+func (h *PaymentHandler) Create(c *gin.Context) {
 	var req dto.CreatePaymentRequest
+	validationMeta := gin.H{
+		"allowed_types":       entity.AllTransactionTypes,
+		"allowed_categories":  entity.AllCategoryTypes,
+		"allowed_frequencies": entity.AllFrequencyTypes,
+	}
+
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": formatValidationError(err),
-			"meta": gin.H{
-				"allowed_types":       entity.AllTransactionTypes,
-				"allowed_categories":  entity.AllCategoryTypes,
-				"allowed_frequencies": entity.AllFrequencyTypes},
-		})
+		c.JSON(http.StatusBadRequest, gin.H{"error": formatValidationError(err), "meta": validationMeta})
 		return
 	}
 
 	if err := req.Validate(); err != nil {
-		c.JSON(http.StatusBadRequest,
-			gin.H{"error": err.Error(),
-				"meta": gin.H{
-					"allowed_categories":  entity.AllCategoryTypes,
-					"allowed_types":       entity.AllTransactionTypes,
-					"allowed_frequencies": entity.AllFrequencyTypes},
-			})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error(), "meta": validationMeta})
 		return
 	}
 
@@ -41,6 +37,11 @@ func (h *PaymentHandler) CreatePayment(c *gin.Context) {
 		return
 	}
 
+	paidAt := strPtrOrNil(req.PaidAt)
+	if req.Paid && paidAt == nil {
+		now := time.Now().Format("2006-01-02")
+		paidAt = &now
+	}
 	// some fields are pointers because they are not always needed
 	payment := &entity.Payment{
 		UserID:     userID,
@@ -51,7 +52,7 @@ func (h *PaymentHandler) CreatePayment(c *gin.Context) {
 		Date:       req.Date,
 		DueDate:    strPtrOrNil(req.DueDate),
 		Paid:       req.Paid,
-		PaidAt:     strPtrOrNil(req.PaidAt),
+		PaidAt:     paidAt,
 		Recurrent:  req.Recurrent,
 		Frequency:  freqPtrOrNil(req.Frequency),
 		ReceiptURL: strPtrOrNil(req.ReceiptURL),
@@ -62,14 +63,13 @@ func (h *PaymentHandler) CreatePayment(c *gin.Context) {
 		switch {
 		case errors.Is(err, domainErr.ErrPaymentAlreadyExists):
 			c.JSON(http.StatusConflict, gin.H{"error": "payment already exists"})
-		case errors.Is(err, domainErr.ErrInvalidPaymentData):
-			c.JSON(http.StatusBadRequest, gin.H{"error": "paid_at is required when paid is true"})
 		default:
+			slog.ErrorContext(c.Request.Context(), "failed to create payment", "error", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		}
 
 		return
 	}
 
-	c.JSON(http.StatusCreated, toPaymentResponse(createdPayment))
+	c.JSON(http.StatusCreated, toPaymentResponse(*createdPayment))
 }

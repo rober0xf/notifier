@@ -10,7 +10,7 @@ func buildPaymentRoutes(paymentRepo repository.PaymentRepository, userRepo payme
 	return routes.NewPaymentHandler(
 		payment.NewCreatePaymentUseCase(paymentRepo),
 		payment.NewGetPaymentByIDUseCase(paymentRepo),
-		payment.NewGetAllPaymentsFromUserUseCase(paymentRepo, userRepo),
+		payment.NewGetMyPaymentsUseCase(paymentRepo, userRepo),
 		payment.NewGetAllPaymentsUseCase(paymentRepo),
 		payment.NewUpdatePaymentUseCase(paymentRepo),
 		payment.NewDeletePaymentUseCase(paymentRepo),

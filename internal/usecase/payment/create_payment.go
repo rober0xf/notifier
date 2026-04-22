@@ -3,6 +3,7 @@ package payment
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/rober0xf/notifier/internal/domain/entity"
 	domainErr "github.com/rober0xf/notifier/internal/domain/errors"
@@ -21,17 +22,18 @@ func NewCreatePaymentUseCase(paymentRepo repository.PaymentRepository) *CreatePa
 }
 
 func (uc *CreatePaymentUseCase) Execute(ctx context.Context, payment *entity.Payment) (*entity.Payment, error) {
-	if err := ValidatePayment(payment); err != nil {
-		return nil, err
+	if payment.UserID <= 0 {
+		return nil, domainErr.ErrInvalidPaymentData
 	}
 
-	if err := uc.paymentRepo.CreatePayment(ctx, payment); err != nil {
+	created, err := uc.paymentRepo.CreatePayment(ctx, payment)
+	if err != nil {
 		if errors.Is(err, repoErr.ErrAlreadyExists) {
 			return nil, domainErr.ErrPaymentAlreadyExists
 		}
 
-		return nil, err
+		return nil, fmt.Errorf("CreatePaymentUC.Execute failed to create payment: %w", err)
 	}
 
-	return payment, nil
+	return created, nil
 }

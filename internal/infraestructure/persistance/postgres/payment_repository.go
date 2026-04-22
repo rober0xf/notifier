@@ -7,7 +7,6 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rober0xf/notifier/internal/domain/entity"
 	"github.com/rober0xf/notifier/internal/domain/repository"
@@ -29,10 +28,10 @@ func NewPaymentRepository(db *pgxpool.Pool) repository.PaymentRepository {
 	}
 }
 
-func (r *PaymentRepository) CreatePayment(ctx context.Context, payment *entity.Payment) error {
-	var amountNumeric pgtype.Numeric
-	if err := amountNumeric.Scan(fmt.Sprintf("%.2f", payment.Amount)); err != nil {
-		return err
+func (r *PaymentRepository) CreatePayment(ctx context.Context, payment *entity.Payment) (*entity.Payment, error) {
+	amountNumeric, err := floatToNumeric(payment.Amount)
+	if err != nil {
+		return nil, err
 	}
 
 	params := database.CreatePaymentParams{
@@ -56,31 +55,42 @@ func (r *PaymentRepository) CreatePayment(ctx context.Context, payment *entity.P
 		}
 	}
 
-	createdPayment, err := r.queries.CreatePayment(ctx, params)
+	created, err := r.queries.CreatePayment(ctx, params)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
 			if pgErr.Code == "23505" {
-				return repoErr.ErrAlreadyExists
+				return nil, repoErr.ErrAlreadyExists
 			}
 		}
 
-		return fmt.Errorf("creating payment query failed: %w", err)
+		return nil, fmt.Errorf("creating payment query failed: %w", err)
 	}
 
-	payment.ID = createdPayment.ID
-	return nil
+	out, err := databaseToDomainPayment(&created)
+	if err != nil {
+		return nil, err
+	}
+
+	return &out, nil
 }
 
 func (r *PaymentRepository) GetAllPayments(ctx context.Context) ([]entity.Payment, error) {
-	dbPayments, err := r.queries.GetAllPayments(ctx)
+	dbPayments, err := r.queries.GetAllPayments(ctx, database.GetAllPaymentsParams{
+		Limit:  50,
+		Offset: 0,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("get all payments query failed: %w", err)
 	}
 
 	payments := make([]entity.Payment, 0, len(dbPayments))
 	for _, p := range dbPayments {
-		payments = append(payments, *databaseToDomainPayment(&p))
+		payment, err := databaseToDomainPayment(&p)
+		if err != nil {
+			return nil, err
+		}
+		payments = append(payments, payment)
 	}
 
 	return payments, nil
@@ -88,7 +98,6 @@ func (r *PaymentRepository) GetAllPayments(ctx context.Context) ([]entity.Paymen
 
 func (r *PaymentRepository) GetPaymentByID(ctx context.Context, id int) (*entity.Payment, error) {
 	payment, err := r.queries.GetPaymentByID(ctx, int32(id))
-
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, repoErr.ErrNotFound
@@ -97,44 +106,40 @@ func (r *PaymentRepository) GetPaymentByID(ctx context.Context, id int) (*entity
 		return nil, fmt.Errorf("get payment by id query failed: %w", err)
 	}
 
-	return databaseToDomainPayment(&payment), nil
+	out, err := databaseToDomainPayment(&payment)
+	if err != nil {
+		return nil, err
+	}
+
+	return &out, nil
 }
 
-func (r *PaymentRepository) GetAllPaymentsFromUser(ctx context.Context, userID int) ([]entity.Payment, error) {
-	// first we need to check if the email exists in our db
-	_, err := r.queries.GetUserByID(ctx, int32(userID))
-
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, repoErr.ErrNotFound
-		}
-
-		return nil, fmt.Errorf("get all payments from user query failed : %w", err)
-	}
-
+func (r *PaymentRepository) GetMyPayments(ctx context.Context, userID int) ([]entity.Payment, error) {
 	// if the user doesnt have any payments it returns []
-	dbPayments, err := r.queries.GetAllPaymentsFromUser(ctx, int32(userID))
-
+	dbPayments, err := r.queries.GetMyPayments(ctx, int32(userID))
 	if err != nil {
-		return nil, fmt.Errorf("error getting all payments from user: %w", err)
-	}
-
-	if len(dbPayments) == 0 {
-		return []entity.Payment{}, nil
+		return nil, fmt.Errorf("error getting my payments: %w", err)
 	}
 
 	payments := make([]entity.Payment, 0, len(dbPayments))
 	for _, p := range dbPayments {
-		payments = append(payments, *databaseToDomainPayment(&p))
+		payment, err := databaseToDomainPayment(&p)
+		if err != nil {
+			return nil, err
+		}
+		payments = append(payments, payment)
 	}
 
 	return payments, nil
 }
 
 func (r *PaymentRepository) UpdatePayment(ctx context.Context, payment *entity.Payment) error {
-	params := setNullableFieldsForUpdate(payment)
-	rowsAffected, err := r.queries.UpdatePayment(ctx, params)
+	params, err := mapPaymentToUpdateParams(payment)
+	if err != nil {
+		return err
+	}
 
+	rowsAffected, err := r.queries.UpdatePayment(ctx, params)
 	if err != nil {
 		return fmt.Errorf("update payment query failed: %w", err)
 	}
@@ -148,7 +153,6 @@ func (r *PaymentRepository) UpdatePayment(ctx context.Context, payment *entity.P
 
 func (r *PaymentRepository) DeletePayment(ctx context.Context, id int) error {
 	rows, err := r.queries.DeletePayment(ctx, int32(id))
-
 	if err != nil {
 		return fmt.Errorf("delete payment query failed: %w", err)
 	}
