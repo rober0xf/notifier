@@ -13,17 +13,27 @@ import (
 	domainErr "github.com/rober0xf/notifier/internal/domain/errors"
 )
 
+// GetByID godoc
+// @Summary      Get user by ID
+// @Description  Returns a single user by their ID.
+// @Tags         users
+// @Produce      json
+// @Param        id   path      int  true  "User ID"
+// @Success      200  {object}  dto.UserPayload
+// @Failure      400  {object}  dto.ErrorResponse  "Invalid id"
+// @Failure      404  {object}  dto.ErrorResponse  "User not found"
+// @Failure      500  {object}  dto.ErrorResponse  "Internal server error"
+// @Security     BearerAuth
+// @Router       /v1/admin/users/{id} [get]
 func (h *UserHandler) GetByID(c *gin.Context) {
-	idStr := c.Param("id") // comes from the url
-
-	id, err := strconv.Atoi(idStr)
+	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid id"})
 		return
 	}
 
 	if id <= 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "id must be positive"})
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "id must be positive"})
 		return
 	}
 
@@ -31,25 +41,37 @@ func (h *UserHandler) GetByID(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, domainErr.ErrInvalidUserData):
-			c.JSON(http.StatusNotFound, gin.H{"error": "invalid user data"})
+			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "invalid user data"})
 		case errors.Is(err, domainErr.ErrUserNotFound):
-			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "user not found"})
 		default:
 			slog.ErrorContext(c.Request.Context(), "failed to get user by id", "error", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+			c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "internal server error"})
 		}
 
 		return
 	}
 
-	c.JSON(http.StatusOK, toUserResponse(user))
+	c.JSON(http.StatusOK, dto.ToUserResponse(user))
 }
 
+// GetByEmail godoc
+// @Summary      Get user by email
+// @Description  Returns a single user by their email.
+// @Tags         users
+// @Produce      json
+// @Param        email   path      string  true  "User email"
+// @Success      200  {object}  dto.UserPayload
+// @Failure      400  {object}  dto.ErrorResponse  "Invalid email format"
+// @Failure      404  {object}  dto.ErrorResponse  "User not found"
+// @Failure      500  {object}  dto.ErrorResponse  "Internal server error"
+// @Security     BearerAuth
+// @Router       /v1/admin/users/email/{email} [get]
 func (h *UserHandler) GetByEmail(c *gin.Context) {
 	email := c.Param("email")
 
 	if !strings.Contains(email, "@") {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid email format"})
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid email format"})
 		return
 	}
 
@@ -57,25 +79,34 @@ func (h *UserHandler) GetByEmail(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, domainErr.ErrInvalidEmailFormat):
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid email format"})
+			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid email format"})
 		case errors.Is(err, domainErr.ErrUserNotFound):
-			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "user not found"})
 		default:
 			slog.ErrorContext(c.Request.Context(), "failed to get user by email", "error", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+			c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "internal server error"})
 		}
 
 		return
 	}
 
-	c.JSON(http.StatusOK, toUserResponse(user))
+	c.JSON(http.StatusOK, dto.ToUserResponse(user))
 }
 
+// GetAll godoc
+// @Summary      Get all users
+// @Description  Returns all users. Admin only.
+// @Tags         users
+// @Produce      json
+// @Success      200  {array}   dto.UserPayload
+// @Failure      500  {object}  dto.ErrorResponse  "Internal server error"
+// @Security     BearerAuth
+// @Router       /v1/admin/users [get]
 func (h *UserHandler) GetAll(c *gin.Context) {
 	users, err := h.getAllUsersUC.Execute(c.Request.Context())
 	if err != nil {
 		slog.ErrorContext(c.Request.Context(), "failed to get all users", "error", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "internal server error"})
 		return
 	}
 
@@ -85,13 +116,4 @@ func (h *UserHandler) GetAll(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, response)
-}
-
-func toUserResponse(user *entity.User) dto.UserResponse {
-	return dto.UserResponse{
-		ID:       user.ID,
-		Username: user.Username,
-		Email:    user.Email,
-		Active:   user.IsActive,
-	}
 }

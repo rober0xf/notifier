@@ -5,26 +5,8 @@ import (
 	"strings"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/rober0xf/notifier/internal/delivery/http/dto"
 	"github.com/rober0xf/notifier/internal/domain/entity"
 )
-
-func toPaymentResponse(payment entity.Payment) dto.PaymentResponse {
-	return dto.PaymentResponse{
-		ID:         payment.ID,
-		Name:       payment.Name,
-		Amount:     payment.Amount,
-		Type:       payment.Type,
-		Category:   payment.Category,
-		Date:       payment.Date,
-		DueDate:    payment.DueDate,
-		Paid:       payment.Paid,
-		PaidAt:     payment.PaidAt,
-		Recurrent:  payment.Recurrent,
-		Frequency:  payment.Frequency,
-		ReceiptURL: payment.ReceiptURL,
-	}
-}
 
 func formatValidationError(err error) string {
 	if validationErrors, ok := err.(validator.ValidationErrors); ok {

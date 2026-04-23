@@ -12,53 +12,58 @@ import (
 	"github.com/rober0xf/notifier/pkg/auth"
 )
 
+// Update godoc
+// @Summary      Update a payment
+// @Description  Updates a payment by ID. Users can only update their own payments.
+// @Tags         payments
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id       path      int                        true  "Payment ID"
+// @Param        payload  body      dto.UpdatePaymentRequest   true  "Update payload"
+// @Success      204  "No content"
+// @Failure      400  {object}  dto.PaymentValidationErrorResponse  "Validation error or invalid id"
+// @Failure      401  {object}  dto.ErrorResponse            "Unauthorized"
+// @Failure      403  {object}  dto.ErrorResponse            "Forbidden"
+// @Failure      404  {object}  dto.ErrorResponse            "Payment not found"
+// @Failure      500  {object}  dto.ErrorResponse            "Internal server error"
+// @Router       /v1/auth/payments/{id} [put]
 func (h *PaymentHandler) Update(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil || id <= 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payment id"})
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid payment id"})
 		return
 	}
 
 	userID, err := auth.GetUserIDFromContext(c)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Error: "unauthorized"})
 		return
 	}
 
 	var req dto.UpdatePaymentRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": formatValidationError(err)})
+		c.JSON(http.StatusBadRequest, dto.PaymentValidationErrorResponse{
+			Error: formatValidationError(err),
+		})
 		return
 	}
 
 	if err := req.Validate(); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, dto.PaymentValidationErrorResponse{Error: err.Error()})
 		return
 	}
 
-	_, err = h.getPaymentByIDUC.Execute(c.Request.Context(), id, userID)
+	err = h.updatePaymentUC.Execute(c.Request.Context(), id, userID, req.ToInput())
 	if err != nil {
 		switch {
 		case errors.Is(err, domainErr.ErrPaymentNotFound):
-			c.JSON(http.StatusNotFound, gin.H{"error": "payment not found"})
+			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "payment not found"})
 		case errors.Is(err, auth.ErrForbidden):
-			c.JSON(http.StatusForbidden, gin.H{"error": "cannot update payment from other user"})
-		default:
-			slog.ErrorContext(c.Request.Context(), "failed to get payment by id", "error", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
-		}
-
-		return
-	}
-
-	err = h.updatePaymentUC.Execute(c.Request.Context(), id, req.ToInput())
-	if err != nil {
-		switch {
-		case errors.Is(err, domainErr.ErrPaymentNotFound):
-			c.JSON(http.StatusNotFound, gin.H{"error": "payment not found"})
+			c.JSON(http.StatusForbidden, dto.ErrorResponse{Error: "cannot update another user's payment"})
 		default:
 			slog.ErrorContext(c.Request.Context(), "failed to update payment by id", "error", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+			c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "internal server error"})
 		}
 
 		return
