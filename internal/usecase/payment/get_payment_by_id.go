@@ -23,10 +23,6 @@ func NewGetPaymentByIDUseCase(paymentRepo repository.PaymentRepository) *GetPaym
 }
 
 func (uc *GetPaymentByIDUseCase) Execute(ctx context.Context, id, userID int) (*entity.Payment, error) {
-	if id <= 0 {
-		return nil, domainErr.ErrInvalidPaymentData
-	}
-
 	payment, err := uc.paymentRepo.GetPaymentByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, repoErr.ErrNotFound) {

@@ -19,7 +19,7 @@ type CreatePaymentRequest struct {
 	Paid       bool                   `json:"paid" example:"false"`
 	PaidAt     string                 `json:"paid_at" binding:"omitempty,datetime=2006-01-02" example:"2026-04-19"`
 	Recurrent  bool                   `json:"recurrent" example:"true"`
-	Frequency  entity.FrequencyType   `json:"frequency" binding:"omitempty" example:"montly" enums:"daily,weekly,montly,yearly"`
+	Frequency  entity.FrequencyType   `json:"frequency" binding:"omitempty" example:"monthly" enums:"daily,weekly,monthly,yearly"`
 	ReceiptURL string                 `json:"receipt_url" binding:"omitempty,url" example:"https://s3.amazonaws.com/receipts/abc123.pdf"`
 }
 
@@ -78,8 +78,17 @@ func (p *CreatePaymentRequest) Validate() error {
 		return fmt.Errorf("invalid transaction type: %w", domainErr.ErrInvalidTransactionType)
 	}
 
-	if !p.Frequency.IsValid() {
-		return fmt.Errorf("invalid frequency type: %w", domainErr.ErrInvalidFrequency)
+	if p.Recurrent {
+		if p.Frequency == "" {
+			return fmt.Errorf("frequency is required for recurrent payments: %w", domainErr.ErrInvalidFrequency)
+		}
+		if !p.Frequency.IsValid() {
+			return fmt.Errorf("invalid frequency type: %w", domainErr.ErrInvalidFrequency)
+		}
+	}
+
+	if p.Frequency != "" && !p.Recurrent {
+		return fmt.Errorf("recurrent is required if frequency is set: %w", domainErr.ErrInvalidFrequency)
 	}
 
 	if p.Recurrent && p.Frequency == "" {

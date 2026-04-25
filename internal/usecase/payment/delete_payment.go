@@ -23,10 +23,6 @@ func NewDeletePaymentUseCase(paymentRepo repository.PaymentRepository) *DeletePa
 }
 
 func (uc *DeletePaymentUseCase) Execute(ctx context.Context, id, userID int, userRole entity.Role) error {
-	if id <= 0 {
-		return domainErr.ErrInvalidPaymentData
-	}
-
 	payment, err := uc.paymentRepo.GetPaymentByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, repoErr.ErrNotFound) {

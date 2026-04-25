@@ -131,14 +131,6 @@ func TestGetMyPayments(t *testing.T) {
 		}
 	})
 
-	t.Run("returns error for invalid id", func(t *testing.T) {
-		uc, _, _ := setupGetMyPaymentsTest(t)
-
-		payments, err := uc.Execute(context.Background(), -1)
-		assert.ErrorIs(t, err, domainErr.ErrInvalidUserData)
-		assert.Nil(t, payments)
-	})
-
 	t.Run("returns error when user is not verified", func(t *testing.T) {
 		uc, _, mockUserRepo := setupGetMyPaymentsTest(t)
 

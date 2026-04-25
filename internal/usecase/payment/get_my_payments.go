@@ -28,10 +28,6 @@ func NewGetMyPaymentsUseCase(paymentRepo repository.PaymentRepository, userRepo 
 }
 
 func (uc *GetMyPaymentsUseCase) Execute(ctx context.Context, userID int) ([]entity.Payment, error) {
-	if userID <= 0 {
-		return nil, domainErr.ErrInvalidUserData
-	}
-
 	foundUser, err := uc.userRepo.GetUserByID(ctx, userID)
 	if err != nil {
 		if errors.Is(err, repoErr.ErrNotFound) {

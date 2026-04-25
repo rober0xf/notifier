@@ -21,10 +21,8 @@ func NewCreatePaymentUseCase(paymentRepo repository.PaymentRepository) *CreatePa
 	}
 }
 
-func (uc *CreatePaymentUseCase) Execute(ctx context.Context, payment *entity.Payment) (*entity.Payment, error) {
-	if payment.UserID <= 0 {
-		return nil, domainErr.ErrInvalidPaymentData
-	}
+func (uc *CreatePaymentUseCase) Execute(ctx context.Context, userID int, payment *entity.Payment) (*entity.Payment, error) {
+	payment.UserID = userID
 
 	created, err := uc.paymentRepo.CreatePayment(ctx, payment)
 	if err != nil {

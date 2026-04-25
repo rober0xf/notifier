@@ -10,6 +10,7 @@ import (
 	domainErr "github.com/rober0xf/notifier/internal/domain/errors"
 	"github.com/rober0xf/notifier/internal/domain/repository"
 	repoErr "github.com/rober0xf/notifier/internal/infraestructure/errors"
+	"github.com/rober0xf/notifier/pkg/auth"
 )
 
 type UpdatePaymentUseCase struct {
@@ -36,11 +37,7 @@ type UpdatePaymentInput struct {
 	ReceiptURL *string
 }
 
-func (uc *UpdatePaymentUseCase) Execute(ctx context.Context, id int, input UpdatePaymentInput) error {
-	if id <= 0 {
-		return domainErr.ErrInvalidPaymentData
-	}
-
+func (uc *UpdatePaymentUseCase) Execute(ctx context.Context, id, userID int, input UpdatePaymentInput) error {
 	existingPayment, err := uc.paymentRepo.GetPaymentByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, repoErr.ErrNotFound) {
@@ -48,6 +45,10 @@ func (uc *UpdatePaymentUseCase) Execute(ctx context.Context, id int, input Updat
 		}
 
 		return fmt.Errorf("failed to get payment by id: %w", err)
+	}
+
+	if userID != existingPayment.UserID {
+		return auth.ErrForbidden
 	}
 
 	// partial updates
