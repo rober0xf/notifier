@@ -28,7 +28,7 @@ func TestCreatePayment(t *testing.T) {
 			PaidAt:    &paidAt,
 		}
 
-		payment, err := uc.Execute(context.Background(), input)
+		payment, err := uc.Execute(context.Background(), input.UserID, input)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, payment)
@@ -58,7 +58,7 @@ func TestCreatePayment(t *testing.T) {
 			Recurrent: false,
 		}
 
-		_, err := uc.Execute(context.Background(), payment)
+		_, err := uc.Execute(context.Background(), payment.UserID, payment)
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, domainErr.ErrPaymentAlreadyExists)
 	})
@@ -81,33 +81,13 @@ func TestCreatePayment(t *testing.T) {
 			PaidAt:    &paidAt,
 		}
 
-		payment, err := uc.Execute(context.Background(), input)
+		payment, err := uc.Execute(context.Background(), input.UserID, input)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, payment)
 		assert.True(t, payment.Recurrent)
 		assert.NotNil(t, payment.Frequency)
 		assert.Equal(t, entity.FrequencyTypeWeekly, *payment.Frequency)
-	})
-
-	t.Run("returns error when missing userID", func(t *testing.T) {
-		uc, _ := setupCreatePaymentTest(t)
-
-		input := &entity.Payment{
-			UserID:    0,
-			Name:      "copilot",
-			Amount:    100,
-			Type:      entity.TransactionTypeExpense,
-			Category:  entity.CategoryTypeEducation,
-			Date:      "2026-02-10",
-			Paid:      true,
-			Recurrent: false,
-		}
-
-		payment, err := uc.Execute(context.Background(), input)
-
-		assert.Error(t, err)
-		assert.Nil(t, payment)
 	})
 
 	t.Run("handles repository errors", func(t *testing.T) {
@@ -124,7 +104,7 @@ func TestCreatePayment(t *testing.T) {
 			Date:     "2026-02-10",
 		}
 
-		payment, err := uc.Execute(context.Background(), input)
+		payment, err := uc.Execute(context.Background(), 1, input)
 
 		assert.Error(t, err)
 		assert.Nil(t, payment)

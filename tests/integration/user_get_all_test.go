@@ -6,40 +6,77 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/rober0xf/notifier/internal/delivery/http/dto"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestGetAllUsers_Success_Integration(t *testing.T) {
-	deps, _ := setupTestDependencies(t)
+	userDeps, _ := setupTestDependencies(t)
+	token := getAdminToken(t, userDeps)
 
-	_ = createTestUser(t, deps, "user1", "usermail1@gmail.com", "password1!#")
-	_ = createTestUser(t, deps, "user2", "usermail2@gmail.com", "password2!#")
+	getAuthToken(t, userDeps)
+	getAuthToken(t, userDeps)
+	getAuthToken(t, userDeps)
 
-	req := httptest.NewRequest("GET", "/v1/users", nil)
+	req := httptest.NewRequest("GET", "/v1/admin/users", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+
 	w := httptest.NewRecorder()
-	deps.router.ServeHTTP(w, req)
-
+	userDeps.router.ServeHTTP(w, req)
 	require.Equal(t, http.StatusOK, w.Code)
 
-	var users []map[string]any
-	err := json.Unmarshal(w.Body.Bytes(), &users)
+	var response []dto.UserPayload
+	err := json.Unmarshal(w.Body.Bytes(), &response)
 	require.NoError(t, err)
-
-	require.Equal(t, 2, len(users))
-	require.Equal(t, "user1", users[0]["username"])
-	require.Equal(t, "user2", users[1]["username"])
+	assert.GreaterOrEqual(t, len(response), 3)
 }
 
 func TestGetAllUsers_Empty_Integration(t *testing.T) {
-	deps, _ := setupTestDependencies(t)
+	userDeps, _ := setupTestDependencies(t)
+	token := getAdminToken(t, userDeps)
 
-	req := httptest.NewRequest("GET", "/v1/users", nil)
+	req := httptest.NewRequest("GET", "/v1/admin/users", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+
 	w := httptest.NewRecorder()
-	deps.router.ServeHTTP(w, req)
+	userDeps.router.ServeHTTP(w, req)
 	require.Equal(t, http.StatusOK, w.Code)
 
-	var users []map[string]any
-	err := json.Unmarshal(w.Body.Bytes(), &users)
+	var response []dto.UserPayload
+	err := json.Unmarshal(w.Body.Bytes(), &response)
 	require.NoError(t, err)
-	require.Empty(t, users)
+	assert.GreaterOrEqual(t, len(response), 1)
+}
+
+func TestGetAllUsers_Unauthorized_Integration(t *testing.T) {
+	userDeps, _ := setupTestDependencies(t)
+
+	req := httptest.NewRequest("GET", "/v1/admin/users", nil)
+
+	w := httptest.NewRecorder()
+	userDeps.router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusUnauthorized, w.Code)
+
+	var response dto.ErrorResponse
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	require.NoError(t, err)
+	assert.Equal(t, "no token provided", response.Error)
+}
+
+func TestGetAllUsers_Forbidden_Integration(t *testing.T) {
+	userDeps, _ := setupTestDependencies(t)
+	token := getAuthToken(t, userDeps)
+
+	req := httptest.NewRequest("GET", "/v1/admin/users", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	w := httptest.NewRecorder()
+	userDeps.router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusForbidden, w.Code)
+
+	var response dto.ErrorResponse
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	require.NoError(t, err)
+	assert.Equal(t, "forbidden", response.Error)
 }

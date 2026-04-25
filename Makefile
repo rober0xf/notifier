@@ -1,4 +1,4 @@
-.PHONY: help up down build logs restart clean test lint
+.PHONY: help up down build logs restart clean test lint swagger
 include .env
 export
 
@@ -35,6 +35,9 @@ test:
 
 lint:
 	cd notifier-backend && golangci-lint run ./...
+
+swagger:
+	swag init -g cmd/main.go -o docs
 
 migrate-up:
 	migrate -path ./migrations -database "$(DATABASE_URL)" up

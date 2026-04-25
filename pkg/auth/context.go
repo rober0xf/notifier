@@ -20,6 +20,11 @@ func GetUserIDFromContext(c *gin.Context) (int, error) {
 		return 0, ErrInvalidUserID
 	}
 
+	if userID <= 0 {
+		slog.InfoContext(c.Request.Context(), "invalid user_id")
+		return 0, ErrInvalidUserID
+	}
+
 	return userID, nil
 }
 

@@ -10,32 +10,32 @@ import (
 )
 
 type CreatePaymentRequest struct {
-	Name       string                 `json:"name" binding:"required,min=3,max=100"`
-	Amount     float64                `json:"amount" binding:"required,gt=0"`
-	Type       entity.TransactionType `json:"type" binding:"required"`
-	Category   entity.CategoryType    `json:"category" binding:"required"`
-	Date       string                 `json:"date" binding:"required,datetime=2006-01-02"`
-	DueDate    string                 `json:"due_date" binding:"omitempty,datetime=2006-01-02"`
-	Paid       bool                   `json:"paid"`
-	PaidAt     string                 `json:"paid_at" binding:"omitempty,datetime=2006-01-02"`
-	Recurrent  bool                   `json:"recurrent"`
-	Frequency  entity.FrequencyType   `json:"frequency" binding:"omitempty"`
-	ReceiptURL string                 `json:"receipt_url" binding:"omitempty,url"`
+	Name       string                 `json:"name" binding:"required,min=3,max=100" example:"claude"`
+	Amount     float64                `json:"amount" binding:"required,gt=0" example:"14.99"`
+	Type       entity.TransactionType `json:"type" binding:"required" example:"subscription" enums:"income,expense,subscription"`
+	Category   entity.CategoryType    `json:"category" binding:"required" example:"work" enums:"electronics,entertainment,education,clothing,work,sports"`
+	Date       string                 `json:"date" binding:"required,datetime=2006-01-02" example:"2026-04-19"`
+	DueDate    string                 `json:"due_date" binding:"omitempty,datetime=2006-01-02" example:"2026-04-25"`
+	Paid       bool                   `json:"paid" example:"false"`
+	PaidAt     string                 `json:"paid_at" binding:"omitempty,datetime=2006-01-02" example:"2026-04-19"`
+	Recurrent  bool                   `json:"recurrent" example:"true"`
+	Frequency  entity.FrequencyType   `json:"frequency" binding:"omitempty" example:"monthly" enums:"daily,weekly,monthly,yearly"`
+	ReceiptURL string                 `json:"receipt_url" binding:"omitempty,url" example:"https://s3.amazonaws.com/receipts/abc123.pdf"`
 }
 
 type PaymentResponse struct {
-	ID         int32                  `json:"id"`
-	Name       string                 `json:"name"`
-	Amount     float64                `json:"amount"`
-	Type       entity.TransactionType `json:"type"`
-	Category   entity.CategoryType    `json:"category"`
-	Date       string                 `json:"date"`
-	DueDate    *string                `json:"due_date,omitempty"`
-	Paid       bool                   `json:"paid"`
-	PaidAt     *string                `json:"paid_at,omitempty"`
-	Recurrent  bool                   `json:"recurrent"`
-	Frequency  *entity.FrequencyType  `json:"frequency,omitempty"`
-	ReceiptURL *string                `json:"receipt_url,omitempty"`
+	ID         int32                  `json:"id" example:"7"`
+	Name       string                 `json:"name" example:"claude"`
+	Amount     float64                `json:"amount" example:"14.99"`
+	Type       entity.TransactionType `json:"type" enums:"income,expense,subscription"`
+	Category   entity.CategoryType    `json:"category" example:"work" enums:"electronics,entertainment,education,clothing,work,sports"`
+	Date       string                 `json:"date" example:"2026-04-19"`
+	DueDate    *string                `json:"due_date" example:"2026-04-25"`
+	Paid       bool                   `json:"paid" example:"false"`
+	PaidAt     *string                `json:"paid_at" example:"2026-04-19"`
+	Recurrent  bool                   `json:"recurrent" example:"true"`
+	Frequency  *entity.FrequencyType  `json:"frequency" example:"montly" enums:"daily,weekly,montly,yearly"`
+	ReceiptURL *string                `json:"receipt_url" example:"https://s3.amazonaws.com/receipts/abc123.pdf"`
 }
 
 type UpdatePaymentRequest struct {
@@ -52,6 +52,23 @@ type UpdatePaymentRequest struct {
 	ReceiptURL *string                 `json:"receipt_url,omitempty"`
 }
 
+func ToPaymentResponse(payment entity.Payment) PaymentResponse {
+	return PaymentResponse{
+		ID:         payment.ID,
+		Name:       payment.Name,
+		Amount:     payment.Amount,
+		Type:       payment.Type,
+		Category:   payment.Category,
+		Date:       payment.Date,
+		DueDate:    payment.DueDate,
+		Paid:       payment.Paid,
+		PaidAt:     payment.PaidAt,
+		Recurrent:  payment.Recurrent,
+		Frequency:  payment.Frequency,
+		ReceiptURL: payment.ReceiptURL,
+	}
+}
+
 func (p *CreatePaymentRequest) Validate() error {
 	if !p.Category.IsValid() {
 		return fmt.Errorf("invalid category: %w", domainErr.ErrInvalidCategory)
@@ -61,8 +78,17 @@ func (p *CreatePaymentRequest) Validate() error {
 		return fmt.Errorf("invalid transaction type: %w", domainErr.ErrInvalidTransactionType)
 	}
 
-	if !p.Frequency.IsValid() {
-		return fmt.Errorf("invalid frequency type: %w", domainErr.ErrInvalidFrequency)
+	if p.Recurrent {
+		if p.Frequency == "" {
+			return fmt.Errorf("frequency is required for recurrent payments: %w", domainErr.ErrInvalidFrequency)
+		}
+		if !p.Frequency.IsValid() {
+			return fmt.Errorf("invalid frequency type: %w", domainErr.ErrInvalidFrequency)
+		}
+	}
+
+	if p.Frequency != "" && !p.Recurrent {
+		return fmt.Errorf("recurrent is required if frequency is set: %w", domainErr.ErrInvalidFrequency)
 	}
 
 	if p.Recurrent && p.Frequency == "" {

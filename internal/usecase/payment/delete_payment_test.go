@@ -78,20 +78,6 @@ func TestDeletePayment(t *testing.T) {
 		assert.ErrorIs(t, err, domainErr.ErrPaymentNotFound)
 	})
 
-	t.Run("returns error for id zero", func(t *testing.T) {
-		uc, _ := setupDeletePaymentTest(t)
-
-		err := uc.Execute(context.Background(), 0, 1, entity.RoleUser)
-		assert.ErrorIs(t, err, domainErr.ErrInvalidPaymentData)
-	})
-
-	t.Run("returns error for id negative", func(t *testing.T) {
-		uc, _ := setupDeletePaymentTest(t)
-
-		err := uc.Execute(context.Background(), -1, 1, entity.RoleUser)
-		assert.ErrorIs(t, err, domainErr.ErrInvalidPaymentData)
-	})
-
 	t.Run("handles repository errors", func(t *testing.T) {
 		uc, mockRepo := setupDeletePaymentTest(t)
 

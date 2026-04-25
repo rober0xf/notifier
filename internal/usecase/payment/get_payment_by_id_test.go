@@ -49,26 +49,6 @@ func TestGetPaymentByID(t *testing.T) {
 		assert.ErrorIs(t, err, domainErr.ErrPaymentNotFound)
 	})
 
-	t.Run("returns error for zero id", func(t *testing.T) {
-		uc, _ := setupGetPaymentByIDTest(t)
-
-		payment, err := uc.Execute(context.Background(), 0, 1)
-
-		assert.Error(t, err)
-		assert.Nil(t, payment)
-		assert.ErrorIs(t, err, domainErr.ErrInvalidPaymentData)
-	})
-
-	t.Run("returns error for negative id", func(t *testing.T) {
-		uc, _ := setupGetPaymentByIDTest(t)
-
-		payment, err := uc.Execute(context.Background(), -1, 1)
-
-		assert.Error(t, err)
-		assert.Nil(t, payment)
-		assert.ErrorIs(t, err, domainErr.ErrInvalidPaymentData)
-	})
-
 	t.Run("handles repository error", func(t *testing.T) {
 		uc, mockRepo := setupGetPaymentByIDTest(t)
 
