@@ -6,83 +6,95 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/rober0xf/notifier/internal/delivery/http/dto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestGetByEmail_Success_Integration(t *testing.T) {
-	deps, _ := setupTestDependencies(t)
+func TestGetUserByEmail_Success_Integration(t *testing.T) {
+	userDeps, _ := setupTestDependencies(t)
+	token := getAdminToken(t, userDeps)
+	userID, err := getUserIDFromToken(token)
+	require.NoError(t, err)
+	email, err := extractEmailFromToken(token)
+	require.NoError(t, err)
 
-	email := "rober0xf2@gmail.com"
-	_ = createTestUser(t, deps, "rober0xf", email, "password1#!")
-
-	token := getAuthToken(t, deps.router)
-
-	req := httptest.NewRequest("GET", "/v1/auth/users/email/"+email, nil)
+	req := httptest.NewRequest("GET", "/v1/admin/users/email/"+email, nil)
 	req.Header.Set("Authorization", "Bearer "+token)
+
 	w := httptest.NewRecorder()
-	deps.router.ServeHTTP(w, req)
+	userDeps.router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code)
 
-	assert.Equal(t, http.StatusOK, w.Code)
-
-	var response map[string]any
-	err := json.Unmarshal(w.Body.Bytes(), &response)
-	assert.NoError(t, err)
-
-	require.Equal(t, "rober0xf", response["username"])
-	require.Equal(t, email, response["email"])
-	assert.NotContains(t, response, "password")
+	var response dto.UserPayload
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+	require.NoError(t, err)
+	assert.Equal(t, userID, response.ID)
+	assert.Equal(t, email, response.Email)
 }
 
-func TestGetByEmail_Empty_Integration(t *testing.T) {
-	deps, _ := setupTestDependencies(t)
-	token := getAuthToken(t, deps.router)
+func TestGetUserByEmail_InvalidFormat_Integration(t *testing.T) {
+	userDeps, _ := setupTestDependencies(t)
+	token := getAdminToken(t, userDeps)
 
-	req := httptest.NewRequest("GET", "/v1/auth/users/email", nil)
+	req := httptest.NewRequest("GET", "/v1/admin/users/email/abb", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
+
 	w := httptest.NewRecorder()
-	deps.router.ServeHTTP(w, req)
+	userDeps.router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusBadRequest, w.Code)
 
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-
-	var response map[string]any
+	var response dto.ErrorResponse
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	require.NoError(t, err)
-	assert.Contains(t, response["error"], "email parameter required")
+	assert.Equal(t, "invalid email format", response.Error)
 }
 
-func TestGetByEmail_Invalid_Integration(t *testing.T) {
-	deps, _ := setupTestDependencies(t)
-	token := getAuthToken(t, deps.router)
+func TestGetUserByEmail_NotFound_Integration(t *testing.T) {
+	userDeps, _ := setupTestDependencies(t)
+	token := getAdminToken(t, userDeps)
 
-	invalidEmail := "richard.com"
-	req := httptest.NewRequest("GET", "/v1/auth/users/email/"+invalidEmail, nil)
+	req := httptest.NewRequest("GET", "/v1/admin/users/email/nonexistent@gmail.com", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
+
 	w := httptest.NewRecorder()
-	deps.router.ServeHTTP(w, req)
+	userDeps.router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusNotFound, w.Code)
 
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-
-	var response map[string]any
+	var response dto.ErrorResponse
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	require.NoError(t, err)
-	assert.Contains(t, response["error"], "invalid email format")
+	assert.Equal(t, "user not found", response.Error)
 }
 
-func TestGetByEmail_NotFound_Integration(t *testing.T) {
-	deps, _ := setupTestDependencies(t)
-	token := getAuthToken(t, deps.router)
+func TestGetUserByEmail_Unauthorized_Integration(t *testing.T) {
+	userDeps, _ := setupTestDependencies(t)
 
-	nonExistingEmail := "doesnotexists@example.com"
-	req := httptest.NewRequest("GET", "/v1/auth/users/email/"+nonExistingEmail, nil)
-	req.Header.Set("Authorization", "Bearer "+token)
+	req := httptest.NewRequest("GET", "/v1/admin/users/email/test@gmail.com", nil)
+
 	w := httptest.NewRecorder()
-	deps.router.ServeHTTP(w, req)
+	userDeps.router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusUnauthorized, w.Code)
 
-	assert.Equal(t, http.StatusNotFound, w.Code)
-
-	var response map[string]any
+	var response dto.ErrorResponse
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	require.NoError(t, err)
-	assert.Contains(t, response["error"], "user not found")
+	assert.Equal(t, "no token provided", response.Error)
+}
+
+func TestGetUserByEmail_Forbidden_Integration(t *testing.T) {
+	userDeps, _ := setupTestDependencies(t)
+	token := getAuthToken(t, userDeps)
+
+	req := httptest.NewRequest("GET", "/v1/admin/users/email/test@gmail.com", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	w := httptest.NewRecorder()
+	userDeps.router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusForbidden, w.Code)
+
+	var response dto.ErrorResponse
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	require.NoError(t, err)
+	assert.Equal(t, "forbidden", response.Error)
 }

@@ -18,6 +18,7 @@ type TestUserDependencies struct {
 	router   *gin.Engine
 	db       *pgxpool.Pool
 	userRepo repository.UserRepository
+	jwtGen   *auth.JWTGenerator
 }
 
 type TestPaymentDependencies struct {
@@ -69,7 +70,7 @@ func setupTestDependencies(t *testing.T) (*TestUserDependencies, *TestPaymentDep
 
 	createPaymentUC := payment.NewCreatePaymentUseCase(paymentRepo)
 	getPaymentByIDUC := payment.NewGetPaymentByIDUseCase(paymentRepo)
-	getAllPaymentsFromUserUC := payment.NewGetMyPaymentsUseCase(paymentRepo, userRepo)
+	getMyPaymentsUC := payment.NewGetMyPaymentsUseCase(paymentRepo, userRepo)
 	getAllPaymentsUC := payment.NewGetAllPaymentsUseCase(paymentRepo)
 	updatePaymentUC := payment.NewUpdatePaymentUseCase(paymentRepo)
 	deletePaymentUC := payment.NewDeletePaymentUseCase(paymentRepo)
@@ -77,7 +78,7 @@ func setupTestDependencies(t *testing.T) (*TestUserDependencies, *TestPaymentDep
 	paymentHandler := http.NewPaymentHandler(
 		createPaymentUC,
 		getPaymentByIDUC,
-		getAllPaymentsFromUserUC,
+		getMyPaymentsUC,
 		getAllPaymentsUC,
 		updatePaymentUC,
 		deletePaymentUC,
@@ -90,6 +91,7 @@ func setupTestDependencies(t *testing.T) (*TestUserDependencies, *TestPaymentDep
 			router:   router,
 			db:       db,
 			userRepo: userRepo,
+			jwtGen:   tokenGen,
 		}, &TestPaymentDependencies{
 			router:      router,
 			db:          db,

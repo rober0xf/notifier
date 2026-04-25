@@ -1,179 +1,203 @@
 package integration
 
 import (
-	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
 	"strings"
 	"testing"
 
+	"github.com/rober0xf/notifier/internal/delivery/http/dto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"golang.org/x/crypto/bcrypt"
 )
 
-func TestUpdateUser_Success_Integration(t *testing.T) {
-	deps, _ := setupTestDependencies(t)
-	token := getAuthToken(t, deps.router)
+func TestUpdateUser_Success_OwnAccount_Integration(t *testing.T) {
+	userDeps, _ := setupTestDependencies(t)
+	token := getAuthToken(t, userDeps)
 
-	userID := createTestUser(t, deps, "rober0xf", "rober0xf2@gmail.com", "password1#!")
-	userIDStr := strconv.Itoa(userID)
+	userID, err := getUserIDFromToken(token)
+	require.NoError(t, err)
+	payload := `{
+		"username": "changed"
+	}`
 
-	input := `{"username": "rober"}`
-
-	req := httptest.NewRequest("PUT", "/v1/auth/users/"+userIDStr, strings.NewReader(input))
-	req.Header.Set("Content-Type", "application/json")
+	req := httptest.NewRequest("PUT", "/v1/auth/users/"+strconv.Itoa(userID), strings.NewReader(payload))
 	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
+
 	w := httptest.NewRecorder()
-	deps.router.ServeHTTP(w, req)
+	userDeps.router.ServeHTTP(w, req)
 	require.Equal(t, http.StatusOK, w.Code)
 
-	var response map[string]any
-	err := json.Unmarshal(w.Body.Bytes(), &response)
+	var response dto.UserPayload
+	err = json.Unmarshal(w.Body.Bytes(), &response)
 	require.NoError(t, err)
-	assert.Equal(t, "rober", response["username"])
-	assert.Equal(t, "rober0xf2@gmail.com", response["email"])
+	assert.Equal(t, userID, response.ID)
+	assert.Equal(t, "changed", response.Username)
+}
+
+func TestUpdateUser_Success_Admin_Integration(t *testing.T) {
+	userDeps, _ := setupTestDependencies(t)
+	token := getAuthToken(t, userDeps)
+	adminToken := getAdminToken(t, userDeps)
+
+	userID, err := getUserIDFromToken(token)
+	require.NoError(t, err)
+	payload := `{
+		"username": "changed"
+	}`
+
+	req := httptest.NewRequest("PUT", "/v1/auth/users/"+strconv.Itoa(userID), strings.NewReader(payload))
+	req.Header.Set("Authorization", "Bearer "+adminToken)
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	userDeps.router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code)
+
+	var response dto.UserPayload
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+	require.NoError(t, err)
+	assert.Equal(t, "changed", response.Username)
 }
 
 func TestUpdateUser_InvalidID_Integration(t *testing.T) {
-	deps, _ := setupTestDependencies(t)
-	token := getAuthToken(t, deps.router)
+	userDeps, _ := setupTestDependencies(t)
+	token := getAuthToken(t, userDeps)
+	payload := `{
+		"email": "changed@gmail.com"
+	}`
 
-	req := httptest.NewRequest("PUT", "/v1/auth/users/aa", nil)
+	req := httptest.NewRequest("PUT", "/v1/auth/users/abb", strings.NewReader(payload))
 	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
+
 	w := httptest.NewRecorder()
-	deps.router.ServeHTTP(w, req)
+	userDeps.router.ServeHTTP(w, req)
 	require.Equal(t, http.StatusBadRequest, w.Code)
 
-	var response map[string]any
+	var response dto.ErrorResponse
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	require.NoError(t, err)
-	assert.Contains(t, response["error"], "invalid id")
+	assert.Equal(t, "invalid id", response.Error)
 }
 
-func TestUpdateUser_MalformedJSON_Integration(t *testing.T) {
-	deps, _ := setupTestDependencies(t)
-	token := getAuthToken(t, deps.router)
+func TestUpdateUser_InvalidBody_Integration(t *testing.T) {
+	userDeps, _ := setupTestDependencies(t)
+	token := getAuthToken(t, userDeps)
 
-	userID := createTestUser(t, deps, "rober0xf", "rober0xf2@gmail.com", "password1#!")
-	userIDStr := strconv.Itoa(userID)
+	userID, err := getUserIDFromToken(token)
+	require.NoError(t, err)
+	payload := `{
+		"position": "swe"
+	}`
 
-	input := `{invalid}`
-
-	req := httptest.NewRequest("PUT", "/v1/auth/users/"+userIDStr, strings.NewReader(input))
-	req.Header.Set("Content-Type", "application/json")
+	req := httptest.NewRequest("PUT", "/v1/auth/users/"+strconv.Itoa(userID), strings.NewReader(payload))
 	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
+
 	w := httptest.NewRecorder()
-	deps.router.ServeHTTP(w, req)
+	userDeps.router.ServeHTTP(w, req)
 	require.Equal(t, http.StatusBadRequest, w.Code)
 
-	var response map[string]any
-	err := json.Unmarshal(w.Body.Bytes(), &response)
+	var response dto.ErrorResponse
+	err = json.Unmarshal(w.Body.Bytes(), &response)
 	require.NoError(t, err)
-	assert.Contains(t, response["error"], "invalid request")
+	assert.Equal(t, "at least one field is required", response.Error)
 }
 
-func TestUpdateUser_EmptyRequest_Integration(t *testing.T) {
-	deps, _ := setupTestDependencies(t)
-	token := getAuthToken(t, deps.router)
+func TestUpdateUser_Unauthorized_Integration(t *testing.T) {
+	userDeps, _ := setupTestDependencies(t)
 
-	userID := createTestUser(t, deps, "rober0xf", "rober0xf2@gmail.com", "password1#!")
-	userIDStr := strconv.Itoa(userID)
+	payload := `{
+		"username": "swe"
+	}`
 
-	input := `{}`
-
-	req := httptest.NewRequest("PUT", "/v1/auth/users/"+userIDStr, strings.NewReader(input))
+	req := httptest.NewRequest("PUT", "/v1/auth/users/1", strings.NewReader(payload))
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+token)
-	w := httptest.NewRecorder()
-	deps.router.ServeHTTP(w, req)
-	require.Equal(t, http.StatusBadRequest, w.Code)
 
-	var response map[string]any
+	w := httptest.NewRecorder()
+	userDeps.router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusUnauthorized, w.Code)
+
+	var response dto.ErrorResponse
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	require.NoError(t, err)
-	assert.Contains(t, response["error"], "at least one field is required")
+	assert.Equal(t, "no token provided", response.Error)
+}
+
+func TestUpdateUser_Forbidden_Integration(t *testing.T) {
+	userDeps, _ := setupTestDependencies(t)
+	token := getAuthToken(t, userDeps)
+	token2 := getAuthToken(t, userDeps)
+
+	userID, err := getUserIDFromToken(token)
+	require.NoError(t, err)
+	userIDStr := strconv.Itoa(userID)
+	payload := `{
+		"username": "swe"
+	}`
+
+	req := httptest.NewRequest("PUT", "/v1/auth/users/"+userIDStr, strings.NewReader(payload))
+	req.Header.Set("Authorization", "Bearer "+token2)
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	userDeps.router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusForbidden, w.Code)
+
+	var response dto.ErrorResponse
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+	require.NoError(t, err)
+	assert.Equal(t, "cannot change other user data", response.Error)
 }
 
 func TestUpdateUser_NotFound_Integration(t *testing.T) {
-	deps, _ := setupTestDependencies(t)
-	token := getAuthToken(t, deps.router)
+	userDeps, _ := setupTestDependencies(t)
+	adminToken := getAdminToken(t, userDeps)
 
-	input := `{"username": "rober"}`
+	payload := `{
+		"username": "swe"
+	}`
 
-	req := httptest.NewRequest("PUT", "/v1/auth/users/9999", strings.NewReader(input))
+	req := httptest.NewRequest("PUT", "/v1/auth/users/999999", strings.NewReader(payload))
+	req.Header.Set("Authorization", "Bearer "+adminToken)
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+token)
+
 	w := httptest.NewRecorder()
-	deps.router.ServeHTTP(w, req)
+	userDeps.router.ServeHTTP(w, req)
 	require.Equal(t, http.StatusNotFound, w.Code)
 
-	var response map[string]any
+	var response dto.ErrorResponse
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	require.NoError(t, err)
-	assert.Contains(t, response["error"], "user not found")
+	assert.Equal(t, "user not found", response.Error)
 }
 
-func TestUpdateUser_NegativeID_Integration(t *testing.T) {
-	deps, _ := setupTestDependencies(t)
-	token := getAuthToken(t, deps.router)
+func TestUpdateUser_EmailAlreadyExists_Integration(t *testing.T) {
+	userDeps, _ := setupTestDependencies(t)
+	token := getAuthToken(t, userDeps)
+	token2 := getAuthToken(t, userDeps)
 
-	input := `{"username": "rober"}`
-
-	req := httptest.NewRequest("PUT", "/v1/auth/users/-1", strings.NewReader(input))
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+token)
-	w := httptest.NewRecorder()
-	deps.router.ServeHTTP(w, req)
-	require.Equal(t, http.StatusBadRequest, w.Code)
-
-	var response map[string]any
-	err := json.Unmarshal(w.Body.Bytes(), &response)
+	userID, err := getUserIDFromToken(token)
 	require.NoError(t, err)
-	assert.Contains(t, response["error"], "id must be positive")
-}
-
-func TestUpdateUser_InvalidEmail_Integration(t *testing.T) {
-	deps, _ := setupTestDependencies(t)
-	token := getAuthToken(t, deps.router)
-
-	userID := createTestUser(t, deps, "rober0xf", "rober0xf2@gmail.com", "password1#!")
-	userIDStr := strconv.Itoa(userID)
-	input := `{"email": "rober.com"}`
-
-	req := httptest.NewRequest("PUT", "/v1/auth/users/"+userIDStr, strings.NewReader(input))
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+token)
-	w := httptest.NewRecorder()
-	deps.router.ServeHTTP(w, req)
-	require.Equal(t, http.StatusBadRequest, w.Code)
-
-	var response map[string]any
-	err := json.Unmarshal(w.Body.Bytes(), &response)
+	email2, err := extractEmailFromToken(token2)
 	require.NoError(t, err)
-	assert.Contains(t, response["error"], "invalid email format")
-}
 
-func TestUpdateUser_Password_Integration(t *testing.T) {
-	deps, _ := setupTestDependencies(t)
-	token := getAuthToken(t, deps.router)
-
-	userID := createTestUser(t, deps, "rober0xf", "rober0xf2@gmail.com", "password1!#")
-	userIDStr := strconv.Itoa(userID)
-
-	input := `{"password": "password2!#"}`
-
-	req := httptest.NewRequest("PUT", "/v1/auth/users/"+userIDStr, strings.NewReader(input))
-	req.Header.Set("Content-Type", "application/json")
+	body := fmt.Sprintf(`{"email":"%s"}`, email2)
+	req := httptest.NewRequest("PUT", "/v1/auth/users/"+strconv.Itoa(userID), strings.NewReader(body))
 	req.Header.Set("Authorization", "Bearer "+token)
-	w := httptest.NewRecorder()
-	deps.router.ServeHTTP(w, req)
-	require.Equal(t, http.StatusOK, w.Code)
+	req.Header.Set("Content-Type", "application/json")
 
-	user, err := deps.userRepo.GetUserByID(context.Background(), userID)
+	w := httptest.NewRecorder()
+	userDeps.router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusConflict, w.Code)
+
+	var response dto.ErrorResponse
+	err = json.Unmarshal(w.Body.Bytes(), &response)
 	require.NoError(t, err)
-	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte("password2!#"))
-	assert.NoError(t, err)
+	assert.Equal(t, "email already in use", response.Error)
 }

@@ -1,1 +1,198 @@
 package integration
+
+import (
+	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"strconv"
+	"strings"
+	"testing"
+
+	"github.com/rober0xf/notifier/internal/delivery/http/dto"
+	"github.com/rober0xf/notifier/internal/domain/entity"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func TestUpdatePayment_Success_Integration(t *testing.T) {
+	userDeps, paymentDeps := setupTestDependencies(t)
+	token := getAuthToken(t, userDeps)
+	userID, err := getUserIDFromToken(token)
+	require.NoError(t, err)
+
+	paymentID, err := insertTestPayment(context.Background(), paymentDeps.db, userID, TestPayment{
+		Name:      "claude",
+		Amount:    15.99,
+		Type:      "subscription",
+		Category:  "work",
+		Date:      "2026-01-03",
+		Paid:      false,
+		Recurrent: false,
+	})
+	require.NoError(t, err)
+
+	body := `{
+		"name":"codex",
+		"amount":22.99,
+		"type":"expense"
+	}`
+
+	req := httptest.NewRequest("PUT", "/v1/auth/payments/"+strconv.Itoa(paymentID), strings.NewReader(body))
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	paymentDeps.router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusNoContent, w.Code)
+
+	payment, err := paymentDeps.paymentRepo.GetPaymentByID(context.Background(), paymentID)
+	require.NoError(t, err)
+	require.Equal(t, "codex", payment.Name)
+	require.Equal(t, 22.99, payment.Amount)
+	require.Equal(t, entity.TransactionTypeExpense, payment.Type)
+}
+
+func TestUpdatePayment_InvalidID_Integration(t *testing.T) {
+	userDeps, paymentDeps := setupTestDependencies(t)
+	token := getAuthToken(t, userDeps)
+
+	body := `{
+		"name":"aws",
+		"amount":350,
+		"type":"expense",
+		"category":"work",
+		"date":"2026-01-03",
+		"paid":false
+	}`
+
+	req := httptest.NewRequest("PUT", "/v1/auth/payments/abb", strings.NewReader(body))
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	paymentDeps.router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusBadRequest, w.Code)
+
+	var response dto.ErrorResponse
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	require.NoError(t, err)
+	assert.Equal(t, "invalid payment id", response.Error)
+}
+
+func TestUpdatePayment_Unauthorized_Integration(t *testing.T) {
+	_, paymentDeps := setupTestDependencies(t)
+
+	body := `{
+			"name":"aws",
+			"amount":350,
+			"type":"expense",
+			"category":"work",
+			"date":"2026-01-03",
+			"paid":false
+		}`
+
+	req := httptest.NewRequest("PUT", "/v1/auth/payments/1", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	paymentDeps.router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusUnauthorized, w.Code)
+
+	var response dto.ErrorResponse
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	require.NoError(t, err)
+	assert.Equal(t, "no token provided", response.Error)
+}
+
+func TestUpdatePayment_InvalidBody_Integration(t *testing.T) {
+	userDeps, paymentDeps := setupTestDependencies(t)
+	token := getAuthToken(t, userDeps)
+	userID, err := getUserIDFromToken(token)
+	require.NoError(t, err)
+
+	paymentID, err := insertTestPayment(context.Background(), paymentDeps.db, userID, TestPayment{
+		Name:      "claude",
+		Amount:    15.99,
+		Type:      "subscription",
+		Category:  "work",
+		Date:      "2026-01-03",
+		Paid:      false,
+		Recurrent: false,
+	})
+	require.NoError(t, err)
+	body := `{"amount":"-10"}`
+
+	req := httptest.NewRequest("PUT", "/v1/auth/payments/"+strconv.Itoa(paymentID), strings.NewReader(body))
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	paymentDeps.router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusBadRequest, w.Code)
+
+	var response dto.ErrorResponse
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+	require.NoError(t, err)
+	assert.Equal(t, "validation failed", response.Error)
+}
+
+func TestUpdatePayment_NotFound_Integration(t *testing.T) {
+	userDeps, paymentDeps := setupTestDependencies(t)
+	token := getAuthToken(t, userDeps)
+
+	body := `{
+				"name":"aws",
+				"amount":350,
+				"type":"expense",
+				"category":"work",
+				"date":"2026-01-03",
+				"paid":false
+			}`
+
+	req := httptest.NewRequest("PUT", "/v1/auth/payments/999999", strings.NewReader(body))
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	paymentDeps.router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusNotFound, w.Code)
+
+	var response dto.ErrorResponse
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	require.NoError(t, err)
+	assert.Equal(t, "payment not found", response.Error)
+}
+
+func TestUpdatePayment_Forbidden_Integration(t *testing.T) {
+	userDeps, paymentDeps := setupTestDependencies(t)
+	token := getAuthToken(t, userDeps)
+	token2 := getAuthToken(t, userDeps)
+	userID, err := getUserIDFromToken(token)
+	require.NoError(t, err)
+
+	paymentID, err := insertTestPayment(context.Background(), paymentDeps.db, userID, TestPayment{
+		Name:      "claude",
+		Amount:    15.99,
+		Type:      "subscription",
+		Category:  "work",
+		Date:      "2026-01-03",
+		Paid:      false,
+		Recurrent: false,
+	})
+	require.NoError(t, err)
+	body := `{"amount":20}`
+
+	req := httptest.NewRequest("PUT", "/v1/auth/payments/"+strconv.Itoa(paymentID), strings.NewReader(body))
+	req.Header.Set("Authorization", "Bearer "+token2)
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	paymentDeps.router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusForbidden, w.Code)
+
+	var response dto.ErrorResponse
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+	require.NoError(t, err)
+	assert.Equal(t, "cannot update another user's payment", response.Error)
+}

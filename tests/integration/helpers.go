@@ -2,92 +2,95 @@ package integration
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"net/http"
-	"net/http/httptest"
 	"strings"
 	"testing"
 
-	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"github.com/rober0xf/notifier/internal/domain/entity"
 	"github.com/stretchr/testify/require"
 )
 
-func createTestUser(t *testing.T, deps *TestUserDependencies, username, email, password string) int {
+func getAuthToken(t *testing.T, deps *TestUserDependencies) string {
 	t.Helper()
 
-	payload := fmt.Sprintf(`{
-        "username": "%s",
-        "email": "%s",
-        "password": "%s"
-    }`, username, email, password)
+	ctx := context.Background()
+	id := uuid.New().String()
 
-	req := httptest.NewRequest("POST", "/v1/users/register", strings.NewReader(payload))
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	deps.router.ServeHTTP(w, req)
-	require.Equal(t, http.StatusCreated, w.Code)
+	email := fmt.Sprintf("test-%s@example.com", id)
+	username := fmt.Sprintf("test-%s", id)
+	password := fmt.Sprintf("test-%s", id)
 
-	user, err := deps.userRepo.GetUserByEmail(context.Background(), email)
+	userID, err := insertTestUser(ctx, deps.db, email, username, password)
 	require.NoError(t, err)
 
-	return user.ID
+	token, err := deps.jwtGen.Generate(userID, email, entity.RoleUser)
+	require.NoError(t, err)
+
+	return token
 }
 
-func createTestPayment(
-	t *testing.T,
-	deps *TestPaymentDependencies,
-	token string,
-	name string,
-	amount float64,
-	payment_type string,
-	category string,
-	date string,
-	paid bool, recurrent bool) int {
+func getAdminToken(t *testing.T, deps *TestUserDependencies) string {
 	t.Helper()
 
-	payload := fmt.Sprintf(`{
-		"name": "%s",
-        "amount": %f,
-        "type": "%s",
-        "category": "%s",
-        "date": "%s",
-        "paid": %t,
-        "recurrent": %t
-    }`, name, amount, payment_type, category, date, paid, recurrent)
+	ctx := context.Background()
+	id := uuid.New().String()
 
-	req := httptest.NewRequest("POST", "/v1/auth/payments", strings.NewReader(payload))
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+token)
-	w := httptest.NewRecorder()
-	deps.router.ServeHTTP(w, req)
-	require.Equal(t, http.StatusCreated, w.Code)
+	email := fmt.Sprintf("test-%s@example.com", id)
+	username := fmt.Sprintf("test-%s", id)
+	password := fmt.Sprintf("test-%s", id)
 
-	var response map[string]any
-	err := json.NewDecoder(w.Body).Decode(&response)
+	userID, err := insertTestUser(ctx, deps.db, email, username, password)
 	require.NoError(t, err)
 
-	return int(response["id"].(float64))
-}
-
-func getAuthToken(t *testing.T, router *gin.Engine) string {
-	return getAuthTokenWithCredentials(t, router, "rober0xf", "rober0xf@gmail.com", "password1!#")
-}
-
-func getAuthTokenWithCredentials(t *testing.T, router *gin.Engine, username, email, password string) string {
-	t.Helper()
-
-	payload := fmt.Sprintf(`{"username": "%s", "email": "%s", "password": "%s"}`, username, email, password)
-	req := httptest.NewRequest("POST", "/v1/users/register", strings.NewReader(payload))
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	require.Equal(t, http.StatusCreated, w.Code)
-
-	var response map[string]any
-	err := json.Unmarshal(w.Body.Bytes(), &response)
+	token, err := deps.jwtGen.Generate(userID, email, entity.RoleAdmin)
 	require.NoError(t, err)
 
-	return response["token"].(string)
+	return token
+}
+
+func getUserIDFromToken(token string) (int, error) {
+	parts := strings.Split(token, ".")
+	if len(parts) != 3 {
+		return 0, fmt.Errorf("invalid token format")
+	}
+
+	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return 0, err
+	}
+
+	var claims map[string]any
+	if err := json.Unmarshal(payload, &claims); err != nil {
+		return 0, err
+	}
+
+	userID := int(claims["user_id"].(float64))
+	return userID, nil
+}
+
+func extractEmailFromToken(token string) (string, error) {
+	parts := strings.Split(token, ".")
+	if len(parts) != 3 {
+		return "", fmt.Errorf("invalid token format")
+	}
+
+	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return "", err
+	}
+
+	var claims map[string]any
+	if err := json.Unmarshal(payload, &claims); err != nil {
+		return "", err
+	}
+
+	email, ok := claims["email"].(string)
+	if !ok {
+		return "", fmt.Errorf("email claim not found")
+	}
+
+	return email, nil
 }
